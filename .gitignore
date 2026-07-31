@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Node, though there are no dependencies to install
+node_modules/
+npm-debug.log*
+
+# Nothing the game writes is in here — saves, config, sprites and the PokeAPI
+# response cache all live under ~/.claudemon. Two things that look ignorable and
+# are not:
+#
+#   data/  the dataset the plugin ships, so installing needs no PokeAPI round trip
+#   docs/  the screenshots the README shows

@@ -1,0 +1,140 @@
+# claudemon
+
+Wild Pokemon appear while you work in Claude Code. Your prompts are steps through
+the grass: the longer the prompt, the further you walk, and the more chances
+something jumps out. So is the waiting — every twenty seconds Claude spends
+working is another step, because that is the half of the session you actually
+have free.
+
+One at a time, and only for half a minute: a Pokemon that appears while you are busy
+wanders off if you leave it there, so a long session never leaves a queue of battles
+waiting for you.
+
+The original 151. Fully local — no account, no backend, no network once installed.
+
+<img src="docs/battle.png" alt="A battle in the terminal: a wild Venonat facing your Squirtle, both drawn as pixel sprites, with health bars and a FIGHT / BAG / POKÉMON / RUN menu" width="600">
+
+It lives in a terminal tab of its own, next to the one you work in. The status line
+in Claude tells you something is waiting; the game tab is where you go and fight it.
+
+```
+┌─ Terminal 1: claude ────────────────────────┐
+│ > refactor this component                   │
+│ ███████░░░░░░░ 63% left | Opus 5            │
+│ ✦ A wild PIDGEY appeared!  ·  claudemon tab │
+└─────────────────────────────────────────────┘
+```
+
+## Install
+
+Three lines, typed inside Claude Code. Nothing to clone.
+
+```
+/plugin marketplace add zamarrowski/claudemon
+/plugin install claudemon@claudemon
+/claudemon-setup
+```
+
+The first two put the plugin in place — that is what runs the hooks that make Pokemon
+appear. `/claudemon-setup` does the rest: the `claudemon` command, the status line,
+and the sprites. It prints a line per step and says so if one of them did not work.
+
+Then two one-offs, which it reminds you of:
+
+1. **Restart Claude Code**, so the hooks and the status line load.
+2. In a **second terminal tab**, run `claudemon`.
+
+It asks for a name and a starter the first time, and after that it sits there
+waiting. Send a longish prompt in the Claude tab and watch the status line.
+
+### What you need first
+
+| | How to check |
+|---|---|
+| **Claude Code** | You are already in it |
+| **Node.js 18 or newer** | `node --version`. The game and the hooks run on it, and Claude Code ships as its own binary so it does not bring one. Nothing else to install — no dependencies, no build step |
+| **A terminal with truecolor** | iTerm2, Ghostty, WezTerm, Kitty, Alacritty, VS Code's terminal and macOS Terminal are all fine |
+
+The 151 Pokemon ship with the plugin, so the only thing the install downloads is the
+sprites — 1.2 MB, a few seconds. After that the game never touches the network.
+
+### Uninstall
+
+```
+/plugin uninstall claudemon@claudemon
+```
+
+That stops the hooks. To also remove the command and put your status line back, run
+the installer's undo — from the plugin copy, before you uninstall it:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/tools/install.mjs" --uninstall
+```
+
+Your save is left alone either way — delete `~/.claudemon/` as well to be rid of it.
+
+### From a clone instead
+
+For hacking on it, a clone works the same way and takes precedence over the
+installed copy:
+
+```bash
+git clone https://github.com/zamarrowski/claudemon
+cd claudemon
+node tools/install.mjs
+```
+
+That does everything the three lines above do, including installing the plugin from
+the clone. Keep the directory where it is: the launcher prefers it while it exists.
+
+## Controls
+
+Arrow keys move, `enter` confirms, `esc` goes back, `q` quits. Any key advances a
+battle message. That is the whole scheme — it is the same everywhere.
+
+| Screen | What it does |
+|---|---|
+| Home | Whatever is in the grass and how long is left to face it, your team, and the menu |
+| Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP |
+| Pokédex | All 151, with base stats and evolution requirements for the ones you caught |
+| Team | Details, moves, experience, and `enter` to change your lead |
+| Shop | Balls, potions, revives and evolution stones. `5` buys five |
+| Option | How big sprites are drawn, and the bell. `← →` changes a setting, and the Pokémon underneath redraws as you do |
+
+<table>
+<tr>
+<td width="50%"><img src="docs/pokedex.png" alt="The Pokédex: the list of all 151 down the left with seen and caught markers, and Charmander on the right with its base stats, catch rate and what it evolves into"></td>
+<td width="50%"><img src="docs/team.png" alt="The team screen: five Pokémon listed on the left, and Ditto on the right with its health, experience, stats and moves"></td>
+</tr>
+<tr>
+<td><b>Pokédex</b> — seen and caught are tracked apart, and the stats fill in for the ones you caught.</td>
+<td><b>Team</b> — <code>enter</code> changes which one leads.</td>
+</tr>
+</table>
+
+## What is in it
+
+- The original 151, with real base stats, types, catch rates and Red/Blue movesets.
+- Battles with critical hits, the type chart, status conditions, PP, one-hit KOs,
+  fleeing and switching Pokémon mid-fight.
+- Catching, where weakening and status genuinely help.
+- Levelling, learning moves, and evolution by level or by stone.
+- A Pokédex tracking seen and caught separately, a team screen and a shop.
+- A line telling you whether Claude is working, which tool it is on and for how
+  long — and a bell when it finishes or gets stuck on a permission prompt, so the
+  game tab is somewhere you can actually sit and wait.
+- A patch of grass with someone walking through it, who only walks while Claude is
+  working. Something you can catch out of the corner of your eye.
+
+<img src="docs/home.png" alt="The home screen: the activity line reading Claude is working, Read, 3m09s, someone standing in a band of grass, and the team listed below" width="600">
+
+The walk is the activity line said a second way. It moves while Claude is working and
+stops when it stops, so you can tell from across the desk without reading anything.
+
+## Credits
+
+Data and sprites come from [PokeAPI](https://pokeapi.co). The stats and movesets in
+`data/` are built from it by `tools/fetch-data.mjs`. The sprites are not in here:
+they are somebody else's artwork, so they are downloaded at install time rather than
+redistributed. Pokemon is a trademark of Nintendo, Creatures Inc. and GAME FREAK
+Inc.; this is a personal, non-commercial toy.

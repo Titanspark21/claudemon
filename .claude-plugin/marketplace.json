@@ -1,0 +1,14 @@
+{
+  "name": "claudemon",
+  "description": "A Pokemon game that plays alongside your Claude Code session.",
+  "owner": {
+    "name": "Sergio Zamarro"
+  },
+  "plugins": [
+    {
+      "name": "claudemon",
+      "source": "./",
+      "description": "Wild Pokemon appear while you work. Your prompts are steps through the grass."
+    }
+  ]
+}

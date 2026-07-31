@@ -1,0 +1,183 @@
+// The screen you leave open while you work.
+//
+// Quiet when nothing is happening, and loud the moment something is waiting.
+
+import { spriteFile } from '../../paths.mjs'
+import { displayName, isFainted, levelOf } from '../../pokemon.mjs'
+import { totalBalls } from '../../state.mjs'
+import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
+import { bandRows, bandScale, grassLines } from '../grass.mjs'
+import { fitCanvasCols, loadSprite, placeSprite } from '../sprite.mjs'
+import { centre, elapsed, hpBar, menuGrid, money, padRight, panel, wrap } from '../widgets.mjs'
+
+/**
+ * The home menu. `id` is what the state machine acts on and `label` is only ever
+ * drawn, so renaming or translating an entry cannot change what it does.
+ */
+const BASE_MENU = [
+  { id: 'dex', label: 'POKÉDEX' },
+  { id: 'team', label: 'TEAM' },
+  { id: 'shop', label: 'SHOP' },
+  { id: 'heal', label: 'HEAL' },
+  { id: 'options', label: 'OPTION' },
+  { id: 'quit', label: 'QUIT' },
+]
+
+/**
+ * Columns the longest label plus its cursor needs. A window too narrow to give
+ * every entry that much gets a menu on two rows instead of entries running into
+ * each other.
+ */
+const MENU_CELL = 10
+
+/**
+ * FIGHT only appears when there is something to fight, and it goes first so the
+ * default action is the one you opened the tab for.
+ */
+export function menuItems(ctx) {
+  return ctx.encounter ? [{ id: 'fight', label: 'FIGHT' }, ...BASE_MENU] : BASE_MENU
+}
+
+/**
+ * How long is left to face it, as a line to read.
+ *
+ * The countdown is the whole point of the row: an encounter that vanishes with no
+ * warning reads as a bug, and this is the difference between "it left" and
+ * "I let it leave".
+ */
+export function countdownRow(encounter, now = Date.now()) {
+  const left = Math.max(0, Math.ceil(((encounter.expiresAt ?? now) - now) / 1000))
+  return dim(`it slips back into the grass in ${left}s`)
+}
+
+/**
+ * What Claude Code is doing, in one line.
+ *
+ * Empty when nothing is reporting: a machine without the activity hook installed
+ * should see no row at all rather than a confident "Claude is idle".
+ */
+export function activityRow(activity, now = Date.now()) {
+  if (!activity || activity.state === 'unknown') return ''
+
+  const age = typeof activity.since === 'number' ? ` ${dim('·')} ${dim(elapsed(now - activity.since))}` : ''
+  const others = activity.sessions > 1 ? dim(` (+${activity.sessions - 1})`) : ''
+
+  if (activity.state === 'waiting') {
+    return `${brightYellow('◆')} ${bold('Claude needs you')}${others}${age}`
+  }
+
+  if (activity.state === 'working') {
+    const tool = activity.tool ? ` ${dim('·')} ${activity.tool}` : ''
+    return `${brightGreen('●')} Claude is working${others}${tool}${age}`
+  }
+
+  return `${dim('○')} ${dim('Claude is idle')}${others}${age}`
+}
+
+export function draw(ctx, size) {
+  const { cols, rows } = size
+  const lines = []
+  const overlays = []
+  const width = Math.min(cols - 2, 72)
+
+  const encounter = ctx.encounter
+  const lead = ctx.save.party[0]
+
+  // Where the grass goes, filled in at the end once it is known whether the
+  // window has room to spare for it.
+  let grassAt = -1
+
+  // Header
+  const title = `${brightYellow('◓')} ${bold('claudemon')}`
+  const summary = dim(
+    `${ctx.save.dex.caught.length}/151 caught · ${totalBalls(ctx.save)} balls · ${money(ctx.save.money)}`,
+  )
+  lines.push(` ${padRight(title, width - 40)}${summary}`)
+
+  const activity = activityRow(ctx.activity)
+  lines.push(activity ? ` ${activity}` : '')
+
+  if (encounter) {
+    lines.push(centre(
+      `${brightYellow('✦')} ${bold(`A wild ${encounter.name.toUpperCase()}`)} appeared!`,
+      cols,
+    ))
+    lines.push(centre(countdownRow(encounter), cols))
+    lines.push('')
+
+    // A missing sprite must not stop you fighting.
+    const sprite = loadSprite(spriteFile('front', encounter.species, 'png'), {
+      cols: fitCanvasCols(size, 16, ctx.spriteScale),
+    })
+    if (sprite) placeSprite(lines, sprite, Math.max(1, Math.floor((cols - sprite.cols) / 2)))
+    // The grass it came out of, and you standing still in it: something has
+    // jumped out, so this is not a moment you keep walking through.
+    grassAt = lines.length
+    lines.push('')
+    lines.push(centre(`${brightGreen('[enter]')} face it`, cols))
+  } else {
+    lines.push('')
+    // While Claude works you are walking, so the grass is not quiet — it just has
+    // not turned anything up yet. Saying otherwise reads as a broken game.
+    const working = ctx.activity?.state === 'working'
+    lines.push(centre(dim(working ? 'Rustling in the grass...' : 'The grass is quiet.'), cols))
+    lines.push('')
+    grassAt = lines.length
+    lines.push('')
+    lines.push(centre(dim(
+      working
+        ? 'Every moment Claude works is a step further in.'
+        : 'Keep working in Claude Code — longer prompts walk further.',
+    ), cols))
+  }
+
+  // Party strip
+  lines.push('')
+  if (lead) {
+    const party = ctx.save.party.map((mon) => {
+      const name = isFainted(mon) ? gray(displayName(mon).toUpperCase()) : displayName(mon).toUpperCase()
+      return `${padRight(name, 12)} ${dim(`Lv${levelOf(mon)}`)} ${hpBar(mon.hp, mon.stats.hp, 10)}`
+    })
+    for (const line of panel(party, width, { title: 'Team' })) lines.push(` ${line}`)
+  }
+
+  const items = menuItems(ctx)
+  // Built before the grass so both know how many rows the menu is about to take.
+  const menuRows = menuGrid(items.map((item) => item.label), ctx.homeSelection, {
+    columns: Math.min(items.length, Math.max(1, Math.floor(width / MENU_CELL))),
+    width,
+  })
+
+  // The grass is the last thing in and the first thing to go: everything else on
+  // this screen is something you need to be able to read. It lines up with the
+  // team panel rather than the window, so the field has an edge to it.
+  const scale = bandScale(size)
+  if (grassAt >= 0 && rows - 3 - menuRows.length - lines.length >= bandRows(scale)) {
+    const band = grassLines({
+      cols: width,
+      step: ctx.scene?.step ?? 0,
+      walking: !encounter && ctx.activity?.state === 'working',
+      scale,
+    })
+    lines.splice(grassAt, 0, ...band.map((row) => ` ${row}`))
+  }
+
+  while (lines.length < rows - 3 - menuRows.length) lines.push('')
+  for (const row of menuRows) lines.push(` ${row}`)
+  lines.push(dim(' ← → choose · [enter] open · [q] quit'))
+
+  return { lines, overlays }
+}
+
+export function onKey(ctx, key) {
+  const items = menuItems(ctx)
+  // The menu shrinks on its own the moment an encounter times out, which can happen
+  // between two keypresses. Clamping here means the worst case is a key landing on
+  // the last entry rather than on nothing at all.
+  ctx.homeSelection = Math.min(Math.max(0, ctx.homeSelection), items.length - 1)
+
+  if (key.name === 'left') ctx.homeSelection = wrap(ctx.homeSelection - 1, items.length)
+  else if (key.name === 'right') ctx.homeSelection = wrap(ctx.homeSelection + 1, items.length)
+  else if (key.name === 'enter' || key.name === 'space') ctx.openHomeSelection(items[ctx.homeSelection].id)
+  else if (key.name === 'q') ctx.quit()
+}

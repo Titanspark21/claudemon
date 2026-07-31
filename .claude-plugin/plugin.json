@@ -1,0 +1,11 @@
+{
+  "name": "claudemon",
+  "displayName": "claudemon",
+  "version": "0.5.0",
+  "description": "Wild Pokemon appear while you work. Your prompts are steps through the grass.",
+  "author": {
+    "name": "Sergio Zamarro"
+  },
+  "keywords": ["pokemon", "game", "statusline", "fun"],
+  "license": "MIT"
+}

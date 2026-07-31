@@ -1,0 +1,810 @@
+// The companion's state machine.
+//
+// Owns the save, the encounter queue and which screen is showing. Views are pure
+// draw/onKey pairs; every decision that changes the game lives here.
+
+import { readSessions, summariseActivity } from './activity.mjs'
+import { species } from './data.mjs'
+import { createBattle, submitAction, switchIn } from './battle.mjs'
+import { encounterTtlMs, saveConfig, spriteScale } from './config.mjs'
+import { expFromDefeating } from './exp.mjs'
+import { applyVictory, describeStep, learnMove } from './progression.mjs'
+import { createPokemon, displayName, isFainted, levelOf } from './pokemon.mjs'
+import { clearEncounter, readEncounter } from './queue.mjs'
+import { makeRng, randomSeed } from './rng.mjs'
+import { ballsInBag, countOf, ITEMS, buy, removeItem, useItem } from './shop.mjs'
+import {
+  activePokemon, addPokemon, createSave, healParty, markSeen, publishStatus,
+  saveGame, setLead,
+} from './state.mjs'
+import { ballSteps } from './ui/ball.mjs'
+
+import * as battleView from './ui/views/battle.mjs'
+import * as dexView from './ui/views/dex.mjs'
+import * as homeView from './ui/views/home.mjs'
+import * as optionsView from './ui/views/options.mjs'
+import * as shopView from './ui/views/shop.mjs'
+import * as starterView from './ui/views/starter.mjs'
+import * as teamView from './ui/views/team.mjs'
+
+const VIEWS = {
+  starter: starterView,
+  home: homeView,
+  battle: battleView,
+  dex: dexView,
+  team: teamView,
+  shop: shopView,
+  options: optionsView,
+}
+
+/** Items worth offering mid-battle: balls, healing, status cures. */
+const BATTLE_ITEM_KINDS = new Set(['heal', 'cure', 'revive'])
+
+/**
+ * Frames a full health bar takes to empty. The step is a fraction of maximum HP
+ * rather than a fixed number, so a Snorlax does not take twenty times as long to
+ * drain as a Caterpie.
+ */
+const HP_DRAIN_STEPS = 24
+
+/**
+ * Frames per step of the walk on the home screen. The frame timer runs at 60ms,
+ * so this is about eight steps a second: fast enough to read as walking, and slow
+ * enough that the band is not rebuilt on every frame to move nothing.
+ */
+const FRAMES_PER_STEP = 2
+
+export function createApp({ screen, save, config }) {
+  const ctx = {
+    screen,
+    save,
+    config,
+    spriteScale: spriteScale(config),
+    rng: makeRng(randomSeed()),
+
+    mode: save ? 'home' : 'starter',
+
+    /**
+     * The one wild Pokemon in the grass, or null. Never a list: miss its window
+     * and it is gone, so there is never a second one behind it.
+     *
+     * Carries `expiresAt` on top of the queued entry, so the screen can count down
+     * without working the deadline out again every frame.
+     */
+    encounter: null,
+
+    /** What Claude Code is doing, refreshed from the session files on a timer. */
+    activity: { state: 'unknown', tool: null, since: null, sessions: 0 },
+
+    /**
+     * How far through the grass you have walked, in steps.
+     *
+     * The one piece of state nothing else depends on: it only decides which frame
+     * of the walk is drawn and where. It is not the step count the hooks roll
+     * encounters on — that lives in the session files — but it moves for the same
+     * reason, so watching it is watching Claude work.
+     */
+    scene: { step: 0, frames: 0 },
+
+    homeSelection: 0,
+    dexSelection: 0,
+    teamSelection: 0,
+    shopSelection: 0,
+    shopMessage: null,
+    optionsSelection: 0,
+    optionsMessage: null,
+    notice: null,
+
+    setup: { step: 'name', name: '', selection: 1, blink: true },
+    battle: null,
+  }
+
+  // --- plumbing --------------------------------------------------------------
+
+  ctx.paint = () => {
+    const view = VIEWS[ctx.mode]
+    if (!view) return
+    const { lines, overlays } = view.draw(ctx, screen.size())
+    screen.render(lines, overlays)
+  }
+
+  ctx.setMode = (mode) => {
+    ctx.mode = mode
+    screen.repaint()
+    ctx.paint()
+  }
+
+  ctx.quit = () => {
+    if (ctx.save) saveGame(ctx.save)
+    screen.stop()
+    process.exit(0)
+  }
+
+  ctx.persist = () => {
+    if (ctx.save) saveGame(ctx.save)
+  }
+
+  /**
+   * Changes settings, writes them to disk, and puts the change on screen.
+   *
+   * Nothing is applied unless it saved: a setting about how the game looks is
+   * worth very little if it goes away with the process, and a screen that shows the
+   * new value while the file still holds the old one is a lie about what happened.
+   *
+   * @param {Record<string, unknown>} patch settings to change, by key.
+   */
+  ctx.applyConfig = (patch) => {
+    try {
+      ctx.config = saveConfig(patch)
+      ctx.optionsMessage = null
+    } catch (error) {
+      ctx.optionsMessage = `Could not save: ${error.code ?? error.message}`
+      return
+    }
+
+    ctx.spriteScale = spriteScale(ctx.config)
+    // A sprite is about to change size, and the renderer's idea of what the terminal
+    // is showing has not. Leaving the diff in place would leave the rows the old one
+    // no longer reaches showing the old one.
+    screen.repaint()
+  }
+
+  /**
+   * Rereads the encounter slot. Called on a file change and on a timer.
+   *
+   * The file is the truth here rather than something to drain: leaving the entry
+   * where it is until the battle starts is what lets the hook see that the grass is
+   * already occupied, and it is why nothing can pile up while you work. It is also
+   * where an encounter that ran out of time disappears.
+   *
+   * @returns {boolean} whether the screen would now read differently.
+   */
+  ctx.pump = () => {
+    const ttlMs = encounterTtlMs(ctx.config)
+    const next = readEncounter(ttlMs)
+
+    if (!next) {
+      if (!ctx.encounter) return false
+      // Its window closed while you were busy: it wandered back into the grass.
+      ctx.encounter = null
+      // FIGHT has just left the menu, so the cursor follows the entry it was on
+      // rather than pointing one row past the end of it.
+      ctx.homeSelection = Math.max(0, ctx.homeSelection - 1)
+      return true
+    }
+
+    if (isSameEncounter(next, ctx.encounter)) return false
+
+    ctx.encounter = { ...next, expiresAt: Date.parse(next.at) + ttlMs }
+    // FIGHT is now the first entry, and the one you opened the tab for.
+    ctx.homeSelection = 0
+    if (ctx.save) {
+      markSeen(ctx.save, next.species)
+      ctx.persist()
+    }
+    return true
+  }
+
+  /**
+   * Rereads what Claude Code is doing.
+   *
+   * The interesting moment is the edge, not the state: working -> anything else
+   * is Claude handing the keyboard back, and that is the one thing worth
+   * interrupting someone mid-battle for.
+   *
+   * @returns {boolean} whether the row on screen would now read differently.
+   */
+  ctx.refreshActivity = () => {
+    const previous = ctx.activity
+    const next = summariseActivity(readSessions())
+    ctx.activity = next
+
+    if (previous.state === 'working' && (next.state === 'idle' || next.state === 'waiting')) {
+      if (ctx.config.bell) screen.bell?.()
+    }
+
+    return next.state !== previous.state
+      || next.tool !== previous.tool
+      || next.sessions !== previous.sessions
+  }
+
+  ctx.handleKey = (key) => {
+    if (key.name === 'ctrl-c') {
+      ctx.quit()
+      return
+    }
+    VIEWS[ctx.mode]?.onKey(ctx, key)
+    ctx.paint()
+  }
+
+  // --- first run -------------------------------------------------------------
+
+  ctx.finishSetup = (starterId) => {
+    ctx.save = createSave({
+      trainer: ctx.setup.name.trim() || 'Trainer',
+      starterId,
+      rng: ctx.rng,
+    })
+    ctx.persist()
+    ctx.notice = `${species(starterId).name} is yours. Good luck!`
+    ctx.setMode('home')
+  }
+
+  // --- home ------------------------------------------------------------------
+
+  /** @param {string} id an entry id from the home view's menu, never its label. */
+  ctx.openHomeSelection = (id) => {
+    switch (id) {
+      case 'fight': ctx.startNextBattle(); break
+      case 'dex': ctx.setMode('dex'); break
+      case 'team': ctx.teamSelection = 0; ctx.setMode('team'); break
+      case 'shop': ctx.shopSelection = 0; ctx.shopMessage = null; ctx.setMode('shop'); break
+      case 'options': ctx.optionsSelection = 0; ctx.optionsMessage = null; ctx.setMode('options'); break
+      case 'heal':
+        healParty(ctx.save)
+        ctx.persist()
+        ctx.notice = 'Your team is back to full health.'
+        break
+      case 'quit': ctx.quit(); break
+      default: break
+    }
+  }
+
+  ctx.makeLead = (index) => {
+    setLead(ctx.save, index)
+    ctx.teamSelection = 0
+    ctx.persist()
+  }
+
+  ctx.buyItem = (key, quantity) => {
+    const result = buy(ctx.save, key, quantity)
+    ctx.shopMessage = result.ok
+      ? `Bought ${quantity} ${ITEMS[key].name}. Thank you!`
+      : result.reason
+    if (result.ok) ctx.persist()
+  }
+
+  // --- battle ----------------------------------------------------------------
+
+  ctx.startNextBattle = () => {
+    const encounter = ctx.encounter
+    if (!encounter) return
+
+    const lead = activePokemon(ctx.save)
+    if (!lead) {
+      ctx.notice = 'Your whole team has fainted. Heal before heading out.'
+      return
+    }
+
+    // Facing it is what consumes it, and it frees the grass for whatever walks past
+    // while the battle runs.
+    ctx.encounter = null
+    clearEncounter()
+
+    const wild = createPokemon(encounter.species, encounter.level, makeRng(encounter.seed))
+    markSeen(ctx.save, encounter.species)
+
+    const state = createBattle({ playerMon: lead, wildMon: wild, seed: encounter.seed })
+
+    ctx.battle = {
+      state,
+      menu: 'main',
+      selection: 0,
+      message: null,
+      // The engine resolves a whole turn in one call and hands back everything
+      // that happened. These are the parts of it not played out yet.
+      events: [],
+      // What the bars show, and where they are heading. Neither is the real HP:
+      // the real HP is already at the end of the turn.
+      hp: liveHp(state),
+      hpTarget: liveHp(state),
+      effect: null,
+      /** A ball in the air: `{shakes, caught, frame, done}` while one is. */
+      ball: null,
+      postSteps: null,
+      learnStep: null,
+      bagItems: [],
+    }
+
+    ctx.save.stats.battles++
+    queueMessages(ctx, [`A wild ${displayName(wild).toUpperCase()} appeared!`])
+    ctx.setMode('battle')
+  }
+
+  ctx.advanceMessage = () => {
+    const battle = ctx.battle
+    if (!battle) return
+
+    // A ball in the air outranks the keyboard: the throw is the only thing on
+    // screen worth waiting for, and the message behind it already says what is
+    // happening. One key ends it early, the next one reads the result — nothing
+    // here waits on the frame timer to make progress.
+    if (battle.ball && !battle.ball.done) {
+      settleBall(battle)
+      return
+    }
+
+    if (playNextBeat(battle)) return
+
+    // The turn is played out: either continue the post-battle sequence or hand
+    // the menu back to the player.
+    if (battle.postSteps) {
+      processNextStep(ctx)
+      return
+    }
+
+    if (battle.state.over) {
+      finishBattle(ctx)
+      return
+    }
+
+    openMenu(battle, 'main')
+  }
+
+  /**
+   * Advances the hit effect and drains the health bars towards where the turn
+   * left them. Driven by a frame timer, not by keypresses.
+   *
+   * @returns {boolean} whether anything moved, so a still frame costs no redraw.
+   */
+  ctx.tickBattle = () => {
+    const battle = ctx.battle
+    if (!battle) return false
+
+    let moved = false
+
+    if (battle.ball && !battle.ball.done) {
+      const next = battle.ball.frame + 1
+      if (next < ballSteps(battle.ball).length) {
+        battle.ball = { ...battle.ball, frame: next }
+      } else {
+        settleBall(battle)
+        // The throw held its message on screen while it played, so the verdict
+        // follows on its own — waiting for a key here would read as a stall.
+        ctx.advanceMessage()
+        // Which can be the end of the battle, and a battle that is over has no
+        // bars left to drain.
+        if (!ctx.battle) return true
+      }
+      moved = true
+    }
+
+    if (battle.effect) {
+      const next = battle.effect.frame + 1
+      battle.effect = next < battleView.HIT_FRAMES.length ? { ...battle.effect, frame: next } : null
+      moved = true
+    }
+
+    for (const side of ['player', 'foe']) {
+      const shown = battle.hp[side]
+      const target = battle.hpTarget[side]
+      if (shown === target) continue
+
+      // Scaled to the bar rather than to the damage, so a big hit takes longer to
+      // drain than a scratch and every bar empties at the same speed.
+      const step = Math.max(1, Math.ceil(battle.state[side].mon.stats.hp / HP_DRAIN_STEPS))
+      battle.hp[side] = target > shown ? Math.min(target, shown + step) : Math.max(target, shown - step)
+      moved = true
+    }
+
+    return moved
+  }
+
+  ctx.backOutOfBattleMenu = () => {
+    const battle = ctx.battle
+    if (!battle || battle.menu === 'learn') return
+    openMenu(battle, 'main')
+  }
+
+  ctx.chooseBattleOption = () => {
+    const battle = ctx.battle
+    if (!battle) return
+
+    switch (battle.menu) {
+      case 'main': return chooseMainOption(ctx)
+      case 'fight': return chooseMove(ctx)
+      case 'bag': return chooseItem(ctx)
+      case 'party': return choosePartyMember(ctx)
+      case 'learn': return resolveLearnChoice(ctx)
+      default: return undefined
+    }
+  }
+
+  // --- the grass ---------------------------------------------------------------
+
+  /**
+   * Moves the walk on, on the same frame timer the battle animates on.
+   *
+   * Only ever while Claude is working, which is the whole point of the scene:
+   * someone standing still is how the screen says nothing is happening, and it
+   * says it the same way the activity row above them does. Idle costs a couple of
+   * comparisons per frame and no redraw at all.
+   *
+   * @returns {boolean} whether anything moved.
+   */
+  ctx.tickScene = () => {
+    if (ctx.mode !== 'home' || ctx.activity.state !== 'working') return false
+
+    ctx.scene.frames++
+    if (ctx.scene.frames % FRAMES_PER_STEP !== 0) return false
+
+    ctx.scene.step++
+    return true
+  }
+
+  return ctx
+}
+
+// --- helpers -----------------------------------------------------------------
+
+/**
+ * Whether the slot still holds the encounter already on screen.
+ *
+ * The companion rereads the file rather than draining it, so it sees the same entry
+ * over and over. The stamp and the seed together identify it: without this, every
+ * tick would count as a fresh Pokemon and reset the cursor under your fingers.
+ */
+function isSameEncounter(entry, held) {
+  return held != null && entry.at === held.at && entry.seed === held.seed
+}
+
+// --- battle helpers ----------------------------------------------------------
+
+function liveHp(state) {
+  return { player: state.player.mon.hp, foe: state.foe.mon.hp }
+}
+
+/**
+ * Puts the bars back in step with the real state.
+ *
+ * The safety net for everything that changes health without going through the
+ * engine — a potion, a switch, a whole new Pokemon sent out. Called whenever a
+ * menu opens, so whatever the player is about to make a decision on is the truth.
+ */
+function syncBars(battle) {
+  battle.hp = liveHp(battle.state)
+  battle.hpTarget = { ...battle.hp }
+}
+
+function queueEvents(ctx, events) {
+  const battle = ctx.battle
+  battle.events.push(...events)
+  if (!battle.message) playNextBeat(battle)
+}
+
+function queueMessages(ctx, texts) {
+  queueEvents(ctx, texts.map((text) => ({ type: 'message', text })))
+}
+
+/**
+ * Plays one beat: the next line of text, and the damage that line describes.
+ *
+ * This is what stops a turn landing all at once. The engine resolves both moves
+ * before it returns, so by the time anything is drawn every Pokemon is already at
+ * its end-of-turn health — reading it straight off the state drops both bars
+ * together, in one frame, whichever order the moves actually happened in.
+ *
+ * So the bars follow the events instead. A beat is a message plus the state
+ * changes that immediately follow it, which is exactly the damage that message
+ * announced: "CHARMANDER used Ember!" and the foe's bar moving are the same beat,
+ * and the wild Pokemon's reply is the next one.
+ *
+ * @returns {boolean} whether there was anything left to say.
+ */
+function playNextBeat(battle) {
+  // Whatever was still draining belongs to the beat just finished. Landing it
+  // now keeps each beat starting from a settled bar, however fast keys arrive.
+  battle.hp = { ...battle.hpTarget }
+
+  // Anything before the next message was left over by a caller that queued state
+  // changes of its own.
+  applyPendingEvents(battle)
+
+  const next = battle.events.shift()
+  battle.message = next ? next.text : null
+  applyPendingEvents(battle)
+
+  return battle.message != null
+}
+
+/** Consumes state changes up to the next thing worth reading. */
+function applyPendingEvents(battle) {
+  while (battle.events.length > 0 && battle.events[0].type !== 'message') {
+    applyBattleEvent(battle, battle.events.shift())
+  }
+}
+
+function applyBattleEvent(battle, event) {
+  switch (event.type) {
+    case 'damage':
+    case 'heal':
+      battle.hpTarget[event.side] = event.hpAfter
+      // Something landing is the one moment worth drawing over a sprite.
+      if (event.type === 'damage' && event.amount > 0) {
+        battle.effect = { side: event.side, frame: 0 }
+      }
+      break
+    case 'catch':
+      // The engine has already decided; the frames are the interface catching up.
+      battle.ball = { shakes: event.shakes, caught: event.caught, frame: 0, done: false }
+      break
+    default:
+      // Stat stages, ailments and the outcome all speak for themselves through
+      // the message that follows them.
+      break
+  }
+}
+
+/**
+ * Ends the throw, however it got there — the last frame or an impatient key.
+ *
+ * A ball that held is left on the last frame rather than cleared, because the
+ * Pokemon is in it: clearing it would put the sprite it just swallowed back on the
+ * field for the rest of the battle. `done` is what stops the frame timer from
+ * animating a ball that has nothing left to do.
+ */
+function settleBall(battle) {
+  battle.ball = battle.ball.caught
+    ? { ...battle.ball, frame: ballSteps(battle.ball).length - 1, done: true }
+    : null
+}
+
+/**
+ * Opens a battle menu.
+ *
+ * The cursor always belongs to the menu it is in, so the two move together —
+ * leaving a stale selection behind is how a highlight ends up on the wrong row.
+ */
+function openMenu(battle, name) {
+  battle.menu = name
+  battle.selection = 0
+  // A menu is only ever open between turns, so this is the moment the bars have
+  // to be caught up and honest.
+  syncBars(battle)
+}
+
+function chooseMainOption(ctx) {
+  const battle = ctx.battle
+
+  switch (battle.selection) {
+    case 0:
+      openMenu(battle, 'fight')
+      break
+    case 1:
+      battle.bagItems = usableBattleItems(ctx.save)
+      openMenu(battle, 'bag')
+      break
+    case 2:
+      openMenu(battle, 'party')
+      break
+    case 3:
+      takeAction(ctx, { type: 'run' })
+      break
+    default:
+      break
+  }
+}
+
+/** Balls plus anything that heals or cures, in a stable order. */
+function usableBattleItems(save) {
+  const balls = ballsInBag(save)
+  const others = Object.keys(ITEMS).filter(
+    (key) => BATTLE_ITEM_KINDS.has(ITEMS[key].kind) && countOf(save, key) > 0,
+  )
+  return [...balls, ...others]
+}
+
+function chooseMove(ctx) {
+  const battle = ctx.battle
+  const slot = battle.state.player.mon.moves[battle.selection]
+  if (!slot) return
+
+  if (slot.pp <= 0) {
+    queueMessages(ctx, ['There is no PP left for that move!'])
+    return
+  }
+  takeAction(ctx, { type: 'move', index: battle.selection })
+}
+
+function chooseItem(ctx) {
+  const battle = ctx.battle
+  const key = battle.bagItems[battle.selection]
+  if (!key) return
+
+  if (ITEMS[key].kind === 'ball') {
+    // Thrown is spent, whether it holds or not. The engine only decides whether
+    // the catch worked, so nothing else takes the ball out of the bag — without
+    // this, one Master Ball catches the whole Pokedex.
+    removeItem(ctx.save, key)
+    takeAction(ctx, { type: 'ball', key })
+    return
+  }
+
+  const mon = battle.state.player.mon
+  const before = mon.hp
+  const result = useItem(ctx.save, key, mon)
+  if (!result.ok) {
+    queueMessages(ctx, [result.message])
+    openMenu(battle, 'main')
+    return
+  }
+
+  // An item changes the save on the spot rather than through the engine, so the
+  // bar is told about it the same way the engine would have.
+  queueEvents(ctx, [
+    { type: 'message', text: `You used a ${ITEMS[key].name}.` },
+    { type: 'message', text: result.message },
+    ...(mon.hp === before ? [] : [{ type: 'heal', side: 'player', amount: mon.hp - before, hpAfter: mon.hp }]),
+  ])
+
+  // Using an item costs the turn, so the foe still gets to act.
+  takeAction(ctx, { type: 'item' }, { silentFirst: true })
+}
+
+function choosePartyMember(ctx) {
+  const battle = ctx.battle
+  const index = battle.selection
+  const chosen = ctx.save.party[index]
+  if (!chosen) return
+
+  if (isFainted(chosen)) {
+    queueMessages(ctx, [`${displayName(chosen).toUpperCase()} is in no shape to fight!`])
+    return
+  }
+  if (chosen === battle.state.player.mon) {
+    queueMessages(ctx, [`${displayName(chosen).toUpperCase()} is already out!`])
+    return
+  }
+
+  setLead(ctx.save, index)
+  switchIn(battle.state, chosen)
+  // A different Pokemon is a different bar; there is nothing to animate from.
+  syncBars(battle)
+
+  queueMessages(ctx, [`Go, ${displayName(chosen).toUpperCase()}!`])
+  takeAction(ctx, { type: 'switch' }, { silentFirst: true })
+}
+
+/**
+ * Sends an action to the engine and turns its events into messages.
+ *
+ * @param {{silentFirst?: boolean}} options when the caller has already queued its
+ *   own lead-in message, so the menu should not flash back up first.
+ */
+function takeAction(ctx, action, options = {}) {
+  const battle = ctx.battle
+  battle.menu = null
+  queueEvents(ctx, submitAction(battle.state, action))
+
+  if (battle.state.over) beginPostBattle(ctx)
+  else if (!battle.message && !options.silentFirst) openMenu(battle, 'main')
+}
+
+/** Works out what the end of the battle owes the player. */
+function beginPostBattle(ctx) {
+  const battle = ctx.battle
+  const state = battle.state
+  const save = ctx.save
+
+  if (state.outcome === 'win') {
+    save.stats.wins++
+    battle.postSteps = applyVictory(save, state.participants, state.rewards)
+    return
+  }
+
+  if (state.outcome === 'caught') {
+    const caught = state.foe.mon
+    caught.hp = Math.max(1, caught.hp)
+    const destination = addPokemon(save, caught)
+
+    // Catching awards experience just as beating it would, minus the prize money.
+    // Without this, playing the way the game encourages — weaken it, throw a ball —
+    // leaves your team stuck at its starting level forever.
+    const rewards = { exp: expFromDefeating(caught.species, levelOf(caught)), money: 0 }
+    battle.postSteps = [
+      { kind: 'caught', name: displayName(caught), destination },
+      ...applyVictory(save, state.participants, rewards),
+    ]
+    return
+  }
+
+  if (state.outcome === 'fled') {
+    save.stats.runs++
+    battle.postSteps = []
+    return
+  }
+
+  // A fainted Pokemon is only a loss if there is nobody left to send out.
+  const next = activePokemon(save)
+  if (state.outcome === 'loss' && next) {
+    battle.postSteps = [{ kind: 'send-out', mon: next }]
+    return
+  }
+
+  save.stats.losses++
+  battle.postSteps = [{ kind: 'blackout' }]
+}
+
+function processNextStep(ctx) {
+  const battle = ctx.battle
+  const steps = battle.postSteps
+
+  if (!steps || steps.length === 0) {
+    finishBattle(ctx)
+    return
+  }
+
+  const step = steps.shift()
+
+  if (step.kind === 'learn-choice') {
+    battle.learnStep = step
+    openMenu(battle, 'learn')
+    battle.message = null
+    return
+  }
+
+  if (step.kind === 'caught') {
+    const where = step.destination === 'party'
+      ? 'It joined your team!'
+      : 'Your team was full, so it went to the box.'
+    queueMessages(ctx, [`${step.name.toUpperCase()} was added to the Pokédex.`, where])
+    return
+  }
+
+  if (step.kind === 'send-out') {
+    // Carry on against the same foe, at whatever health it has left.
+    const foe = battle.state.foe.mon
+    battle.state = createBattle({
+      playerMon: step.mon,
+      wildMon: foe,
+      seed: (battle.state.seed + battle.state.turn + 1) >>> 0,
+      // The fight carries on, so what it owes carries on with it.
+      participants: battle.state.participants,
+    })
+    battle.postSteps = null
+    syncBars(battle)
+    queueMessages(ctx, [`Go, ${displayName(step.mon).toUpperCase()}!`])
+    return
+  }
+
+  if (step.kind === 'blackout') {
+    queueMessages(ctx, ['You have no Pokémon able to fight!', 'You scurried back to safety...'])
+    healParty(ctx.save)
+    syncBars(battle)
+    return
+  }
+
+  queueMessages(ctx, describeStep(step))
+}
+
+function resolveLearnChoice(ctx) {
+  const battle = ctx.battle
+  const step = battle.learnStep
+  // Whoever the move is for, which is not always the one on the field.
+  const mon = step.mon
+  const declineIndex = mon.moves.length
+
+  if (battle.selection === declineIndex) {
+    queueMessages(ctx, [`${displayName(mon).toUpperCase()} did not learn the move.`])
+  } else {
+    const result = learnMove(mon, step.move, battle.selection)
+    queueMessages(ctx, [
+      '1, 2 and... poof!',
+      `${displayName(mon).toUpperCase()} forgot ${result.forgot} and learned a new move!`,
+    ])
+  }
+
+  battle.learnStep = null
+  battle.menu = null
+}
+
+function finishBattle(ctx) {
+  ctx.battle = null
+  ctx.persist()
+  publishStatus(ctx.save)
+  // Anything that turned up during the battle may already have timed out, so the
+  // home screen is told the truth before it is drawn.
+  ctx.pump()
+  ctx.homeSelection = 0
+  ctx.setMode('home')
+}

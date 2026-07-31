@@ -1,0 +1,125 @@
+#!/usr/bin/env node
+
+// claudemon: the companion. Run it in a second terminal tab and leave it there.
+//
+// It watches the encounter queue that the Claude Code hook writes to, so a wild
+// Pokemon turning up while you work wakes this process on its own.
+
+import { mkdirSync, watch } from 'node:fs'
+import { createApp } from '../src/app.mjs'
+import { loadConfig } from '../src/config.mjs'
+import { isDataReady } from '../src/data.mjs'
+import { HOME } from '../src/paths.mjs'
+import { loadSave, publishStatus } from '../src/state.mjs'
+import { bold, brightYellow, dim } from '../src/ui/ansi.mjs'
+import { createScreen } from '../src/ui/screen.mjs'
+
+const HEARTBEAT_MS = 5000
+const POLL_MS = 2000
+
+/**
+ * The slow tick: the blinking name cursor, and the countdown on a waiting
+ * encounter. Half a second is fast enough that neither of them stutters, and the
+ * renderer only redraws the rows that actually moved.
+ */
+const TICK_MS = 500
+
+/** Animation rate for the battle screen: hit effects and draining health bars. */
+const FRAME_MS = 60
+
+function bail(message, hint) {
+  process.stderr.write(`\n  ${brightYellow('◓')} ${bold('claudemon')}\n\n  ${message}\n`)
+  if (hint) process.stderr.write(`  ${dim(hint)}\n`)
+  process.stderr.write('\n')
+  process.exit(1)
+}
+
+function main() {
+  if (!isDataReady()) {
+    bail(
+      'The Pokemon dataset is missing.',
+      'Run: node tools/fetch-data.mjs  (and node tools/fetch-sprites.mjs)',
+    )
+  }
+
+  mkdirSync(HOME, { recursive: true })
+
+  const config = loadConfig()
+  const save = loadSave()
+  const screen = createScreen()
+  const app = createApp({ screen, save, config })
+
+  screen.start()
+  screen.onResize(() => {
+    screen.repaint()
+    app.paint()
+  })
+  screen.onKey(app.handleKey)
+
+  // Whatever is in the grass right now — and nothing that has already timed out
+  // while this tab was closed.
+  app.pump()
+  app.refreshActivity()
+  app.paint()
+
+  if (app.save) publishStatus(app.save)
+
+  const heartbeat = setInterval(() => {
+    if (app.save) publishStatus(app.save)
+  }, HEARTBEAT_MS)
+
+  // Watch the directory rather than the file: draining truncates the queue, and a
+  // watch bound to the inode would be lost the moment that happens.
+  try {
+    watch(HOME, (_event, filename) => {
+      if (filename !== 'queue.jsonl') return
+      if (app.pump()) app.paint()
+    })
+  } catch {
+    // Fall through to polling.
+  }
+
+  // Belt and braces: fs.watch misses events on some filesystems and network
+  // mounts, and a game that quietly stops noticing encounters is worse than a
+  // cheap poll. The session files live in a subdirectory the watch above does not
+  // cover, so this is also the only thing keeping the activity row honest.
+  const poll = setInterval(() => {
+    const arrived = app.pump()
+    const activityChanged = app.refreshActivity()
+    // A running timer changes on its own, so a working session repaints every
+    // tick. The renderer diffs by row, so the cost is the one line that moved.
+    if (arrived || activityChanged || app.activity.state === 'working') app.paint()
+  }, POLL_MS)
+
+  const tick = setInterval(() => {
+    if (app.mode === 'starter' && app.setup.step === 'name') {
+      app.setup.blink = !app.setup.blink
+      app.paint()
+      return
+    }
+
+    // A waiting encounter is on a clock, so its row changes without anything
+    // happening. Pumping here as well as on the poll is what keeps the countdown
+    // and the Pokemon disappearing at the same moment.
+    if (app.encounter) {
+      app.pump()
+      app.paint()
+    }
+  }, TICK_MS)
+
+  // The only thing in the game that redraws without being asked to: the battle's
+  // effects and bars, and the walk through the grass on the home screen. Both
+  // return false the moment nothing is moving, so a still screen is a no-op — and
+  // only one of them can be on screen at a time, so the short circuit is free.
+  const frames = setInterval(() => {
+    if (app.tickBattle() || app.tickScene()) app.paint()
+  }, FRAME_MS)
+
+  for (const timer of [heartbeat, poll, tick, frames]) timer.unref?.()
+
+  // Keep the process alive: stdin is resumed by the screen, and these timers are
+  // unref'd so they do not hold it open on their own.
+  process.stdin.resume()
+}
+
+main()
