@@ -96,7 +96,8 @@ the new hooks and status line load, and relaunch `claudemon`, because a running
 process cannot swap its own code out.
 
 `UPDATE OFF` in **Option** stops the daily check. Nothing is offered and no socket is
-opened; `/plugin update claudemon@claudemon` still works whenever you want it.
+opened; the two commands under **Coming from 0.5.0** below still work whenever you want
+them.
 
 Updating through Claude Code instead is fine too. The `claudemon` command is kept
 pointing at whichever copy is newest — by a hook, because neither the command nor the
@@ -107,11 +108,17 @@ until you restart it.
 #### Coming from 0.5.0
 
 0.5.0 has none of this in it, so it cannot tell you a new version is out: the first
-upgrade is the only one you do by hand.
+upgrade is the only one you do by hand. In a terminal — not at the Claude Code prompt,
+because `/plugin` has no `update` of its own; this lives in the CLI:
 
+```bash
+claude plugin marketplace update claudemon
+claude plugin update claudemon@claudemon
 ```
-/plugin update claudemon@claudemon
-```
+
+The first line is not optional. Your copy of the marketplace is whatever it was when
+you added it, so without refreshing it the second line has nothing newer to find and
+tells you so.
 
 Restart Claude Code, then run `claudemon` again. That is all of it — the version turns
 up in the bottom-right corner, and `[u]` does every upgrade after this one.

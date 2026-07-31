@@ -61,9 +61,9 @@ function readLeadLevel() {
  *
  * Here rather than anywhere else because a hook is the only part of claudemon that
  * Claude Code runs from the copy it just installed, so it is the only part that can
- * finish an upgrade somebody did through `/plugin update`. Of the four hooks this is
- * the least frequent, and it reads two small files and almost always finds nothing
- * to do.
+ * finish an upgrade somebody did through `claude plugin update`. Of the four hooks
+ * this is the least frequent, and it reads two small files and almost always finds
+ * nothing to do.
  *
  * Failing is not worth a word to anyone: a launcher left alone goes on starting the
  * release it always did, which is what it was doing a moment ago anyway.
