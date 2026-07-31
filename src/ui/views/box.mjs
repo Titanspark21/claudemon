@@ -10,7 +10,9 @@ import { PARTY_LIMIT } from '../../state.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
-import { menuList, padRight, wrap } from '../widgets.mjs'
+import { menuList, padRight, withFooter, wrap } from '../widgets.mjs'
+
+const HINTS = ' ↑ ↓ browse · [enter] take it into your team · [esc] back'
 
 export function draw(ctx, size) {
   const { rows } = size
@@ -31,9 +33,7 @@ export function draw(ctx, size) {
   if (box.length === 0) {
     lines.push(' ' + gray('The box is empty.'))
     lines.push(' ' + gray('Anything you catch while your team is full waits in here.'))
-    while (lines.length < rows - 1) lines.push('')
-    lines.push(dim(' [esc] back to your team'))
-    return { lines, overlays }
+    return { lines: withFooter(lines, dim(' [esc] back to your team'), rows), overlays }
   }
 
   const selected = box[Math.min(ctx.boxSelection, box.length - 1)]
@@ -60,10 +60,7 @@ export function draw(ctx, size) {
     lines.push(` ${ctx.boxMessage}`)
   }
 
-  while (lines.length < rows - 1) lines.push('')
-  lines.push(dim(' ↑ ↓ browse · [enter] take it into your team · [esc] back'))
-
-  return { lines, overlays }
+  return { lines: withFooter(lines, dim(HINTS), rows), overlays }
 }
 
 export function onKey(ctx, key) {

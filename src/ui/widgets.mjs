@@ -151,6 +151,25 @@ export function menuList(items, selected, { height = 10, width = 40 } = {}) {
   return rows
 }
 
+/**
+ * Closes a screen: pads or trims `lines` so `footer` lands on the last row the
+ * renderer will actually write.
+ *
+ * The renderer never writes the bottom row of the terminal, so a screen that fills
+ * `rows` and then adds a footer has put its hints in the one row nobody can see —
+ * which is where the hints on every menu screen used to go. Trimming rather than
+ * only padding is the other half of it: the sprite at the end of a detail panel
+ * grows with the window, and a tall one is worth cutting off before the line that
+ * says which keys do anything.
+ */
+export function withFooter(lines, footer, rows) {
+  const usable = Math.max(0, rows - 2)
+  const out = lines.slice(0, usable)
+  while (out.length < usable) out.push('')
+  out.push(footer)
+  return out
+}
+
 const STATUS_TAGS = {
   burn: ['BRN', [240, 128, 48]], poison: ['PSN', [160, 64, 160]],
   paralysis: ['PAR', [248, 208, 48]], sleep: ['SLP', [136, 136, 136]],

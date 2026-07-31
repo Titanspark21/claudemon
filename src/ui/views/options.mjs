@@ -12,7 +12,7 @@ import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import {
   NATIVE_CANVAS_COLS, fitCanvasCols, loadSprite, placeSprite, spriteHeight,
 } from '../sprite.mjs'
-import { centre, padRight, wrap } from '../widgets.mjs'
+import { centre, padRight, withFooter, wrap } from '../widgets.mjs'
 
 /** The Pokemon in the preview when there is no team to show one from. */
 const FALLBACK_SPECIES = 25
@@ -120,10 +120,7 @@ export function draw(ctx, size) {
     + ' · quadrant blocks · 4px per cell',
   ), cols))
 
-  while (lines.length < rows - 1) lines.push('')
-  lines.push(dim(' ↑ ↓ choose · ← → change · [esc] back'))
-
-  return { lines, overlays }
+  return { lines: withFooter(lines, dim(' ↑ ↓ choose · ← → change · [esc] back'), rows), overlays }
 }
 
 /** Moves the highlighted setting on to its next value, and saves it. */

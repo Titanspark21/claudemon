@@ -8,7 +8,7 @@ import { STAT_NAMES } from '../../exp.mjs'
 import { spriteFile } from '../../paths.mjs'
 import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
-import { hpBar, menuList, padRight, typeBadge, wrap } from '../widgets.mjs'
+import { hpBar, menuList, padRight, typeBadge, withFooter, wrap } from '../widgets.mjs'
 
 /** Three-character labels, so the base-stat bars line up. */
 const STAT_GLYPHS = {
@@ -96,10 +96,7 @@ export function draw(ctx, size) {
     lines.push(` ${left}  ${dim('│')}  ${right}`)
   }
 
-  while (lines.length < rows - 1) lines.push('')
-  lines.push(dim(' ↑ ↓ browse · PgUp/PgDn jump · [esc] back'))
-
-  return { lines, overlays }
+  return { lines: withFooter(lines, dim(' ↑ ↓ browse · PgUp/PgDn jump · [esc] back'), rows), overlays }
 }
 
 export function onKey(ctx, key) {

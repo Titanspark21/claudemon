@@ -11,6 +11,12 @@ import { createScreen } from '../src/ui/screen.mjs'
 import { ballCells, ballOverlays, ballSteps } from '../src/ui/ball.mjs'
 import { BAND_PX, bandImage, bandRows, grassLines, walkerColumn } from '../src/ui/grass.mjs'
 import { HIT_FRAMES, draw as drawBattle, fitBattleSprites, hitOverlays } from '../src/ui/views/battle.mjs'
+import { draw as drawBox } from '../src/ui/views/box.mjs'
+import { draw as drawDex } from '../src/ui/views/dex.mjs'
+import { draw as drawOptions } from '../src/ui/views/options.mjs'
+import { draw as drawShop } from '../src/ui/views/shop.mjs'
+import { draw as drawTeam } from '../src/ui/views/team.mjs'
+import { DEFAULT_CONFIG } from '../src/config.mjs'
 import {
   BLOCK_GRIDS, MIN_CANVAS_COLS, NATIVE_CANVAS_COLS, blockRows, fitCanvasCols,
 } from '../src/ui/sprite.mjs'
@@ -861,4 +867,79 @@ test('the ball stays on the field and off the message box', () => {
       assert.ok(overlay.row >= 1 && overlay.row <= lines.length, `frame ${frame} is on a real row`)
     }
   }
+})
+
+// --- The menu screens ----------------------------------------------------------
+//
+// Every one of them ends in a row saying which keys do anything, and the renderer
+// never writes the bottom row of the terminal. So that row has to be the last one
+// the view builds — and for a long time it was one past it, which is a screen whose
+// controls are a secret.
+
+function menuCtx() {
+  return {
+    save: {
+      trainer: { name: 'Tester' },
+      money: 3000,
+      bag: { 'poke-ball': 5 },
+      dex: { seen: [4, 25], caught: [4] },
+      party: [battleMon(4), battleMon(25)],
+      box: [battleMon(19)],
+      stats: {},
+    },
+    config: { ...DEFAULT_CONFIG },
+    spriteScale: 0.65,
+    teamSelection: 0,
+    boxSelection: 0,
+    dexSelection: 0,
+    shopSelection: 0,
+    optionsSelection: 0,
+    boxMessage: null,
+    shopMessage: null,
+    optionsMessage: null,
+  }
+}
+
+/** Each menu screen, with something only its hint row says. */
+const MENU_SCREENS = [
+  ['TEAM', drawTeam, '[b] the box'],
+  ['BOX', drawBox, '[enter] take it into your team'],
+  ['POKÉDEX', drawDex, 'PgUp/PgDn jump'],
+  ['SHOP', drawShop, '[5] buy five'],
+  ['OPTION', drawOptions, '← → change'],
+]
+
+test('every menu screen puts its hints where the renderer will draw them', () => {
+  for (const [name, draw, hint] of MENU_SCREENS) {
+    for (const rows of [16, 24, 34, 50]) {
+      const size = { cols: 100, rows }
+      const { lines, overlays } = draw(menuCtx(), size)
+
+      assert.ok(
+        lines.length <= rows - 1,
+        `${name} at ${rows} rows built ${lines.length} lines for ${rows - 1}`,
+      )
+
+      // Through the renderer, because the row it refuses to write is the whole point:
+      // a test of the lines alone is what let this go unnoticed on five screens.
+      const term = fakeTerminal({ cols: 100, rows })
+      term.screen.render(lines, overlays)
+      assert.ok(
+        stripAnsi(term.since(0)).includes(hint),
+        `${name} at ${rows} rows never drew ${JSON.stringify(hint)}`,
+      )
+    }
+  }
+})
+
+test('a box with nothing in it still says how to get out of it', () => {
+  const ctx = menuCtx()
+  ctx.save.box = []
+
+  const { lines } = drawBox(ctx, { cols: 100, rows: 34 })
+  const plain = lines.map(stripAnsi)
+
+  assert.ok(plain.some((line) => line.includes('The box is empty')), 'it says so')
+  assert.equal(lines.length, 33, 'and it is closed like every other screen')
+  assert.match(plain[plain.length - 1], /\[esc\]/)
 })

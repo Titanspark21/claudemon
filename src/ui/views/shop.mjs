@@ -2,7 +2,7 @@
 
 import { ITEMS, SHOP_STOCK, countOf } from '../../shop.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
-import { menuList, money, padLeft, padRight, panel, wrap } from '../widgets.mjs'
+import { menuList, money, padLeft, padRight, panel, withFooter, wrap } from '../widgets.mjs'
 
 export function draw(ctx, size) {
   const { cols, rows } = size
@@ -39,10 +39,8 @@ export function draw(ctx, size) {
     lines.push(` ${row}`)
   }
 
-  while (lines.length < rows - 1) lines.push('')
-  lines.push(dim(' ↑ ↓ browse · [enter] buy one · [5] buy five · [esc] back'))
-
-  return { lines, overlays: [] }
+  const hints = ' ↑ ↓ browse · [enter] buy one · [5] buy five · [esc] back'
+  return { lines: withFooter(lines, dim(hints), rows), overlays: [] }
 }
 
 export function onKey(ctx, key) {

@@ -5,7 +5,9 @@ import { displayName, isFainted, levelOf } from '../../pokemon.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
-import { menuList, padRight, wrap } from '../widgets.mjs'
+import { menuList, padRight, withFooter, wrap } from '../widgets.mjs'
+
+const HINTS = ' ↑ ↓ browse · [enter] lead · [b] the box · [d] send it there · [esc] back'
 
 export function draw(ctx, size) {
   const { rows } = size
@@ -20,7 +22,7 @@ export function draw(ctx, size) {
 
   if (party.length === 0) {
     lines.push(' ' + gray('You have no Pokémon.'))
-    return { lines, overlays }
+    return { lines: withFooter(lines, dim(' [esc] back'), rows), overlays }
   }
 
   const selected = party[Math.min(ctx.teamSelection, party.length - 1)]
@@ -48,10 +50,7 @@ export function draw(ctx, size) {
     lines.push(` ${ctx.boxMessage}`)
   }
 
-  while (lines.length < rows - 1) lines.push('')
-  lines.push(dim(' ↑ ↓ browse · [enter] lead · [b] the box · [d] send it there · [esc] back'))
-
-  return { lines, overlays }
+  return { lines: withFooter(lines, dim(HINTS), rows), overlays }
 }
 
 export function onKey(ctx, key) {
