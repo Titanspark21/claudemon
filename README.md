@@ -1,5 +1,7 @@
 # claudemon
 
+[![CI](https://github.com/zamarrowski/claudemon/actions/workflows/ci.yml/badge.svg)](https://github.com/zamarrowski/claudemon/actions/workflows/ci.yml)
+
 Wild Pokemon appear while you work in Claude Code. Your prompts are steps through
 the grass: the longer the prompt, the further you walk, and the more chances
 something jumps out. So is the waiting — every twenty seconds Claude spends
