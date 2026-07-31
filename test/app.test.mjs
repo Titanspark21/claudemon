@@ -28,6 +28,7 @@ const { HIT_FRAMES } = await import('../src/ui/views/battle.mjs')
 const { SETTINGS } = await import('../src/ui/views/options.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
 const { makeRng } = await import('../src/rng.mjs')
+const { VERSION } = await import('../src/version.mjs')
 
 if (!isDataReady()) throw new Error('dataset missing — run: node tools/fetch-data.mjs')
 
@@ -47,11 +48,12 @@ function stubScreen() {
   }
 }
 
-function newApp(save = null) {
+function newApp(save = null, options = {}) {
   return createApp({
     screen: stubScreen(),
     save,
     config: { ...DEFAULT_CONFIG },
+    ...options,
   })
 }
 
@@ -122,8 +124,8 @@ test('arrow keys never end up in the name', () => {
 
 // --- Encounters and battle ---------------------------------------------------
 
-function startedGame() {
-  const app = newApp(null)
+function startedGame(options = {}) {
+  const app = newApp(null, options)
   type(app, 'Red')
   press(app, 'enter')
   press(app, 'enter') // Charmander, the middle option
@@ -803,7 +805,7 @@ test('the OPTION screen offers nothing that could stop a sprite drawing at all',
   const keys = SETTINGS.map((setting) => setting.key)
   assert.ok(!keys.includes('spriteMode'), 'no choice of renderer')
   assert.ok(!keys.includes('blockGrid'), 'and no choice of grid')
-  assert.deepEqual(keys, ['spriteScale', 'bell'], 'only what is left')
+  assert.deepEqual(keys, ['spriteScale', 'bell', 'updateCheck'], 'only what is left')
 })
 
 test('SIZE hands room back, and wraps rather than running off the end', () => {
@@ -872,4 +874,128 @@ test('OPTION is on the home menu, and opening it does not disturb the others', (
 
   press(app, 'escape')
   assert.equal(app.mode, 'home')
+})
+
+// --- Updating ----------------------------------------------------------------
+//
+// The real runner shells out to `claude plugin update`. Every test here goes through
+// the seam instead, so a test run can never reach for the network or touch an
+// installed plugin.
+
+/** A run the test decides the ending of. */
+function stubRun() {
+  let settle
+  const run = {
+    state: 'running',
+    from: '0.5.0',
+    to: null,
+    steps: [{ id: 'plugin', label: 'fetching', done: 'fetched', status: 'running', detail: null }],
+  }
+  run.promise = new Promise((resolve) => { settle = resolve })
+  run.finish = (state = 'done', to = '0.6.0') => {
+    run.state = state
+    run.to = state === 'done' ? to : null
+    run.steps[0].status = state === 'done' ? 'ok' : 'failed'
+    settle(run)
+    // Let the app's own handler on the promise run before the test looks.
+    return new Promise((resolve) => setImmediate(resolve))
+  }
+  return run
+}
+
+/** A game whose update runs are the stub's, and the stub it will hand out. */
+function gameWithUpdate() {
+  const run = stubRun()
+  const app = startedGame({ makeUpdateRun: () => run })
+  return { app, run }
+}
+
+test('[u] does nothing at all unless there is an update to fetch', () => {
+  const { app } = gameWithUpdate()
+
+  app.updateNotice = null
+  press(app, 'u')
+  assert.equal(app.mode, 'home', 'no notice, no screen')
+
+  // A newer copy already on disk is not something to fetch — quitting is the fix,
+  // and running an update out of stale code is the stranger of the two.
+  app.updateNotice = { kind: 'stale', version: '0.6.0' }
+  press(app, 'u')
+  assert.equal(app.mode, 'home')
+})
+
+test('[u] opens the update screen when a version is on offer', () => {
+  const { app } = gameWithUpdate()
+  app.updateNotice = { kind: 'available', version: '0.6.0' }
+
+  press(app, 'u')
+  assert.equal(app.mode, 'update')
+  assert.equal(app.update.state, 'running')
+})
+
+test('an update in flight cannot be walked away from', async () => {
+  const { app, run } = gameWithUpdate()
+  app.updateNotice = { kind: 'available', version: '0.6.0' }
+  press(app, 'u')
+
+  for (const key of ['escape', 'q', 'enter', 'left']) press(app, key)
+  assert.equal(app.mode, 'update', 'a child process is mid-flight')
+
+  await run.finish()
+  press(app, 'escape')
+  assert.equal(app.mode, 'home')
+  assert.equal(app.update, null, 'and the run is done with')
+})
+
+test('a second [u] does not start a second update over the first', () => {
+  const { app } = gameWithUpdate()
+  app.updateNotice = { kind: 'available', version: '0.6.0' }
+
+  press(app, 'u')
+  const first = app.update
+  app.startUpdate()
+  assert.equal(app.update, first)
+})
+
+test('a finished update leaves the home screen asking for a relaunch', async () => {
+  const { app, run } = gameWithUpdate()
+  app.updateNotice = { kind: 'available', version: '0.6.0' }
+  press(app, 'u')
+
+  await run.finish('done', '0.6.0')
+  // The notice is reread from the disk, which in a sandbox has no plugin cache at
+  // all — so what matters is that it was reread rather than left claiming there is
+  // still something to fetch.
+  assert.notEqual(app.updateNotice?.kind, 'available')
+})
+
+test('the spinner only turns while a step is running', () => {
+  const { app, run } = gameWithUpdate()
+  app.updateNotice = { kind: 'available', version: '0.6.0' }
+  press(app, 'u')
+
+  const before = app.updateFrame
+  let moved = false
+  for (let frame = 0; frame < 12; frame++) moved = app.tickUpdate() || moved
+  assert.ok(moved, 'it turned')
+  assert.ok(app.updateFrame > before)
+
+  run.state = 'done'
+  const settled = app.updateFrame
+  for (let frame = 0; frame < 12; frame++) assert.equal(app.tickUpdate(), false)
+  assert.equal(app.updateFrame, settled, 'a settled screen costs no redraw')
+})
+
+test('the home screen carries the version, and the notice only when there is one', () => {
+  const app = startedGame()
+  const size = { cols: 100, rows: 34 }
+
+  app.updateNotice = null
+  const quiet = homeView.draw(app, size).lines
+  assert.ok(quiet.some((line) => line.includes(`v${VERSION}`)), 'the version is on screen')
+  assert.equal(quiet.filter((line) => line.includes('is out')).length, 0)
+
+  app.updateNotice = { kind: 'available', version: '9.9.9' }
+  const loud = homeView.draw(app, size).lines
+  assert.ok(loud.some((line) => line.includes('9.9.9') && line.includes('[u]')))
 })

@@ -18,9 +18,10 @@
 import { beginTurn } from '../src/activity.mjs'
 import { encounterTtlMs, loadConfig } from '../src/config.mjs'
 import { loadSpeciesTable, rollEncounters, stepsFromPrompt } from '../src/encounter.mjs'
-import { logError } from '../src/log.mjs'
+import { logError, logNote } from '../src/log.mjs'
 import { offerEncounter, readEncounter } from '../src/queue.mjs'
 import { makeRng, randomSeed } from '../src/rng.mjs'
+import { relinkLaunchers } from '../src/shim.mjs'
 import { readStatus } from '../src/status.mjs'
 
 const STDIN_TIMEOUT_MS = 2000
@@ -55,8 +56,35 @@ function readLeadLevel() {
   return typeof level === 'number' ? level : null
 }
 
+/**
+ * Points the launchers at this copy, which is the newest one. See src/shim.mjs.
+ *
+ * Here rather than anywhere else because a hook is the only part of claudemon that
+ * Claude Code runs from the copy it just installed, so it is the only part that can
+ * finish an upgrade somebody did through `/plugin update`. Of the four hooks this is
+ * the least frequent, and it reads two small files and almost always finds nothing
+ * to do.
+ *
+ * Failing is not worth a word to anyone: a launcher left alone goes on starting the
+ * release it always did, which is what it was doing a moment ago anyway.
+ */
+function catchUpLaunchers() {
+  try {
+    for (const path of relinkLaunchers()) {
+      logNote('on-prompt', `pointed a launcher at this release: ${path}`)
+    }
+  } catch (error) {
+    logError('on-prompt', error)
+  }
+}
+
 async function main() {
   const raw = await readStdin()
+
+  // Before the early returns below: an upgrade has to be finished whether or not
+  // anything is about to walk out of the grass.
+  catchUpLaunchers()
+
   if (!raw.trim()) return
 
   const payload = JSON.parse(raw)

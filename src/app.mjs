@@ -17,6 +17,7 @@ import {
   activePokemon, addPokemon, createSave, healParty, markSeen, publishStatus,
   saveGame, setLead,
 } from './state.mjs'
+import { checkForUpdate, createUpdateRun, currentNotice } from './update.mjs'
 import { ballSteps } from './ui/ball.mjs'
 
 import * as battleView from './ui/views/battle.mjs'
@@ -26,6 +27,7 @@ import * as optionsView from './ui/views/options.mjs'
 import * as shopView from './ui/views/shop.mjs'
 import * as starterView from './ui/views/starter.mjs'
 import * as teamView from './ui/views/team.mjs'
+import * as updateView from './ui/views/update.mjs'
 
 const VIEWS = {
   starter: starterView,
@@ -35,6 +37,7 @@ const VIEWS = {
   team: teamView,
   shop: shopView,
   options: optionsView,
+  update: updateView,
 }
 
 /** Items worth offering mid-battle: balls, healing, status cures. */
@@ -54,7 +57,23 @@ const HP_DRAIN_STEPS = 24
  */
 const FRAMES_PER_STEP = 2
 
-export function createApp({ screen, save, config }) {
+/**
+ * Frames per turn of the spinner on the update screen. Slower than the walk on
+ * purpose: this one is saying "still going", not animating anything.
+ */
+const FRAMES_PER_SPIN = 3
+
+/**
+ * @param {{makeUpdateRun?: Function}} options `makeUpdateRun` is the seam the tests
+ *   drive the UPDATE screen through. It is the one thing in here that shells out, so
+ *   nothing but a real session should ever be able to reach the real one.
+ */
+export function createApp({ screen, save, config, makeUpdateRun = createUpdateRun }) {
+  /** Frames since the update spinner last turned. */
+  let spinFrames = 0
+  /** Whether a check for a new version is already in flight. */
+  let checking = false
+
   const ctx = {
     screen,
     save,
@@ -94,6 +113,16 @@ export function createApp({ screen, save, config }) {
     optionsSelection: 0,
     optionsMessage: null,
     notice: null,
+
+    /**
+     * What the home screen should say about versions, or null when there is nothing
+     * to say — which is almost always. See update.mjs for the two things it can be.
+     */
+    updateNotice: currentNotice(),
+
+    /** An update in progress, while the UPDATE screen is up. */
+    update: null,
+    updateFrame: 0,
 
     setup: { step: 'name', name: '', selection: 1, blink: true },
     battle: null,
@@ -208,6 +237,48 @@ export function createApp({ screen, save, config }) {
       || next.sessions !== previous.sessions
   }
 
+  /**
+   * Rereads what is known about versions, from the disk alone.
+   *
+   * Cheap enough to sit on a timer: it is a directory listing and a small file. What
+   * it catches is Claude Code updating the plugin underneath a tab that is already
+   * open, which is the one way a new version arrives without anyone asking here.
+   *
+   * @returns {boolean} whether the row on screen would now read differently.
+   */
+  ctx.refreshUpdateNotice = () => {
+    const previous = ctx.updateNotice
+    ctx.updateNotice = currentNotice()
+
+    if (previous?.kind === ctx.updateNotice?.kind && previous?.version === ctx.updateNotice?.version) {
+      return false
+    }
+    // The row appearing or going away moves everything under it, and the renderer's
+    // idea of the screen was formed without it.
+    screen.repaint()
+    return true
+  }
+
+  /**
+   * Asks whether a new version is out, at most once a day and never twice at once.
+   *
+   * Nothing waits on this and nothing fails if it never answers: the check decides
+   * for itself whether it is due, and a machine with no network gets a quiet no.
+   */
+  ctx.checkForUpdates = async () => {
+    if (checking) return false
+    checking = true
+    try {
+      await checkForUpdate({ config: ctx.config })
+    } catch {
+      // Nothing is allowed to escape here. This is called from a timer, and an
+      // unhandled rejection would take the whole tab down over a version number.
+    } finally {
+      checking = false
+    }
+    return ctx.refreshUpdateNotice()
+  }
+
   ctx.handleKey = (key) => {
     if (key.name === 'ctrl-c') {
       ctx.quit()
@@ -215,6 +286,59 @@ export function createApp({ screen, save, config }) {
     }
     VIEWS[ctx.mode]?.onKey(ctx, key)
     ctx.paint()
+  }
+
+  // --- updating --------------------------------------------------------------
+
+  /**
+   * Starts an update and shows it happening.
+   *
+   * The run is put on ctx before the mode changes, because its first step reports
+   * itself synchronously and would otherwise be drawn onto the home screen.
+   */
+  ctx.startUpdate = () => {
+    if (ctx.update?.state === 'running') return
+
+    const run = makeUpdateRun({
+      onChange: () => {
+        if (ctx.mode === 'update') ctx.paint()
+      },
+    })
+
+    run.promise
+      .then(() => {
+        // A successful update leaves a newer copy on the disk than this process is
+        // running, so the home screen now has something else to say.
+        ctx.refreshUpdateNotice()
+        if (ctx.mode === 'update') ctx.paint()
+      })
+      .catch(() => {})
+
+    ctx.update = run
+    ctx.updateFrame = 0
+    spinFrames = 0
+    ctx.setMode('update')
+  }
+
+  ctx.finishUpdate = () => {
+    ctx.update = null
+    ctx.homeSelection = 0
+    ctx.setMode('home')
+  }
+
+  /**
+   * Turns the spinner on the update screen.
+   *
+   * @returns {boolean} whether it moved, so a settled screen costs no redraw.
+   */
+  ctx.tickUpdate = () => {
+    if (ctx.mode !== 'update' || ctx.update?.state !== 'running') return false
+
+    spinFrames++
+    if (spinFrames % FRAMES_PER_SPIN !== 0) return false
+
+    ctx.updateFrame++
+    return true
   }
 
   // --- first run -------------------------------------------------------------

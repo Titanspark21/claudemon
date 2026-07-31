@@ -26,6 +26,16 @@ export const DEFAULT_CONFIG = {
   bell: true,
 
   /**
+   * Look for a new claudemon once a day.
+   *
+   * The one thing in the game that goes near the network after it is installed, and
+   * it is a single GET of a public 300-byte file — see src/update.mjs. Off means the
+   * game never opens a socket at all; you find out about a new version the way you
+   * would have anyway.
+   */
+  updateCheck: true,
+
+  /**
    * How long a wild Pokemon stands in the grass before it wanders off.
    *
    * Only ever one at a time, so this is also what stops a busy session banking a
