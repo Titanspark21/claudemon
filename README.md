@@ -36,21 +36,29 @@ in Claude tells you something is waiting; the game tab is where you go and fight
 
 ## Install
 
-Three lines, typed inside Claude Code. Nothing to clone.
+Typed inside Claude Code. Nothing to clone.
 
 ```
 /plugin marketplace add zamarrowski/claudemon
 /plugin install claudemon@claudemon
+```
+
+That puts the plugin in place — the hooks that make Pokemon appear come from it.
+
+Now **restart Claude Code**. Claude Code only picks up a plugin's commands and hooks
+at startup, so until you restart, the next line does not exist yet — if you type it
+straight after installing, nothing happens. Once you are back:
+
+```
 /claudemon-setup
 ```
 
-The first two put the plugin in place — that is what runs the hooks that make Pokemon
-appear. `/claudemon-setup` does the rest: the `claudemon` command, the status line,
-and the sprites. It prints a line per step and says so if one of them did not work.
+This does the rest: the `claudemon` command, the status line, and the sprites. It
+prints a line per step and says so if one of them did not work.
 
 Then two one-offs, which it reminds you of:
 
-1. **Restart Claude Code**, so the hooks and the status line load.
+1. **Restart Claude Code** once more, so the new status line loads.
 2. In a **second terminal tab**, run `claudemon`.
 
 It asks for a name and a starter the first time, and after that it sits there
@@ -93,8 +101,9 @@ cd claudemon
 node tools/install.mjs
 ```
 
-That does everything the three lines above do, including installing the plugin from
-the clone. Keep the directory where it is: the launcher prefers it while it exists.
+That does everything the steps above do, including installing the plugin from the
+clone — so it needs no slash commands and only one restart, at the end. Keep the
+directory where it is: the launcher prefers it while it exists.
 
 ## Controls
 
