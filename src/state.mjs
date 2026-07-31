@@ -129,6 +129,37 @@ export function addPokemon(save, mon) {
   return 'box'
 }
 
+/**
+ * Moves a boxed Pokemon into the party.
+ *
+ * @returns {boolean} whether it moved, so the screen can say why it did not.
+ */
+export function withdrawPokemon(save, index) {
+  if (index < 0 || index >= save.box.length) return false
+  if (save.party.length >= PARTY_LIMIT) return false
+
+  const [mon] = save.box.splice(index, 1)
+  save.party.push(mon)
+  return true
+}
+
+/**
+ * Moves a party member into the box.
+ *
+ * Never the last one: a team of nobody cannot fight, cannot heal and cannot get
+ * anything back out of the box, which would be a save with no way forward.
+ *
+ * @returns {boolean} whether it moved.
+ */
+export function depositPokemon(save, index) {
+  if (index < 0 || index >= save.party.length) return false
+  if (save.party.length <= 1) return false
+
+  const [mon] = save.party.splice(index, 1)
+  save.box.push(mon)
+  return true
+}
+
 /** Moves a party member to the front, so it leads the next battle. */
 export function setLead(save, index) {
   if (index <= 0 || index >= save.party.length) return save

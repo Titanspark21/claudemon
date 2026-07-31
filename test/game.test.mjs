@@ -18,8 +18,9 @@ process.env.CLAUDEMON_HOME = sandbox
 const { isDataReady, move: moveOf, species } = await import('../src/data.mjs')
 const { SAVE_FILE } = await import('../src/paths.mjs')
 const {
-  activePokemon, addPokemon, createSave, healParty, loadSave, markSeen,
-  partyIsWipedOut, PARTY_LIMIT, saveGame, setLead, totalBalls,
+  activePokemon, addPokemon, createSave, depositPokemon, healParty, loadSave,
+  markSeen, partyIsWipedOut, PARTY_LIMIT, saveGame, setLead, totalBalls,
+  withdrawPokemon,
 } = await import('../src/state.mjs')
 const { buy, countOf, ITEMS, useItem, ballsInBag } = await import('../src/shop.mjs')
 const { applyVictory, learnMove, MOVE_LIMIT } = await import('../src/progression.mjs')
@@ -81,6 +82,33 @@ test('a caught Pokemon joins the party until it is full, then goes to the box', 
 
   assert.equal(addPokemon(save, createPokemon(19, 5, makeRng(99))), 'box')
   assert.equal(save.box.length, 1)
+})
+
+test('the box hands a Pokemon back once there is room for it', () => {
+  const save = newSave()
+  for (let i = 1; i < PARTY_LIMIT; i++) addPokemon(save, createPokemon(16, 5, makeRng(i)))
+  addPokemon(save, createPokemon(19, 5, makeRng(99)))
+
+  // A full team has nowhere to put it, so nothing moves either way.
+  assert.equal(withdrawPokemon(save, 0), false)
+  assert.equal(save.box.length, 1)
+  assert.equal(withdrawPokemon(save, 4), false, 'and nothing out of range moves')
+
+  assert.equal(depositPokemon(save, PARTY_LIMIT - 1), true)
+  assert.equal(save.party.length, PARTY_LIMIT - 1)
+  assert.equal(save.box.length, 2)
+
+  assert.equal(withdrawPokemon(save, 0), true)
+  assert.equal(save.party.length, PARTY_LIMIT)
+  assert.equal(save.party[PARTY_LIMIT - 1].species, 19)
+})
+
+test('the last Pokemon cannot be sent to the box', () => {
+  const save = newSave()
+
+  assert.equal(depositPokemon(save, 0), false)
+  assert.equal(save.party.length, 1)
+  assert.equal(save.box.length, 0)
 })
 
 test('the active Pokemon skips fainted ones', () => {

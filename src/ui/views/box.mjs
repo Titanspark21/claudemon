@@ -1,7 +1,12 @@
-// Your team: who is in it, how they are doing, and what they know.
+// The box: whatever you caught with no room left in the team for it.
+//
+// Reached from the team screen rather than from home, because the box only means
+// anything next to the team: it is where a Pokemon waits for a slot, and this is
+// the screen that gives it one.
 
 import { spriteFile } from '../../paths.mjs'
 import { displayName, isFainted, levelOf } from '../../pokemon.mjs'
+import { PARTY_LIMIT } from '../../state.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
@@ -12,26 +17,33 @@ export function draw(ctx, size) {
   const lines = []
   const overlays = []
 
+  const box = ctx.save.box
   const party = ctx.save.party
   const listWidth = 30
 
-  lines.push(` ${brightYellow('◓')} ${bold('TEAM')}   ${dim(`${party.length}/6 · ${ctx.save.box.length} in the box`)}`)
+  lines.push(
+    ` ${brightYellow('◓')} ${bold('BOX')}   ${dim(
+      `${box.length} stored · team ${party.length}/${PARTY_LIMIT}`,
+    )}`,
+  )
   lines.push('')
 
-  if (party.length === 0) {
-    lines.push(' ' + gray('You have no Pokémon.'))
+  if (box.length === 0) {
+    lines.push(' ' + gray('The box is empty.'))
+    lines.push(' ' + gray('Anything you catch while your team is full waits in here.'))
+    while (lines.length < rows - 1) lines.push('')
+    lines.push(dim(' [esc] back to your team'))
     return { lines, overlays }
   }
 
-  const selected = party[Math.min(ctx.teamSelection, party.length - 1)]
+  const selected = box[Math.min(ctx.boxSelection, box.length - 1)]
 
-  const entries = party.map((mon, index) => {
+  const entries = box.map((mon) => {
     const name = isFainted(mon) ? gray(displayName(mon).toUpperCase()) : displayName(mon).toUpperCase()
-    const leadMark = index === 0 ? brightYellow('★') : ' '
-    return `${leadMark} ${padRight(name, 12)} ${dim(`Lv${levelOf(mon)}`)}`
+    return `${padRight(name, 12)} ${dim(`Lv${levelOf(mon)}`)}`
   })
 
-  const list = menuList(entries, ctx.teamSelection, { height: Math.max(6, party.length), width: listWidth })
+  const list = menuList(entries, ctx.boxSelection, { height: Math.max(6, box.length), width: listWidth })
 
   const sprite = loadSprite(spriteFile('front', selected.species, 'png'), {
     cols: fitCanvasCols(size, 24, ctx.spriteScale),
@@ -49,25 +61,24 @@ export function draw(ctx, size) {
   }
 
   while (lines.length < rows - 1) lines.push('')
-  lines.push(dim(' ↑ ↓ browse · [enter] lead · [b] the box · [d] send it there · [esc] back'))
+  lines.push(dim(' ↑ ↓ browse · [enter] take it into your team · [esc] back'))
 
   return { lines, overlays }
 }
 
 export function onKey(ctx, key) {
-  const total = ctx.save.party.length
+  const total = ctx.save.box.length
 
   if (key.name === 'up' || key.name === 'k') {
-    ctx.teamSelection = wrap(ctx.teamSelection - 1, total)
+    ctx.boxSelection = wrap(ctx.boxSelection - 1, total)
     ctx.boxMessage = null
   } else if (key.name === 'down' || key.name === 'j') {
-    ctx.teamSelection = wrap(ctx.teamSelection + 1, total)
+    ctx.boxSelection = wrap(ctx.boxSelection + 1, total)
     ctx.boxMessage = null
-  } else if (key.name === 'enter' || key.name === 'space') ctx.makeLead(ctx.teamSelection)
-  else if (key.name === 'b') ctx.openBox()
-  else if (key.name === 'd') ctx.depositToBox(ctx.teamSelection)
-  else if (key.name === 'escape' || key.name === 'q') {
+  } else if (key.name === 'enter' || key.name === 'space') {
+    ctx.withdrawFromBox(ctx.boxSelection)
+  } else if (key.name === 'escape' || key.name === 'q') {
     ctx.boxMessage = null
-    ctx.setMode('home')
+    ctx.setMode('team')
   }
 }
