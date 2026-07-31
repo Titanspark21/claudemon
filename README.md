@@ -12,7 +12,16 @@ waiting for you.
 
 The original 151. Fully local — no account, no backend, no network once installed.
 
-<img src="docs/battle.png" alt="A battle in the terminal: a wild Venonat facing your Squirtle, both drawn as pixel sprites, with health bars and a FIGHT / BAG / POKÉMON / RUN menu" width="600">
+<table>
+<tr>
+<td width="58%" valign="top"><img src="docs/home.png" alt="The home screen: an activity line reading Claude is working, Read, 3m09s, someone standing in a band of grass, and a team of five listed below"></td>
+<td width="42%" valign="top"><img src="docs/battle.png" alt="A battle: a wild Venonat facing your Squirtle, both drawn as pixel sprites, with health bars and a FIGHT / BAG / POKÉMON / RUN menu"></td>
+</tr>
+<tr>
+<td valign="top">Waiting, which is most of it. The walk only moves while Claude does, so you can tell from across the desk without reading anything.</td>
+<td valign="top">And when something does jump out.</td>
+</tr>
+</table>
 
 It lives in a terminal tab of its own, next to the one you work in. The status line
 in Claude tells you something is waiting; the game tab is where you go and fight it.
@@ -125,11 +134,6 @@ battle message. That is the whole scheme — it is the same everywhere.
   game tab is somewhere you can actually sit and wait.
 - A patch of grass with someone walking through it, who only walks while Claude is
   working. Something you can catch out of the corner of your eye.
-
-<img src="docs/home.png" alt="The home screen: the activity line reading Claude is working, Read, 3m09s, someone standing in a band of grass, and the team listed below" width="600">
-
-The walk is the activity line said a second way. It moves while Claude is working and
-stops when it stops, so you can tell from across the desk without reading anything.
 
 ## Credits
 
