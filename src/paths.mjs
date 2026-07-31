@@ -39,8 +39,26 @@ export const SESSIONS_DIR = join(HOME, 'sessions')
 
 export const CONFIG_FILE = join(HOME, 'config.json')
 
+/**
+ * What the last check for a new version found, and when it looked.
+ *
+ * Separate from the config because it is not a setting: it is a cache, and the only
+ * thing that writes it is the check itself. Deleting it costs one HTTP request.
+ */
+export const UPDATE_FILE = join(HOME, 'update.json')
+
 /** Hooks cannot report errors to the user, so they land here instead. */
 export const LOG_FILE = join(HOME, 'claudemon.log')
+
+/**
+ * Where Claude Code keeps the copies of this plugin it has installed — one
+ * directory per version, named after it.
+ *
+ * The installer writes shims that resolve through here, and the game reads it to
+ * notice that a newer copy has arrived on disk than the one it is running. Both
+ * need the same path, so it lives here rather than being spelled twice.
+ */
+export const PLUGIN_CACHE = join(homedir(), '.claude', 'plugins', 'cache', 'claudemon', 'claudemon')
 
 /**
  * Where a dataset file is read from. A copy under CLAUDEMON_HOME wins if there is

@@ -5,7 +5,8 @@
 import { spriteFile } from '../../paths.mjs'
 import { displayName, isFainted, levelOf } from '../../pokemon.mjs'
 import { totalBalls } from '../../state.mjs'
-import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
+import { VERSION } from '../../version.mjs'
+import { bold, brightGreen, brightYellow, dim, gray, visibleLength } from '../ansi.mjs'
 import { bandRows, bandScale, grassLines } from '../grass.mjs'
 import { fitCanvasCols, loadSprite, placeSprite } from '../sprite.mjs'
 import { centre, elapsed, hpBar, menuGrid, money, padRight, panel, wrap } from '../widgets.mjs'
@@ -74,6 +75,40 @@ export function activityRow(activity, now = Date.now()) {
   return `${dim('○')} ${dim('Claude is idle')}${others}${age}`
 }
 
+/**
+ * The line about versions, or nothing at all.
+ *
+ * Nothing at all is the normal case and the one worth protecting: this sits directly
+ * under the activity row on a screen somebody leaves open all day, so it only ever
+ * appears when there is something to do about it, and it says which key does it.
+ */
+export function updateRow(notice) {
+  if (!notice) return ''
+
+  if (notice.kind === 'stale') {
+    return `${brightYellow('◆')} ${bold(`v${notice.version}`)} is installed ${dim('·')} ${dim('quit and run claudemon again')}`
+  }
+  return `${brightYellow('◆')} ${bold(`v${notice.version}`)} is out ${dim('·')} ${brightGreen('[u]')} ${dim('update')}`
+}
+
+/**
+ * The bottom row: what the keys do, and which claudemon this is.
+ *
+ * The version goes hard right, and is the first thing dropped when the window cannot
+ * hold both — the hints are how somebody uses the screen, and a wrapped footer would
+ * cost a row the game has already spent.
+ */
+export function footerRow(cols, version = VERSION) {
+  const hints = ' ← → choose · [enter] open · [q] quit'
+  if (!version) return dim(hints)
+
+  const tag = `v${version} `
+  const gap = cols - visibleLength(hints) - visibleLength(tag)
+  if (gap < 1) return dim(hints)
+
+  return dim(hints + ' '.repeat(gap) + tag)
+}
+
 export function draw(ctx, size) {
   const { cols, rows } = size
   const lines = []
@@ -96,6 +131,9 @@ export function draw(ctx, size) {
 
   const activity = activityRow(ctx.activity)
   lines.push(activity ? ` ${activity}` : '')
+
+  const update = updateRow(ctx.updateNotice)
+  if (update) lines.push(` ${update}`)
 
   if (encounter) {
     lines.push(centre(
@@ -164,12 +202,19 @@ export function draw(ctx, size) {
 
   while (lines.length < rows - 3 - menuRows.length) lines.push('')
   for (const row of menuRows) lines.push(` ${row}`)
-  lines.push(dim(' ← → choose · [enter] open · [q] quit'))
+  lines.push(footerRow(cols))
 
   return { lines, overlays }
 }
 
 export function onKey(ctx, key) {
+  // Only ever a shortcut, and only while the notice above says so: the update screen
+  // shells out, so nothing should be able to reach it by a stray keypress.
+  if (key.name === 'u' && ctx.updateNotice?.kind === 'available') {
+    ctx.startUpdate()
+    return
+  }
+
   const items = menuItems(ctx)
   // The menu shrinks on its own the moment an encounter times out, which can happen
   // between two keypresses. Clamping here means the worst case is a key landing on

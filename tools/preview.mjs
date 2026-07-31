@@ -76,6 +76,34 @@ const MODULES = {
   team: await import('../src/ui/views/team.mjs'),
   shop: await import('../src/ui/views/shop.mjs'),
   options: await import('../src/ui/views/options.mjs'),
+  update: await import('../src/ui/views/update.mjs'),
+}
+
+/**
+ * An update part-way through, built by hand rather than started.
+ *
+ * The real one shells out to `claude plugin update`, which is not something a
+ * preview should do to somebody's install.
+ */
+function updateRun({ state = 'running', at = 1, to = null } = {}) {
+  const labels = [
+    ['refreshing the marketplace', 'refreshed the marketplace'],
+    ['fetching the new version', 'fetched the new version'],
+    ['checking the command, status line and sprites', 'the command, status line and sprites are up to date'],
+  ]
+  return {
+    kind: 'plugin',
+    state,
+    from: '0.5.0',
+    to,
+    steps: labels.map(([label, done], index) => ({
+      id: String(index),
+      label,
+      done,
+      status: state === 'done' ? 'ok' : index < at ? 'ok' : index === at ? 'running' : 'pending',
+      detail: null,
+    })),
+  }
 }
 
 const scenes = {
@@ -194,6 +222,36 @@ const scenes = {
   options: () => {
     const app = makeApp(sampleSave())
     app.mode = 'options'
+    return app
+  },
+  'home-update': () => {
+    const app = makeApp(sampleSave())
+    app.mode = 'home'
+    app.activity = { state: 'idle', tool: null, since: Date.now() - 40_000, sessions: 1 }
+    app.updateNotice = { kind: 'available', version: '0.6.0' }
+    return app
+  },
+  update: () => {
+    const app = makeApp(sampleSave())
+    app.mode = 'update'
+    app.update = updateRun({ at: Number(process.env.CLAUDEMON_UPDATE_STEP ?? 1) })
+    app.updateFrame = Number(process.env.CLAUDEMON_SPIN_FRAME ?? 0)
+    return app
+  },
+  'update-done': () => {
+    const app = makeApp(sampleSave())
+    app.mode = 'update'
+    app.update = updateRun({ state: 'done', to: '0.6.0' })
+    return app
+  },
+  'update-failed': () => {
+    const app = makeApp(sampleSave())
+    app.mode = 'update'
+    const run = updateRun({ at: 1 })
+    run.state = 'failed'
+    run.steps[1].status = 'failed'
+    run.steps[1].detail = 'no `claude` command found — is Claude Code on your PATH?'
+    app.update = run
     return app
   },
 }

@@ -46,6 +46,15 @@ export const SETTINGS = [
       { value: false, label: 'OFF', note: 'Never make a sound.' },
     ],
   },
+  {
+    key: 'updateCheck',
+    label: 'UPDATE',
+    read: (config) => config?.updateCheck !== false,
+    values: [
+      { value: true, label: 'ON', note: 'Ask once a day whether a new claudemon is out. The only network this game uses.' },
+      { value: false, label: 'OFF', note: 'Never look. Nothing here opens a socket, and no new version is offered.' },
+    ],
+  },
 ]
 
 /** Which entry of a setting is in force, always a real index. */

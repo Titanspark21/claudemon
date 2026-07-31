@@ -12,7 +12,8 @@ One at a time, and only for half a minute: a Pokemon that appears while you are 
 wanders off if you leave it there, so a long session never leaves a queue of battles
 waiting for you.
 
-The original 151. Fully local — no account, no backend, no network once installed.
+The original 151. Fully local — no account, no backend, nothing about you leaving the
+machine.
 
 <table>
 <tr>
@@ -75,7 +76,53 @@ waiting. Send a longish prompt in the Claude tab and watch the status line.
 | **A terminal with truecolor** | iTerm2, Ghostty, WezTerm, Kitty, Alacritty, VS Code's terminal and macOS Terminal are all fine |
 
 The 151 Pokemon ship with the plugin, so the only thing the install downloads is the
-sprites — 1.2 MB, a few seconds. After that the game never touches the network.
+sprites — 1.2 MB, a few seconds. After that the only thing that ever goes out is the
+version check below, and nothing goes out at all with it switched off.
+
+### Updating
+
+The version this is sits at the right-hand end of the home screen's bottom row. Once
+a day the game asks GitHub whether a newer one is out — a plain `GET` of the plugin
+manifest, about 300 bytes, sending nothing. If there is, the home screen says so:
+
+```
+◆ v0.7.0 is out · [u] update
+```
+
+`u` does it: it refreshes the marketplace, fetches the new version through
+`claude plugin update`, and reruns the installer to catch anything around the plugin
+that changed. Then two one-offs, which it tells you about — restart Claude Code so
+the new hooks and status line load, and relaunch `claudemon`, because a running
+process cannot swap its own code out.
+
+`UPDATE OFF` in **Option** stops the daily check. Nothing is offered and no socket is
+opened; `/plugin update claudemon@claudemon` still works whenever you want it.
+
+Updating through Claude Code instead is fine too. The `claudemon` command is kept
+pointing at whichever copy is newest — by a hook, because neither the command nor the
+status line can be rewritten by hand once they are on a PATH and in `settings.json` —
+so the game picks the new one up on its next start, and says `◆ v0.7.0 is installed`
+until you restart it.
+
+#### Coming from 0.5.0
+
+0.5.0 has none of this in it, so it cannot tell you a new version is out: the first
+upgrade is the only one you do by hand.
+
+```
+/plugin update claudemon@claudemon
+```
+
+Restart Claude Code, then run `claudemon` again. That is all of it — the version turns
+up in the bottom-right corner, and `[u]` does every upgrade after this one.
+
+There is one thing 0.5.0 leaves behind that has to be undone, and it undoes itself.
+0.5.0's installer wrote the directory it was installed from into both launchers and
+nothing ever revisited it; for a plugin install that path has `0.5.0` in it, so the
+command would go on starting 0.5.0 whatever else you installed — in silence, the only
+symptom being a game that never changes. The first prompt after the restart puts both
+right, and notes it in `~/.claudemon/claudemon.log`. A clone is left alone, because a
+clone is meant to take precedence.
 
 ### Uninstall
 
@@ -119,7 +166,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 | Pokédex | All 151, with base stats and evolution requirements for the ones you caught |
 | Team | Details, moves, experience, and `enter` to change your lead |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
-| Option | How big sprites are drawn, and the bell. `← →` changes a setting, and the Pokémon underneath redraws as you do |
+| Option | How big sprites are drawn, the bell, and the daily version check. `← →` changes a setting, and the Pokémon underneath redraws as you do |
 
 <table>
 <tr>

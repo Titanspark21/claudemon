@@ -18,6 +18,14 @@ const HEARTBEAT_MS = 5000
 const POLL_MS = 2000
 
 /**
+ * How often versions are looked at. Not how often the network is used — the check
+ * itself only goes out once a day, and only if it is switched on. This is the rate a
+ * tab left open for a week notices, which is also often enough to catch Claude Code
+ * updating the plugin while you were in the middle of a battle.
+ */
+const UPDATE_POLL_MS = 60_000
+
+/**
  * The slow tick: the blinking name cursor, and the countdown on a waiting
  * encounter. Half a second is fast enough that neither of them stutters, and the
  * renderer only redraws the rows that actually moved.
@@ -63,6 +71,12 @@ function main() {
   app.paint()
 
   if (app.save) publishStatus(app.save)
+
+  // Nothing waits on this: it repaints if it finds something, and is silent if it
+  // does not or cannot.
+  app.checkForUpdates().then((changed) => {
+    if (changed) app.paint()
+  })
 
   const heartbeat = setInterval(() => {
     if (app.save) publishStatus(app.save)
@@ -112,10 +126,17 @@ function main() {
   // return false the moment nothing is moving, so a still screen is a no-op — and
   // only one of them can be on screen at a time, so the short circuit is free.
   const frames = setInterval(() => {
-    if (app.tickBattle() || app.tickScene()) app.paint()
+    if (app.tickBattle() || app.tickScene() || app.tickUpdate()) app.paint()
   }, FRAME_MS)
 
-  for (const timer of [heartbeat, poll, tick, frames]) timer.unref?.()
+  const updates = setInterval(() => {
+    if (app.refreshUpdateNotice()) app.paint()
+    app.checkForUpdates().then((changed) => {
+      if (changed) app.paint()
+    })
+  }, UPDATE_POLL_MS)
+
+  for (const timer of [heartbeat, poll, tick, frames, updates]) timer.unref?.()
 
   // Keep the process alive: stdin is resumed by the screen, and these timers are
   // unref'd so they do not hold it open on their own.
