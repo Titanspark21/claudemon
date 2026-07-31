@@ -173,7 +173,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 | Screen | What it does |
 |---|---|
 | Home | Whatever is in the grass and how long is left to face it, your team, and the menu |
-| Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP |
+| Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP. A ◓ by the foe's name means it is already in your Pokédex |
 | Pokédex | All 151, with base stats and evolution requirements for the ones you caught |
 | Team | Details, moves, experience, and `enter` to change your lead |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |

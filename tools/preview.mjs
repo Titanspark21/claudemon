@@ -13,7 +13,7 @@ import { createBattle } from '../src/battle.mjs'
 import { DEFAULT_CONFIG } from '../src/config.mjs'
 import { createPokemon } from '../src/pokemon.mjs'
 import { makeRng } from '../src/rng.mjs'
-import { addPokemon, createSave, markSeen } from '../src/state.mjs'
+import { addPokemon, createSave, markCaught, markSeen } from '../src/state.mjs'
 import { bold, dim } from '../src/ui/ansi.mjs'
 
 const [requested, colsArg, rowsArg] = process.argv.slice(2)
@@ -163,6 +163,14 @@ const scenes = {
       ball: null,
       postSteps: null, learnStep: null, bagItems: [],
     }
+    return app
+  },
+  // The other half of the ball mark: the plain `battle` scene meets an Oddish the
+  // sample save has only ever seen, so put the two side by side to check that the
+  // mark is what changed and not the layout under it.
+  'battle-caught': () => {
+    const app = scenes.battle()
+    markCaught(app.save, app.battle.state.foe.mon.species)
     return app
   },
   'battle-fight': () => {
