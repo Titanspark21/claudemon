@@ -693,12 +693,14 @@ function battleMon(species) {
   }
 }
 
-function battleCtx({ foe = 143, player = 4, menu = 'main', ball = null, effect = null } = {}) {
+function battleCtx({
+  foe = 143, player = 4, menu = 'main', ball = null, effect = null, caught = [],
+} = {}) {
   return {
     save: {
       trainer: 'X',
       money: 0,
-      dex: { caught: [], seen: [] },
+      dex: { caught, seen: [] },
       bag: { 'poke-ball': 3 },
       party: [battleMon(player)],
       box: [],
@@ -821,6 +823,24 @@ test('the box keeps its bottom border, which the renderer used to cut off', () =
   const last = stripAnsi(visible[visible.length - 1]).trim()
   assert.ok(last.length > 0, 'the last drawn row is not blank')
   assert.ok(/^[└┘─╰╯]/.test(last) || /[┘─╯]$/.test(last), `a border, not ${JSON.stringify(last)}`)
+})
+
+test('a foe already in the Pokedex wears a ball, and a new one does not', () => {
+  const size = { cols: 120, rows: 40 }
+
+  // The foe's name is the first row of the screen, above its HP bar.
+  const nameRow = (ctx) => stripAnsi(drawBattle(ctx, size).lines[0])
+
+  const fresh = nameRow(battleCtx({ foe: 143 }))
+  assert.ok(fresh.includes('SNORLAX'), 'the foe is named')
+  assert.ok(!fresh.includes('◓'), 'one you have never caught carries no ball')
+
+  const owned = nameRow(battleCtx({ foe: 143, caught: [143] }))
+  assert.match(owned, /SNORLAX Lv\d+ ◓/, 'one you have caught carries a ball after its level')
+
+  // Someone else's number in the dex is not this foe's.
+  const other = nameRow(battleCtx({ foe: 143, caught: [4, 25] }))
+  assert.ok(!other.includes('◓'), 'the mark tracks the species on the field')
 })
 
 test('the ball stays on the field and off the message box', () => {

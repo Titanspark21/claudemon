@@ -10,17 +10,18 @@ import { encounterTtlMs, saveConfig, spriteScale } from './config.mjs'
 import { expFromDefeating } from './exp.mjs'
 import { applyVictory, describeStep, learnMove } from './progression.mjs'
 import { createPokemon, displayName, isFainted, levelOf } from './pokemon.mjs'
-import { clearEncounter, readEncounter } from './queue.mjs'
+import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { makeRng, randomSeed } from './rng.mjs'
 import { ballsInBag, countOf, ITEMS, buy, removeItem, useItem } from './shop.mjs'
 import {
-  activePokemon, addPokemon, createSave, healParty, markSeen, publishStatus,
-  saveGame, setLead,
+  activePokemon, addPokemon, createSave, depositPokemon, healParty, markSeen,
+  publishStatus, saveGame, setLead, withdrawPokemon,
 } from './state.mjs'
 import { checkForUpdate, createUpdateRun, currentNotice } from './update.mjs'
 import { ballSteps } from './ui/ball.mjs'
 
 import * as battleView from './ui/views/battle.mjs'
+import * as boxView from './ui/views/box.mjs'
 import * as dexView from './ui/views/dex.mjs'
 import * as homeView from './ui/views/home.mjs'
 import * as optionsView from './ui/views/options.mjs'
@@ -35,6 +36,7 @@ const VIEWS = {
   battle: battleView,
   dex: dexView,
   team: teamView,
+  box: boxView,
   shop: shopView,
   options: optionsView,
   update: updateView,
@@ -108,6 +110,15 @@ export function createApp({ screen, save, config, makeUpdateRun = createUpdateRu
     homeSelection: 0,
     dexSelection: 0,
     teamSelection: 0,
+    boxSelection: 0,
+
+    /**
+     * What just happened to a Pokemon going into or out of the box.
+     *
+     * One field for both screens on purpose: a swap is one action seen from two
+     * sides, and the side you are not looking at is where its result landed.
+     */
+    boxMessage: null,
     shopSelection: 0,
     shopMessage: null,
     optionsSelection: 0,
@@ -204,7 +215,7 @@ export function createApp({ screen, save, config, makeUpdateRun = createUpdateRu
 
     if (isSameEncounter(next, ctx.encounter)) return false
 
-    ctx.encounter = { ...next, expiresAt: Date.parse(next.at) + ttlMs }
+    ctx.encounter = { ...next, expiresAt: encounterExpiresAt(next, ttlMs) }
     // FIGHT is now the first entry, and the one you opened the tab for.
     ctx.homeSelection = 0
     if (ctx.save) {
@@ -361,7 +372,7 @@ export function createApp({ screen, save, config, makeUpdateRun = createUpdateRu
     switch (id) {
       case 'fight': ctx.startNextBattle(); break
       case 'dex': ctx.setMode('dex'); break
-      case 'team': ctx.teamSelection = 0; ctx.setMode('team'); break
+      case 'team': ctx.teamSelection = 0; ctx.boxMessage = null; ctx.setMode('team'); break
       case 'shop': ctx.shopSelection = 0; ctx.shopMessage = null; ctx.setMode('shop'); break
       case 'options': ctx.optionsSelection = 0; ctx.optionsMessage = null; ctx.setMode('options'); break
       case 'heal':
@@ -377,6 +388,45 @@ export function createApp({ screen, save, config, makeUpdateRun = createUpdateRu
   ctx.makeLead = (index) => {
     setLead(ctx.save, index)
     ctx.teamSelection = 0
+    ctx.persist()
+  }
+
+  // --- the box ---------------------------------------------------------------
+
+  ctx.openBox = () => {
+    ctx.boxSelection = 0
+    ctx.boxMessage = null
+    ctx.setMode('box')
+  }
+
+  /** Sends the highlighted party member to the box, if it can be spared. */
+  ctx.depositToBox = (index) => {
+    const mon = ctx.save.party[index]
+    if (!mon) return
+
+    if (!depositPokemon(ctx.save, index)) {
+      ctx.boxMessage = 'That is your last Pokémon — somebody has to fight.'
+      return
+    }
+
+    // The team is a row shorter, and the cursor was pointing at the row that left.
+    ctx.teamSelection = Math.min(index, ctx.save.party.length - 1)
+    ctx.boxMessage = `${displayName(mon).toUpperCase()} went to the box.`
+    ctx.persist()
+  }
+
+  /** Takes the highlighted boxed Pokemon into the team. */
+  ctx.withdrawFromBox = (index) => {
+    const mon = ctx.save.box[index]
+    if (!mon) return
+
+    if (!withdrawPokemon(ctx.save, index)) {
+      ctx.boxMessage = 'Your team is full. Send one to the box first.'
+      return
+    }
+
+    ctx.boxSelection = Math.min(index, Math.max(0, ctx.save.box.length - 1))
+    ctx.boxMessage = `${displayName(mon).toUpperCase()} joined your team.`
     ctx.persist()
   }
 

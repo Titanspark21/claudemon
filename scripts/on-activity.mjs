@@ -53,9 +53,15 @@ function readStdin() {
 }
 
 /**
- * Pays out the time this session has spent working since it was last paid.
+ * Walks this session as far as it is owed: the steps its prompt bought and never
+ * took, plus the time it has spent working since it was last paid.
  *
- * @returns {number|null} the clock to record, or null to leave it where it is.
+ * The two are one walk rather than two rolls. Otherwise the same moment could turn
+ * up a Pokemon twice over, and the cap that stops an essay spawning a swarm would
+ * only be capping one half of it.
+ *
+ * @returns {{lastStepAt: number, pendingSteps: number}|null} the clocks to record,
+ *   or null to leave them where they are.
  */
 function walkWhileWorking(sessionId, now) {
   const previous = readActivity(sessionId)
@@ -64,20 +70,23 @@ function walkWhileWorking(sessionId, now) {
   const config = loadConfig()
   const ttlMs = encounterTtlMs(config)
   const { steps, taken } = stepsWhileWorking(now - (previous.lastStepAt ?? previous.since ?? now), config)
-  if (steps === 0) return null
+  const pending = Number.isInteger(previous.pendingSteps) ? Math.max(0, previous.pendingSteps) : 0
+  if (steps === 0 && pending === 0) return null
 
-  const advanced = (previous.lastStepAt ?? previous.since ?? now) + taken
+  // Spent, whether or not the walk turns anything up. Everything below this line
+  // is the dice, and the dice must not decide whether time passed.
+  const walked = { lastStepAt: (previous.lastStepAt ?? previous.since ?? now) + taken, pendingSteps: 0 }
 
   // The clock still moves when the grass is occupied: that time was spent walking
   // past something you already have the chance to fight, and paying it out again
   // later is how one long turn would owe you a queue of battles.
-  if (readEncounter(ttlMs)) return advanced
+  if (readEncounter(ttlMs)) return walked
 
   const level = readStatus()?.lead?.level
   const leadLevel = typeof level === 'number' ? level : null
 
   const encounters = rollEncounters({
-    steps,
+    steps: Math.min(config.maxSteps, steps + pending),
     leadLevel,
     rng: makeRng(randomSeed()),
     config,
@@ -89,7 +98,7 @@ function walkWhileWorking(sessionId, now) {
   const [encounter] = encounters
   if (encounter) offerEncounter({ ...encounter, session: sessionId }, ttlMs)
 
-  return advanced
+  return walked
 }
 
 async function main() {
@@ -105,9 +114,11 @@ async function main() {
 
   switch (event) {
     case 'PreToolUse': {
-      // Roll first, so the steps are credited against the clock this write moves.
-      const lastStepAt = walkWhileWorking(session, Date.now())
-      noteTool(session, cwd, payload.tool_name, lastStepAt ? { lastStepAt } : {})
+      // Roll first, so the steps are credited against the clocks this write moves.
+      // Also the usual place a prompt's own walk gets taken: the first tool call is
+      // the earliest moment the session is visibly doing something.
+      const walked = walkWhileWorking(session, Date.now())
+      noteTool(session, cwd, payload.tool_name, walked ?? {})
       break
     }
 
@@ -118,9 +129,10 @@ async function main() {
 
     case 'Stop': {
       // The last stretch of thinking counts too, which is what makes a turn that
-      // never touched a tool still walk somewhere.
-      const lastStepAt = walkWhileWorking(session, Date.now())
-      endTurn(session, cwd, lastStepAt ? { lastStepAt } : {})
+      // never touched a tool still walk somewhere — and the last chance to take a
+      // walk the prompt bought, since endTurn writes the debt off.
+      const walked = walkWhileWorking(session, Date.now())
+      endTurn(session, cwd, walked ?? {})
       break
     }
 

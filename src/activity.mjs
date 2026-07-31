@@ -149,8 +149,19 @@ function base(sessionId, cwd, previous) {
   }
 }
 
-/** A prompt was submitted: a new turn starts, and the clock with it. */
-export function beginTurn(sessionId, cwd) {
+/**
+ * A prompt was submitted: a new turn starts, and the clock with it.
+ *
+ * `pendingSteps` is the walk the prompt bought, recorded here rather than taken.
+ * Rolling it at the keystroke put a Pokemon in the grass in the same instant you
+ * pressed enter, before any of the walking it is supposed to have come from had
+ * happened — which read as the game reacting to the key, not to the route.
+ * on-activity.mjs cashes it in at the first sign of Claude actually working.
+ *
+ * Whatever the last turn left unspent is dropped: this is a new walk, not a
+ * continuation of the one before it.
+ */
+export function beginTurn(sessionId, cwd, { pendingSteps = 0 } = {}) {
   const previous = readActivity(sessionId)
   const entry = base(sessionId, cwd, previous)
   return writeActivity({
@@ -160,11 +171,12 @@ export function beginTurn(sessionId, cwd) {
     since: entry.at,
     // Steps through the grass are measured from here.
     lastStepAt: entry.at,
+    pendingSteps,
   })
 }
 
 /** A tool is about to run. Also the heartbeat that keeps a session looking alive. */
-export function noteTool(sessionId, cwd, tool, { lastStepAt } = {}) {
+export function noteTool(sessionId, cwd, tool, { lastStepAt, pendingSteps } = {}) {
   const previous = readActivity(sessionId)
   const entry = base(sessionId, cwd, previous)
   const working = previous?.state === 'working'
@@ -180,6 +192,10 @@ export function noteTool(sessionId, cwd, tool, { lastStepAt } = {}) {
     // whole wait in at the next tool call, which is not time anyone spent waiting
     // on Claude.
     lastStepAt: lastStepAt ?? (working ? previous.lastStepAt ?? entry.at : entry.at),
+    // The prompt's own steps do not restart with the clock, though: they are a walk
+    // that was bought and not yet taken, and the only things that clear that debt
+    // are spending it and the turn ending.
+    pendingSteps: pendingSteps ?? previous?.pendingSteps ?? 0,
   })
 }
 
@@ -194,6 +210,7 @@ export function noteWaiting(sessionId, cwd, message) {
     tool: previous?.tool ?? null,
     since: already && typeof previous.since === 'number' ? previous.since : entry.at,
     lastStepAt: previous?.lastStepAt ?? entry.at,
+    pendingSteps: previous?.pendingSteps ?? 0,
     message: typeof message === 'string' ? message.slice(0, 120) : null,
   })
 }
@@ -208,6 +225,9 @@ export function endTurn(sessionId, cwd, { lastStepAt } = {}) {
     tool: null,
     since: entry.at,
     lastStepAt: lastStepAt ?? entry.at,
+    // Nothing is owed across turns: the caller pays out the last stretch before
+    // ending the turn, and a walk nobody took by then is not one you get later.
+    pendingSteps: 0,
   })
 }
 

@@ -777,6 +777,54 @@ test('choosing a team member makes it the lead', () => {
   assert.equal(app.save.party[0].species, 25)
 })
 
+test('the box takes one off the team and hands it back', () => {
+  const app = startedGame()
+  app.save.party.push(createPokemon(25, 9, makeRng(1)))
+
+  app.openHomeSelection('team')
+  press(app, 'down')
+  press(app, 'd')
+
+  assert.equal(app.save.party.length, 1, 'it left the team')
+  assert.equal(app.save.box.length, 1)
+  assert.match(app.boxMessage, /went to the box/)
+  assert.equal(app.teamSelection, 0, 'and the cursor followed it off the end')
+  assert.equal(loadSave().box.length, 1, 'the swap is on disk, not just on screen')
+
+  press(app, 'b')
+  assert.equal(app.mode, 'box')
+
+  press(app, 'enter')
+  assert.equal(app.save.box.length, 0, 'and came back out')
+  assert.equal(app.save.party.length, 2)
+  assert.equal(app.save.party[1].species, 25)
+
+  press(app, 'escape')
+  assert.equal(app.mode, 'team', 'the box belongs to the team screen')
+})
+
+test('the box refuses a full team, and the team keeps its last Pokemon', () => {
+  const app = startedGame()
+  app.openHomeSelection('team')
+
+  press(app, 'd')
+  assert.equal(app.save.party.length, 1)
+  assert.equal(app.save.box.length, 0)
+  assert.match(app.boxMessage, /last Pok/)
+
+  // A full team with something waiting behind it: the one place the swap has to
+  // be done in the other order.
+  for (let i = 1; i < 6; i++) app.save.party.push(createPokemon(16, 5, makeRng(i)))
+  app.save.box.push(createPokemon(19, 5, makeRng(99)))
+
+  app.openBox()
+  press(app, 'enter')
+
+  assert.equal(app.save.box.length, 1, 'it stayed in the box')
+  assert.equal(app.save.party.length, 6)
+  assert.match(app.boxMessage, /full/)
+})
+
 test('the Pokedex scrolls without falling off either end', () => {
   const app = startedGame()
   app.openHomeSelection('dex')

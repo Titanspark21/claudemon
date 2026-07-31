@@ -10,7 +10,7 @@ import { expProgress } from '../../exp.mjs'
 import { spriteFile } from '../../paths.mjs'
 import { displayName, levelOf } from '../../pokemon.mjs'
 import { ITEMS } from '../../shop.mjs'
-import { bold, brightYellow, dim, gray, visibleLength } from '../ansi.mjs'
+import { bold, brightGreen, brightYellow, dim, gray, visibleLength } from '../ansi.mjs'
 import { ballOverlays, ballScale, ballSteps } from '../ball.mjs'
 import { NATIVE_CANVAS_COLS, loadSprite, spriteHeight } from '../sprite.mjs'
 import {
@@ -278,14 +278,29 @@ function joinField(left, leftIndent, right, rightIndent) {
 }
 
 /**
+ * The mark that says this species is already in the Pokédex.
+ *
+ * The same glyph the Pokédex titles itself with, so the two screens agree on what
+ * a ball means, and green because that is the colour the dex list already gives a
+ * caught entry. Only drawn when it is caught: the games put a ball on the wild
+ * Pokemon you own and nothing on the one you do not, and a marker for "new" would
+ * be on screen far more often than the one worth noticing.
+ */
+const CAUGHT_MARK = brightGreen('◓')
+
+/**
  * `hp` is what the bar shows, which trails the real value: the engine resolves a
  * whole turn at once, and the interface plays it back one blow at a time.
+ *
+ * @param {boolean} caught whether this species is in the Pokédex already, which is
+ *   what decides whether spending a ball here is worth it.
  */
-function foeInfo(mon, hp, width) {
+function foeInfo(mon, hp, width, caught) {
   const name = `${bold(displayName(mon).toUpperCase())} ${dim(`Lv${levelOf(mon)}`)}`
   const tag = statusTag(mon.status)
+  const mark = caught ? ` ${CAUGHT_MARK}` : ''
   return [
-    padRight(`${name}${tag ? ` ${tag}` : ''}`, width),
+    padRight(`${name}${mark}${tag ? ` ${tag}` : ''}`, width),
     padRight(`${hpBar(hp, mon.stats.hp, 20)}`, width),
   ]
 }
@@ -339,8 +354,10 @@ export function draw(ctx, size) {
 
   const ballStep = battle.ball ? ballSteps(battle.ball)[battle.ball.frame] : null
 
-  // Foe: details on the left, sprite pushed to the right.
-  for (const line of foeInfo(foe, battle.hp.foe, width)) lines.push(` ${line}`)
+  // Foe: details on the left, sprite pushed to the right. The ball goes up the
+  // moment the catch lands, since the Pokedex is written before the battle ends.
+  const caught = ctx.save.dex.caught.includes(foe.species)
+  for (const line of foeInfo(foe, battle.hp.foe, width, caught)) lines.push(` ${line}`)
 
   // Both of them on one field. A Pokemon inside a ball is not standing on it, but
   // its rows are held back either way, so nothing else on screen moves while it is

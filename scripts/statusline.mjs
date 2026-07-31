@@ -13,7 +13,7 @@
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { encounterTtlMs, loadConfig } from '../src/config.mjs'
-import { readEncounter } from '../src/queue.mjs'
+import { encounterExpiresAt, readEncounter } from '../src/queue.mjs'
 import { companionIsLive, readStatus } from '../src/status.mjs'
 import { bold, brightCyan, brightGreen, brightYellow, dim, truncate } from '../src/ui/ansi.mjs'
 import { money } from '../src/ui/widgets.mjs'
@@ -67,7 +67,8 @@ function gameRow(config) {
   // The slot is the whole truth: the companion leaves the encounter in the file
   // until you face it, so there is never a Pokemon waiting that this cannot see —
   // and never a stale one either, since the entry ages out on its own.
-  const encounter = readEncounter(encounterTtlMs(config))
+  const ttlMs = encounterTtlMs(config)
+  const encounter = readEncounter(ttlMs)
 
   if (encounter) {
     const headline = encounter.name
@@ -78,7 +79,18 @@ function gameRow(config) {
       ? brightGreen('in your claudemon tab')
       : `${dim('run ')}${brightCyan('claudemon')}${dim(' in another tab')}`
 
-    return `${brightYellow('✦')} ${headline}  ${dim('·')}  ${call}`
+    // Nothing redraws the bar on its own: Claude Code runs this when the session
+    // moves, so the last render of a turn is still on screen long after the turn —
+    // and half a minute later there is no Pokemon behind it. The row cannot go and
+    // correct itself, so it says how long was left when it was written. A count
+    // that is plainly not counting reads as old, which is the truth; "A wild PIDGEY
+    // appeared!" sat there on its own does not.
+    const expiresAt = encounterExpiresAt(encounter, ttlMs)
+    const left = expiresAt == null
+      ? ''
+      : `  ${dim('·')}  ${dim(`${Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000))}s left`)}`
+
+    return `${brightYellow('✦')} ${headline}${left}  ${dim('·')}  ${call}`
   }
 
   if (!status?.lead) return ''

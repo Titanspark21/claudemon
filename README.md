@@ -8,6 +8,10 @@ something jumps out. So is the waiting — every twenty seconds Claude spends
 working is another step, because that is the half of the session you actually
 have free.
 
+The walking happens while Claude does, not the moment you press enter: a prompt
+buys you the steps and the turn takes them, so anything that jumps out does it
+with the grass already moving.
+
 One at a time, and only for half a minute: a Pokemon that appears while you are busy
 wanders off if you leave it there, so a long session never leaves a queue of battles
 waiting for you.
@@ -30,11 +34,11 @@ It lives in a terminal tab of its own, next to the one you work in. The status l
 in Claude tells you something is waiting; the game tab is where you go and fight it.
 
 ```
-┌─ Terminal 1: claude ────────────────────────┐
-│ > refactor this component                   │
-│ ███████░░░░░░░ 63% left | Opus 5            │
-│ ✦ A wild PIDGEY appeared!  ·  claudemon tab │
-└─────────────────────────────────────────────┘
+┌─ Terminal 1: claude ──────────────────────────────────┐
+│ > refactor this component                             │
+│ ███████░░░░░░░ 63% left | Opus 5                      │
+│ ✦ A wild PIDGEY appeared!  ·  24s left  ·  claudemon  │
+└───────────────────────────────────────────────────────┘
 ```
 
 ## Install
@@ -169,9 +173,10 @@ battle message. That is the whole scheme — it is the same everywhere.
 | Screen | What it does |
 |---|---|
 | Home | Whatever is in the grass and how long is left to face it, your team, and the menu |
-| Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP |
+| Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP. A ◓ by the foe's name means it is already in your Pokédex |
 | Pokédex | All 151, with base stats and evolution requirements for the ones you caught |
-| Team | Details, moves, experience, and `enter` to change your lead |
+| Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box |
+| Box | Everything you caught with a full team, reached with `b` from the team screen. `enter` takes one back into the team |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
 | Option | How big sprites are drawn, the bell, and the daily version check. `← →` changes a setting, and the Pokémon underneath redraws as you do |
 
@@ -193,7 +198,8 @@ battle message. That is the whole scheme — it is the same everywhere.
   fleeing and switching Pokémon mid-fight.
 - Catching, where weakening and status genuinely help.
 - Levelling, learning moves, and evolution by level or by stone.
-- A Pokédex tracking seen and caught separately, a team screen and a shop.
+- A Pokédex tracking seen and caught separately, a team screen with the box behind
+  it, and a shop.
 - A line telling you whether Claude is working, which tool it is on and for how
   long — and a bell when it finishes or gets stuck on a permission prompt, so the
   game tab is somewhere you can actually sit and wait.

@@ -58,6 +58,18 @@ function isLive(entry, ttlMs, now) {
   return at != null && now - at < ttlMs
 }
 
+/**
+ * The moment an encounter wanders off, or null if it cannot be timed.
+ *
+ * Both sides work this out for themselves rather than reading it off the entry —
+ * the window is a setting, and one written into the file at spawn time would go on
+ * claiming the old length after somebody changed it.
+ */
+export function encounterExpiresAt(entry, ttlMs) {
+  const at = stampOf(entry)
+  return at == null ? null : at + ttlMs
+}
+
 /** The wild Pokemon currently in the grass, or null if there is none. */
 export function readEncounter(ttlMs, now = Date.now()) {
   const live = peekQueue().filter((entry) => isLive(entry, ttlMs, now))
