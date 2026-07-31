@@ -901,6 +901,26 @@ test('a setting that cannot be written is not pretended to have stuck', () => {
   }
 })
 
+test('UPDATE cycles through the three times a check can happen, and saves each', () => {
+  const app = startedGame()
+  app.openHomeSelection('options')
+  openSetting(app, 'updateCheck')
+
+  // Daily is where a default config sits, so the first press is the one that asks
+  // for a check on every launch.
+  assert.equal(app.config.updateCheck, true)
+
+  press(app, 'right')
+  assert.equal(app.config.updateCheck, 'launch')
+  assert.equal(loadConfig().updateCheck, 'launch', 'and it survives the process')
+
+  press(app, 'right')
+  assert.equal(app.config.updateCheck, false, 'off is still on the end of the list')
+
+  press(app, 'right')
+  assert.equal(app.config.updateCheck, true, 'and it wraps back round to daily')
+})
+
 test('a hand-edited sprite scale cannot leave a Pokemon too small to see', () => {
   assert.equal(spriteScale({ spriteScale: 0 }), 0.4)
   assert.equal(spriteScale({ spriteScale: -3 }), 0.4)

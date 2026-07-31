@@ -6,7 +6,7 @@
 import { readSessions, summariseActivity } from './activity.mjs'
 import { species } from './data.mjs'
 import { createBattle, submitAction, switchIn } from './battle.mjs'
-import { encounterTtlMs, saveConfig, spriteScale } from './config.mjs'
+import { encounterTtlMs, saveConfig, spriteScale, updateCheckMode } from './config.mjs'
 import { expFromDefeating } from './exp.mjs'
 import { applyVictory, describeStep, learnMove } from './progression.mjs'
 import { createPokemon, displayName, isFainted, levelOf } from './pokemon.mjs'
@@ -275,12 +275,20 @@ export function createApp({ screen, save, config, makeUpdateRun = createUpdateRu
    *
    * Nothing waits on this and nothing fails if it never answers: the check decides
    * for itself whether it is due, and a machine with no network gets a quiet no.
+   *
+   * @param {{atLaunch?: boolean}} options `atLaunch` is the one call made on the way
+   *   up, and the only one UPDATE LAUNCH can turn into a check regardless of when the
+   *   last one was. The timer that calls this every minute afterwards must not, or
+   *   the setting would be a request a minute rather than one a launch.
    */
-  ctx.checkForUpdates = async () => {
+  ctx.checkForUpdates = async ({ atLaunch = false } = {}) => {
     if (checking) return false
     checking = true
     try {
-      await checkForUpdate({ config: ctx.config })
+      await checkForUpdate({
+        config: ctx.config,
+        force: atLaunch && updateCheckMode(ctx.config) === 'launch',
+      })
     } catch {
       // Nothing is allowed to escape here. This is called from a timer, and an
       // unhandled rejection would take the whole tab down over a version number.

@@ -99,9 +99,12 @@ that changed. Then two one-offs, which it tells you about — restart Claude Cod
 the new hooks and status line load, and relaunch `claudemon`, because a running
 process cannot swap its own code out.
 
-`UPDATE OFF` in **Option** stops the daily check. Nothing is offered and no socket is
-opened; the two commands under **Coming from 0.5.0** below still work whenever you want
-them.
+**Option** says when that question gets asked. `UPDATE DAILY` is the default above.
+`UPDATE LAUNCH` asks every time `claudemon` starts instead — one request as the tab
+comes up, and none while you play, which is what you want if you leave a tab open for
+a week and would rather not wait a day to hear about a release. `UPDATE OFF` stops it
+entirely: nothing is offered and no socket is opened; the two commands under
+**Coming from 0.5.0** below still work whenever you want them.
 
 Updating through Claude Code instead is fine too. The `claudemon` command is kept
 pointing at whichever copy is newest — by a hook, because neither the command nor the
@@ -178,7 +181,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 | Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box |
 | Box | Everything you caught with a full team, reached with `b` from the team screen. `enter` takes one back into the team |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
-| Option | How big sprites are drawn, the bell, and the daily version check. `← →` changes a setting, and the Pokémon underneath redraws as you do |
+| Option | How big sprites are drawn, the bell, and when the version check runs — daily, every launch, or never. `← →` changes a setting, and the Pokémon underneath redraws as you do |
 
 <table>
 <tr>

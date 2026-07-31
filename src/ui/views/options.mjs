@@ -6,7 +6,7 @@
 // drawn any more: there is one way now, it works in every font, and a choice whose
 // wrong answer is a screenful of tofu was never a choice worth offering.
 
-import { spriteScale } from '../../config.mjs'
+import { spriteScale, updateCheckMode } from '../../config.mjs'
 import { spriteFile } from '../../paths.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import {
@@ -49,9 +49,13 @@ export const SETTINGS = [
   {
     key: 'updateCheck',
     label: 'UPDATE',
-    read: (config) => config?.updateCheck !== false,
+    // The stored value is what goes back on disk, so the three modes are mapped
+    // onto it rather than to names of their own — see config.mjs for why `true`
+    // and `false` are still two of them.
+    read: (config) => ({ off: false, launch: 'launch', daily: true })[updateCheckMode(config)],
     values: [
-      { value: true, label: 'ON', note: 'Ask once a day whether a new claudemon is out. The only network this game uses.' },
+      { value: true, label: 'DAILY', note: 'Ask once a day whether a new claudemon is out. The only network this game uses.' },
+      { value: 'launch', label: 'LAUNCH', note: 'Ask every time claudemon starts. One request a launch, and never while you play.' },
       { value: false, label: 'OFF', note: 'Never look. Nothing here opens a socket, and no new version is offered.' },
     ],
   },

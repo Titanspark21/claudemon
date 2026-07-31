@@ -33,12 +33,17 @@ export const DEFAULT_CONFIG = {
   bell: true,
 
   /**
-   * Look for a new claudemon once a day.
+   * When to look for a new claudemon: `true` once a day, `'launch'` every time the
+   * game starts, `false` never.
    *
    * The one thing in the game that goes near the network after it is installed, and
    * it is a single GET of a public 300-byte file — see src/update.mjs. Off means the
    * game never opens a socket at all; you find out about a new version the way you
    * would have anyway.
+   *
+   * `true` and `false` rather than three names of their own, so a config written
+   * here still reads correctly to a version that only knew the two: `'launch'` is
+   * not `false`, so the worst an older copy does with it is check once a day.
    */
   updateCheck: true,
 
@@ -126,6 +131,20 @@ export function spriteScale(config = DEFAULT_CONFIG) {
   const scale = Number(config?.spriteScale)
   if (!Number.isFinite(scale)) return DEFAULT_CONFIG.spriteScale
   return Math.min(1, Math.max(0.4, scale))
+}
+
+/**
+ * When the version check is allowed to run: 'off', 'launch' or 'daily'.
+ *
+ * Everything that is not one of the three known values is 'daily', which is the
+ * default: a hand-edited config that says `"updateCheck": "yes"` gets the behaviour
+ * somebody writing that meant, and only an explicit `false` switches it off.
+ */
+export function updateCheckMode(config = DEFAULT_CONFIG) {
+  const value = config?.updateCheck
+  if (value === false) return 'off'
+  if (value === 'launch') return 'launch'
+  return 'daily'
 }
 
 /**

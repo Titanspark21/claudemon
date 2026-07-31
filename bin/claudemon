@@ -73,8 +73,9 @@ function main() {
   if (app.save) publishStatus(app.save)
 
   // Nothing waits on this: it repaints if it finds something, and is silent if it
-  // does not or cannot.
-  app.checkForUpdates().then((changed) => {
+  // does not or cannot. The one call that says it is a launch, which is what lets
+  // UPDATE LAUNCH ask now rather than waiting for the day to be up.
+  app.checkForUpdates({ atLaunch: true }).then((changed) => {
     if (changed) app.paint()
   })
 

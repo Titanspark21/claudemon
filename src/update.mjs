@@ -1,10 +1,11 @@
 // Noticing a new claudemon, and fetching it.
 //
 // This is the only thing in the game that touches the network, and it does it at
-// most once a day, for about 300 bytes: the plugin manifest on the default branch,
-// which is the same file Claude Code compares versions against. Nothing is sent —
-// no identifier, no save, not even a version number, since a plain GET of a public
-// file cannot carry one. OPTION turns it off.
+// most once a day — or once per launch, if OPTION says so — for about 300 bytes:
+// the plugin manifest on the default branch, which is the same file Claude Code
+// compares versions against. Nothing is sent — no identifier, no save, not even a
+// version number, since a plain GET of a public file cannot carry one. OPTION also
+// turns it off entirely.
 //
 // Applying an update is somebody else's job. `claude plugin update` already knows
 // how to swap a plugin copy over, so this drives that rather than reimplementing it,
@@ -14,6 +15,7 @@
 import { execFile } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { updateCheckMode } from './config.mjs'
 import { HOME, PLUGIN_CACHE, UPDATE_FILE } from './paths.mjs'
 import { APP_ROOT, VERSION, isNewer, isPluginCopy, newestInstalled, versionAt } from './version.mjs'
 
@@ -102,18 +104,23 @@ export async function fetchLatestVersion({
  * Never throws and never blocks anything: the game is entirely playable without an
  * answer, so a refused connection is recorded and forgotten rather than reported.
  *
+ * @param {{force?: boolean}} options `force` asks now regardless of when the last
+ *   check was — what UPDATE LAUNCH buys, and only ever passed once per process, on
+ *   the way up. It does not override the setting being off: that is a no, not a
+ *   schedule.
  * @returns {Promise<object>} the state to draw from, checked or cached.
  */
 export async function checkForUpdate({
   config,
   now = Date.now(),
   file = UPDATE_FILE,
+  force = false,
   ...options
 } = {}) {
   const state = readUpdateState(file)
 
-  if (config?.updateCheck === false) return state
-  if (!dueForCheck(state, now)) return state
+  if (updateCheckMode(config) === 'off') return state
+  if (!force && !dueForCheck(state, now)) return state
 
   const checkedAt = new Date(now).toISOString()
   try {

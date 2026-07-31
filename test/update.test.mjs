@@ -24,7 +24,7 @@ const {
 const {
   VERSION, compareVersions, installedVersions, isNewer, isPluginCopy, newestInstalled, versionAt,
 } = await import('../src/version.mjs')
-const { DEFAULT_CONFIG } = await import('../src/config.mjs')
+const { DEFAULT_CONFIG, updateCheckMode } = await import('../src/config.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
 const updateView = await import('../src/ui/views/update.mjs')
 const { visibleLength } = await import('../src/ui/ansi.mjs')
@@ -157,6 +157,55 @@ test('a check records what it found, and does not ask again the same day', async
 
   await checkForUpdate({ config: DEFAULT_CONFIG, now: now + CHECK_INTERVAL_MS, file, fetchImpl })
   assert.equal(calls, 2, 'a day later it asked again')
+})
+
+test('the three modes are what is on disk, and anything else is the default', () => {
+  assert.equal(updateCheckMode(DEFAULT_CONFIG), 'daily')
+  assert.equal(updateCheckMode({ updateCheck: true }), 'daily')
+  assert.equal(updateCheckMode({ updateCheck: 'launch' }), 'launch')
+  assert.equal(updateCheckMode({ updateCheck: false }), 'off')
+  // Hand-edited nonsense, and a config from a version that had no such setting.
+  assert.equal(updateCheckMode({ updateCheck: 'yes' }), 'daily')
+  assert.equal(updateCheckMode({}), 'daily')
+  assert.equal(updateCheckMode(), 'daily')
+})
+
+test('a forced check asks even though the last one was minutes ago', async () => {
+  // What UPDATE LAUNCH buys: the day is not up, and it asks anyway.
+  const file = updateFile('forced')
+  const now = Date.parse('2026-03-01T12:00:00.000Z')
+  let calls = 0
+  const fetchImpl = (...args) => { calls++; return servingVersion('9.9.9')(...args) }
+  const config = { ...DEFAULT_CONFIG, updateCheck: 'launch' }
+
+  await checkForUpdate({ config, now, file, fetchImpl })
+  assert.equal(calls, 1)
+
+  const again = await checkForUpdate({ config, now: now + 60_000, file, fetchImpl, force: true })
+  assert.equal(calls, 2, 'it asked again rather than reading the cache')
+  assert.equal(again.latest, '9.9.9')
+  assert.equal(again.checkedAt, new Date(now + 60_000).toISOString())
+
+  // And without the force it is still the once-a-day question.
+  await checkForUpdate({ config, now: now + 120_000, file, fetchImpl })
+  assert.equal(calls, 2)
+})
+
+test('forcing a check does not override the check being switched off', async () => {
+  // Off is an answer, not a schedule: nothing should be able to talk it into a socket.
+  const file = updateFile('forced-off')
+  let calls = 0
+  const fetchImpl = (...args) => { calls++; return servingVersion('9.9.9')(...args) }
+
+  const state = await checkForUpdate({
+    config: { ...DEFAULT_CONFIG, updateCheck: false },
+    file,
+    fetchImpl,
+    force: true,
+  })
+  assert.equal(calls, 0)
+  assert.deepEqual(state, {})
+  assert.equal(existsSync(file), false)
 })
 
 test('the check switched off never asks, whatever the cache says', async () => {
