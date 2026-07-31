@@ -12,8 +12,15 @@ export const DEFAULT_CONFIG = {
   /** Prompt characters per step. A longer prompt walks further. */
   charsPerStep: 40,
 
-  /** Cap on steps from one prompt, so an essay does not spawn a swarm. */
-  maxSteps: 8,
+  /**
+   * Cap on the steps one walk can pull in, prompt and waiting together, so an
+   * essay does not spawn a swarm.
+   *
+   * Eight of them at the chance above is something jumping out two prompts out of
+   * three, which stops reading as luck and starts reading as a thing that happens
+   * every time you press enter. Four is a little under half.
+   */
+  maxSteps: 4,
 
   /**
    * Seconds of Claude working that count as one step through the grass, so a

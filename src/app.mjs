@@ -10,7 +10,7 @@ import { encounterTtlMs, saveConfig, spriteScale } from './config.mjs'
 import { expFromDefeating } from './exp.mjs'
 import { applyVictory, describeStep, learnMove } from './progression.mjs'
 import { createPokemon, displayName, isFainted, levelOf } from './pokemon.mjs'
-import { clearEncounter, readEncounter } from './queue.mjs'
+import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { makeRng, randomSeed } from './rng.mjs'
 import { ballsInBag, countOf, ITEMS, buy, removeItem, useItem } from './shop.mjs'
 import {
@@ -204,7 +204,7 @@ export function createApp({ screen, save, config, makeUpdateRun = createUpdateRu
 
     if (isSameEncounter(next, ctx.encounter)) return false
 
-    ctx.encounter = { ...next, expiresAt: Date.parse(next.at) + ttlMs }
+    ctx.encounter = { ...next, expiresAt: encounterExpiresAt(next, ttlMs) }
     // FIGHT is now the first entry, and the one you opened the tab for.
     ctx.homeSelection = 0
     if (ctx.save) {

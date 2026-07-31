@@ -22,6 +22,7 @@ const {
   pruneSessions, readActivity, readSessions, summariseActivity, writeActivity,
 } = await import('../src/activity.mjs')
 const { DEFAULT_CONFIG } = await import('../src/config.mjs')
+const { stripAnsi } = await import('../src/ui/ansi.mjs')
 const { stepsFromPrompt, stepsWhileWorking } = await import('../src/encounter.mjs')
 const { activityRow } = await import('../src/ui/views/home.mjs')
 
@@ -66,9 +67,23 @@ function sessionIn(home, id) {
 
 // --- the hook payload ---------------------------------------------------------
 
-test('a submitted prompt walks through the grass', () => {
+/** A prompt submitted, then the first sign of Claude working on it. */
+function promptThenWork(session, { prompt = 'x'.repeat(120), event = 'PreToolUse', ...options } = {}) {
+  const { home } = runHook('on-prompt.mjs', {
+    session_id: session,
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
+    prompt,
+  }, options)
+
+  runHook('on-activity.mjs', { session_id: session, cwd: '/tmp', hook_event_name: event, tool_name: 'Read' }, { home })
+  return home
+}
+
+test('a submitted prompt buys a walk rather than taking one', () => {
   // encounterChance 1 makes the roll certain, so this tests the wiring and not
-  // the dice.
+  // the dice — which is exactly what makes it worth asserting that the grass is
+  // still empty. Nothing jumps out at the keystroke, however lucky you are.
   const { home } = runHook('on-prompt.mjs', {
     session_id: 'aaa',
     cwd: '/tmp',
@@ -76,40 +91,45 @@ test('a submitted prompt walks through the grass', () => {
     prompt: 'x'.repeat(120),
   }, { config: { encounterChance: 1 } })
 
+  assert.equal(queueIn(home).length, 0, 'nothing appears in the same instant you press enter')
+  assert.equal(sessionIn(home, 'aaa').pendingSteps, 3, 'three steps, owed to the turn')
+})
+
+test('the walk a prompt bought is taken once Claude gets going', () => {
+  const home = promptThenWork('aaa1', { config: { encounterChance: 1 } })
+
   const queued = queueIn(home)
   assert.equal(queued.length, 1, 'three steps, but only ever one Pokemon in the grass')
   assert.ok(queued[0].name && queued[0].level >= 2, 'and it is a real one')
-  assert.equal(queued[0].session, 'aaa')
+  assert.equal(queued[0].session, 'aaa1')
   assert.ok(!Number.isNaN(Date.parse(queued[0].at)), 'stamped, so it can time out')
+  assert.equal(sessionIn(home, 'aaa1').pendingSteps, 0, 'and the walk is spent, not owed twice')
+})
+
+test('a turn that never touches a tool still takes the walk it bought', () => {
+  // The answer came straight back. Stop is the last chance to spend the steps, and
+  // endTurn writes off whatever it does not.
+  const home = promptThenWork('aaa4', { event: 'Stop', config: { encounterChance: 1 } })
+
+  assert.equal(queueIn(home).length, 1)
+  assert.equal(sessionIn(home, 'aaa4').pendingSteps, 0)
 })
 
 test('a prompt does not stack a second Pokemon behind the first', () => {
-  const { home } = runHook('on-prompt.mjs', {
-    session_id: 'aaa2',
-    hook_event_name: 'UserPromptSubmit',
-    prompt: 'x'.repeat(400),
-  }, { config: { encounterChance: 1 } })
+  const home = promptThenWork('aaa2', { prompt: 'x'.repeat(400), config: { encounterChance: 1 } })
 
   const first = queueIn(home)
   assert.equal(first.length, 1)
 
   for (let prompt = 0; prompt < 5; prompt++) {
-    runHook('on-prompt.mjs', {
-      session_id: 'aaa2',
-      hook_event_name: 'UserPromptSubmit',
-      prompt: 'x'.repeat(400),
-    }, { home })
+    promptThenWork('aaa2', { prompt: 'x'.repeat(400), home })
   }
 
   assert.deepEqual(queueIn(home), first, 'five more prompts changed nothing')
 })
 
 test('an encounter nobody faced is replaced once it has timed out', () => {
-  const { home } = runHook('on-prompt.mjs', {
-    session_id: 'aaa3',
-    hook_event_name: 'UserPromptSubmit',
-    prompt: 'x'.repeat(120),
-  }, { config: { encounterChance: 1, encounterTtlSeconds: 30 } })
+  const home = promptThenWork('aaa3', { config: { encounterChance: 1, encounterTtlSeconds: 30 } })
 
   const [stale] = queueIn(home)
   assert.ok(stale)
@@ -121,15 +141,26 @@ test('an encounter nobody faced is replaced once it has timed out', () => {
     `${JSON.stringify({ ...stale, at: new Date(Date.now() - 31_000).toISOString() })}\n`,
   )
 
-  runHook('on-prompt.mjs', {
-    session_id: 'aaa3',
-    hook_event_name: 'UserPromptSubmit',
-    prompt: 'x'.repeat(120),
-  }, { home })
+  promptThenWork('aaa3', { home })
 
   const queued = queueIn(home)
   assert.equal(queued.length, 1, 'the stale entry is replaced, not queued behind')
   assert.notEqual(queued[0].at, stale.at, 'and it is a fresh encounter')
+})
+
+test('the walk a prompt bought is only ever taken once', () => {
+  const home = promptThenWork('aaa5', { prompt: 'x'.repeat(400), config: { encounterChance: 1 } })
+  assert.equal(queueIn(home).length, 1)
+
+  // Face it, and the grass is empty again — but no time has passed, so the only
+  // thing that could fill it is a debt that was already paid.
+  writeFileSync(join(home, 'queue.jsonl'), '')
+  runHook('on-activity.mjs', { session_id: 'aaa5', hook_event_name: 'PreToolUse', tool_name: 'Bash' }, { home })
+
+  assert.equal(queueIn(home).length, 0, 'the second tool call walks nowhere')
+
+  runHook('on-activity.mjs', { session_id: 'aaa5', hook_event_name: 'Stop' }, { home })
+  assert.equal(queueIn(home).length, 0, 'and neither does the end of the turn')
 })
 
 test('submitting a prompt marks the session as working', () => {
@@ -146,14 +177,10 @@ test('submitting a prompt marks the session as working', () => {
 })
 
 test('an empty prompt still starts the turn but walks nowhere', () => {
-  const { home } = runHook('on-prompt.mjs', {
-    session_id: 'ccc',
-    hook_event_name: 'UserPromptSubmit',
-    prompt: '   ',
-  }, { config: { encounterChance: 1 } })
+  const home = promptThenWork('ccc', { prompt: '   ', config: { encounterChance: 1 } })
 
-  assert.equal(queueIn(home).length, 0)
   assert.equal(sessionIn(home, 'ccc').state, 'working')
+  assert.equal(queueIn(home).length, 0, 'no steps bought, so the tool call has nothing to spend')
 })
 
 test('the hook says nothing on stdout, whatever happens', () => {
@@ -292,6 +319,49 @@ test('an idle session does not walk anywhere', () => {
 
   runHook('on-activity.mjs', { session_id: 'kkk', hook_event_name: 'Stop' }, { home })
   assert.equal(queueIn(home).length, 0)
+})
+
+// --- the status line ----------------------------------------------------------
+//
+// Run as a process for the same reason the hooks are: Claude Code hands it a JSON
+// payload on stdin and shows whatever comes back, and neither half of that is
+// something a unit test of an exported function would notice going wrong.
+
+function runStatusLine(home, payload = {}) {
+  const stdout = execFileSync(process.execPath, [join(root, 'scripts', 'statusline.mjs')], {
+    input: JSON.stringify(payload),
+    encoding: 'utf8',
+    env: { ...process.env, CLAUDEMON_HOME: home },
+  })
+  // The row is coloured, and the colours are not what these tests are about.
+  return stripAnsi(stdout)
+}
+
+test('the status line says what is waiting and how long is left of it', () => {
+  const home = mkdtempSync(join(tmpdir(), 'claudemon-bar-'))
+  writeFileSync(join(home, 'config.json'), JSON.stringify({ encounterTtlSeconds: 30 }))
+  writeFileSync(
+    join(home, 'queue.jsonl'),
+    `${JSON.stringify({ v: 1, species: 16, name: 'Pidgey', level: 4, at: new Date(Date.now() - 9_000).toISOString() })}\n`,
+  )
+
+  const row = runStatusLine(home)
+  assert.match(row, /A wild PIDGEY appeared!/)
+  // The countdown is what stops a row nobody redrew from claiming there is still
+  // something in the grass half a minute after there is not.
+  assert.match(row, /2[01]s left/)
+  assert.match(row, /claudemon/, 'and where to go about it')
+})
+
+test('the status line drops the encounter once its window has closed', () => {
+  const home = mkdtempSync(join(tmpdir(), 'claudemon-bar-'))
+  writeFileSync(join(home, 'config.json'), JSON.stringify({ encounterTtlSeconds: 30 }))
+  writeFileSync(
+    join(home, 'queue.jsonl'),
+    `${JSON.stringify({ v: 1, species: 16, name: 'Pidgey', level: 4, at: new Date(Date.now() - 31_000).toISOString() })}\n`,
+  )
+
+  assert.doesNotMatch(runStatusLine(home), /appeared/)
 })
 
 // --- steps --------------------------------------------------------------------

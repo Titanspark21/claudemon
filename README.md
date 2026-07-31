@@ -8,6 +8,10 @@ something jumps out. So is the waiting — every twenty seconds Claude spends
 working is another step, because that is the half of the session you actually
 have free.
 
+The walking happens while Claude does, not the moment you press enter: a prompt
+buys you the steps and the turn takes them, so anything that jumps out does it
+with the grass already moving.
+
 One at a time, and only for half a minute: a Pokemon that appears while you are busy
 wanders off if you leave it there, so a long session never leaves a queue of battles
 waiting for you.
@@ -30,11 +34,11 @@ It lives in a terminal tab of its own, next to the one you work in. The status l
 in Claude tells you something is waiting; the game tab is where you go and fight it.
 
 ```
-┌─ Terminal 1: claude ────────────────────────┐
-│ > refactor this component                   │
-│ ███████░░░░░░░ 63% left | Opus 5            │
-│ ✦ A wild PIDGEY appeared!  ·  claudemon tab │
-└─────────────────────────────────────────────┘
+┌─ Terminal 1: claude ──────────────────────────────────┐
+│ > refactor this component                             │
+│ ███████░░░░░░░ 63% left | Opus 5                      │
+│ ✦ A wild PIDGEY appeared!  ·  24s left  ·  claudemon  │
+└───────────────────────────────────────────────────────┘
 ```
 
 ## Install
