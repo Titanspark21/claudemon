@@ -13,6 +13,7 @@ import { createPokemon, displayName, isFainted, levelOf } from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { makeRng, randomSeed } from './rng.mjs'
 import { ballsInBag, countOf, ITEMS, buy, removeItem, useItem } from './shop.mjs'
+import { play, startMusic, stopMusic } from './sound.mjs'
 import {
   activePokemon, addPokemon, createSave, depositPokemon, healParty, markSeen,
   publishStatus, saveGame, setLead, withdrawPokemon,
@@ -66,11 +67,18 @@ const FRAMES_PER_STEP = 2
 const FRAMES_PER_SPIN = 3
 
 /**
- * @param {{makeUpdateRun?: Function}} options `makeUpdateRun` is the seam the tests
- *   drive the UPDATE screen through. It is the one thing in here that shells out, so
- *   nothing but a real session should ever be able to reach the real one.
+ * @param {{makeUpdateRun?: Function, playSound?: Function, playMusic?: Function,
+ *   endMusic?: Function}} options `makeUpdateRun` is the seam the tests drive the
+ *   UPDATE screen through. It is the one thing in here that shells out, so nothing
+ *   but a real session should ever be able to reach the real one. The three sound
+ *   seams are the same idea: a test run should never fork a player, and one that did
+ *   would be a test suite you can hear — and, with the music, one you can still hear
+ *   after it has finished.
  */
-export function createApp({ screen, save, config, makeUpdateRun = createUpdateRun }) {
+export function createApp({
+  screen, save, config, makeUpdateRun = createUpdateRun, playSound = play,
+  playMusic = startMusic, endMusic = stopMusic,
+}) {
   /** Frames since the update spinner last turned. */
   let spinFrames = 0
   /** Whether a check for a new version is already in flight. */
@@ -156,12 +164,53 @@ export function createApp({ screen, save, config, makeUpdateRun = createUpdateRu
 
   ctx.quit = () => {
     if (ctx.save) saveGame(ctx.save)
+    // Before the screen goes, because quitting mid-battle is quitting while a player
+    // is running and it does not stop on its own.
+    ctx.stopMusic()
     screen.stop()
     process.exit(0)
   }
 
   ctx.persist = () => {
     if (ctx.save) saveGame(ctx.save)
+  }
+
+  /**
+   * Makes one of the noises in src/sound.mjs, if the user wants noises.
+   *
+   * The single check every sound in the game goes through, which is what makes SOUND
+   * one switch rather than one per sound: a view asks for a name and never asks
+   * whether it is allowed. Nothing waits on it and nothing can fail out of it.
+   *
+   * @param {string} name a key of `SOUNDS`.
+   */
+  ctx.playSound = (name) => {
+    if (ctx.config?.sound === false) return
+    playSound(name)
+  }
+
+  /**
+   * Starts one of the tracks in src/sound.mjs under whatever is on screen.
+   *
+   * Behind the same switch as the blips, for the reason the setting gives: someone who
+   * turned sound off wants a quiet terminal, not a quieter one.
+   *
+   * @param {string} name a key of `MUSIC`.
+   */
+  ctx.playMusic = (name) => {
+    if (ctx.config?.sound === false) return
+    playMusic(name)
+  }
+
+  /**
+   * Stops it, whatever it was.
+   *
+   * Not behind the switch, on purpose. This is the call that has to work when the
+   * setting has just been turned off, and asking for silence is never something to
+   * refuse on the grounds that the user wanted silence.
+   */
+  ctx.stopMusic = () => {
+    endMusic()
   }
 
   /**
@@ -183,6 +232,9 @@ export function createApp({ screen, save, config, makeUpdateRun = createUpdateRu
     }
 
     ctx.spriteScale = spriteScale(ctx.config)
+    // Turning SOUND off is the one setting with something already running behind it,
+    // and a switch that leaves the music playing is a switch that did not work.
+    if (ctx.config?.sound === false) ctx.stopMusic()
     // A sprite is about to change size, and the renderer's idea of what the terminal
     // is showing has not. Leaving the diff in place would leave the rows the old one
     // no longer reaches showing the old one.
@@ -490,6 +542,9 @@ export function createApp({ screen, save, config, makeUpdateRun = createUpdateRu
 
     ctx.save.stats.battles++
     queueMessages(ctx, [`A wild ${displayName(wild).toUpperCase()} appeared!`])
+    // With the first frame of the battle rather than after it: the music is what says
+    // this is a fight, and it should be under the sprite as it arrives.
+    ctx.playMusic('battle')
     ctx.setMode('battle')
   }
 
@@ -981,6 +1036,9 @@ function resolveLearnChoice(ctx) {
 }
 
 function finishBattle(ctx) {
+  // Every way a battle can end comes through here — won, lost, caught, ran — which is
+  // why the music is stopped in one place and not four.
+  ctx.stopMusic()
   ctx.battle = null
   ctx.persist()
   publishStatus(ctx.save)

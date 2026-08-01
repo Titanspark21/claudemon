@@ -29,6 +29,19 @@ export const DEFAULT_CONFIG = {
    */
   workStepSeconds: 20,
 
+  /**
+   * The noises the game itself makes: the cursor moving, a menu entry opening, the
+   * theme that plays for as long as a battle lasts.
+   *
+   * One switch for the lot, and the lot is everything in src/sound.mjs — a sound
+   * added later is covered by this without anyone having to find the setting again.
+   *
+   * Separate from `bell` on purpose. The bell is a notification meant to reach
+   * someone looking at another tab; these are feedback for the tab you are in, and
+   * wanting one is no reason to want the other.
+   */
+  sound: true,
+
   /** Ring the terminal bell when Claude finishes a turn or needs you. */
   bell: true,
 

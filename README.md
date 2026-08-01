@@ -181,7 +181,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 | Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box |
 | Box | Everything you caught with a full team, reached with `b` from the team screen. `enter` takes one back into the team |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
-| Option | How big sprites are drawn, the bell, and when the version check runs — daily, every launch, or never. `← →` changes a setting, and the Pokémon underneath redraws as you do |
+| Option | How big sprites are drawn, the menu sounds, the bell, and when the version check runs — daily, every launch, or never. `← →` changes a setting, and the Pokémon underneath redraws as you do |
 
 <table>
 <tr>
@@ -208,11 +208,22 @@ battle message. That is the whole scheme — it is the same everywhere.
   game tab is somewhere you can actually sit and wait.
 - A patch of grass with someone walking through it, who only walks while Claude is
   working. Something you can catch out of the corner of your eye.
+- Blips as you move through the menus, and a theme that plays from the first frame of
+  a battle to the last — off in one place if you would rather work in silence. The
+  blips are generated from a few lines of notes rather than shipped, so a new one
+  costs three numbers; the theme is two minutes of mono WAV in `assets/`, which is the
+  one format every player on every platform will open.
 
 ## Credits
 
 Data and sprites come from [PokeAPI](https://pokeapi.co). The stats and movesets in
 `data/` are built from it by `tools/fetch-data.mjs`. The sprites are not in here:
 they are somebody else's artwork, so they are downloaded at install time rather than
-redistributed. Pokemon is a trademark of Nintendo, Creatures Inc. and GAME FREAK
-Inc.; this is a personal, non-commercial toy.
+redistributed.
+
+`assets/battle.wav` is the trainer battle theme from the Game Boy games, trimmed to
+two minutes and downmixed to mono. It is not original to this repo and it is not
+covered by the LICENSE, which applies to the code.
+
+Pokemon is a trademark of Nintendo, Creatures Inc. and GAME FREAK Inc.; this is a
+personal, non-commercial toy.

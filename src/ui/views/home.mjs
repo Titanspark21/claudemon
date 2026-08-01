@@ -221,8 +221,13 @@ export function onKey(ctx, key) {
   // the last entry rather than on nothing at all.
   ctx.homeSelection = Math.min(Math.max(0, ctx.homeSelection), items.length - 1)
 
-  if (key.name === 'left') ctx.homeSelection = wrap(ctx.homeSelection - 1, items.length)
-  else if (key.name === 'right') ctx.homeSelection = wrap(ctx.homeSelection + 1, items.length)
-  else if (key.name === 'enter' || key.name === 'space') ctx.openHomeSelection(items[ctx.homeSelection].id)
-  else if (key.name === 'q') ctx.quit()
+  if (key.name === 'left' || key.name === 'right') {
+    ctx.homeSelection = wrap(ctx.homeSelection + (key.name === 'left' ? -1 : 1), items.length)
+    ctx.playSound?.('cursor')
+  } else if (key.name === 'enter' || key.name === 'space') {
+    ctx.playSound?.('select')
+    ctx.openHomeSelection(items[ctx.homeSelection].id)
+  } else if (key.name === 'q') {
+    ctx.quit()
+  }
 }
