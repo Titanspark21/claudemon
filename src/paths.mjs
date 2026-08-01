@@ -18,6 +18,16 @@ export const SPRITES_DIR = join(DATA_DIR, 'sprites')
  */
 export const BUNDLED_DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'data')
 
+/**
+ * Audio that ships as audio, rather than being rendered from notes.
+ *
+ * Apart from `data/`, which is generated from PokeAPI and regenerable: nothing in
+ * here can be rebuilt by a tool in this repo. It is also the only place a file lands
+ * that the game did not compute, so keeping it its own directory is what makes
+ * "what does claudemon actually redistribute" a question you can answer with `ls`.
+ */
+export const BUNDLED_ASSETS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets')
+
 /** Game state. Written only by the companion process, atomically. */
 export const SAVE_FILE = join(HOME, 'save.json')
 
@@ -51,6 +61,15 @@ export const UPDATE_FILE = join(HOME, 'update.json')
 export const LOG_FILE = join(HOME, 'claudemon.log')
 
 /**
+ * The rendered blips, one small WAV each.
+ *
+ * A cache rather than an asset: the sounds are written down as notes in src/sound.mjs
+ * and rendered from them, so deleting this directory costs a few milliseconds the next
+ * time the cursor moves.
+ */
+export const SOUNDS_DIR = join(HOME, 'sounds')
+
+/**
  * Where Claude Code keeps the copies of this plugin it has installed — one
  * directory per version, named after it.
  *
@@ -74,6 +93,14 @@ export function dataFile(name) {
 /** Always the shipped copy — what `tools/fetch-data.mjs` rebuilds. */
 export function bundledDataFile(name) {
   return join(BUNDLED_DATA_DIR, name)
+}
+
+/**
+ * A shipped audio file. No CLAUDEMON_HOME override on purpose: this is part of the
+ * install rather than something the game writes, so there is no local copy to prefer.
+ */
+export function assetFile(name) {
+  return join(BUNDLED_ASSETS_DIR, name)
 }
 
 /**

@@ -8,6 +8,7 @@
 
 import { spriteScale, updateCheckMode } from '../../config.mjs'
 import { spriteFile } from '../../paths.mjs'
+import { hasPlayer } from '../../sound.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import {
   NATIVE_CANVAS_COLS, fitCanvasCols, loadSprite, placeSprite, spriteHeight,
@@ -24,6 +25,9 @@ const FALLBACK_SPECIES = 25
  * hand-editable, and `spriteScale` is a number that could be anything. Whatever
  * does not match falls back to the first entry, so the cursor always starts
  * somewhere real.
+ *
+ * `note` is usually the line to print, but may be a function where what there is to
+ * say depends on the machine rather than on the setting.
  */
 export const SETTINGS = [
   {
@@ -35,6 +39,24 @@ export const SETTINGS = [
       { value: 0.8, label: 'LARGE', note: 'A little smaller than the window could manage.' },
       { value: 0.65, label: 'MEDIUM', note: 'Leaves more of the screen to the menus and the message box.' },
       { value: 0.5, label: 'SMALL', note: 'Half size. Chunky, but it fits in a short tab.' },
+    ],
+  },
+  {
+    key: 'sound',
+    label: 'SOUND',
+    read: (config) => config?.sound !== false,
+    values: [
+      {
+        value: true,
+        label: 'ON',
+        // Asked of the machine rather than written down, because turning this on
+        // where nothing can play a file is the one case someone would otherwise sit
+        // pressing keys at a silent terminal wondering which end was broken.
+        note: () => (hasPlayer()
+          ? 'Blips in the menus and a theme under a battle. One switch for every sound the game makes.'
+          : 'No player on this machine (afplay, paplay, aplay, ffplay), so nothing will come of it.'),
+      },
+      { value: false, label: 'OFF', note: 'No blips. The bell below is a separate thing.' },
     ],
   },
   {
@@ -89,7 +111,8 @@ export function draw(ctx, size) {
   lines.push('')
 
   const setting = SETTINGS[ctx.optionsSelection]
-  const note = setting.values[currentIndex(setting, ctx.config)].note
+  const written = setting.values[currentIndex(setting, ctx.config)].note
+  const note = typeof written === 'function' ? written() : written
   lines.push(` ${ctx.optionsMessage ? brightYellow(ctx.optionsMessage) : dim(note)}`)
   lines.push('')
 
@@ -134,15 +157,23 @@ export function onKey(ctx, key) {
   if (key.name === 'up' || key.name === 'k') {
     ctx.optionsSelection = wrap(ctx.optionsSelection - 1, SETTINGS.length)
     ctx.optionsMessage = null
+    ctx.playSound?.('cursor')
   } else if (key.name === 'down' || key.name === 'j') {
     ctx.optionsSelection = wrap(ctx.optionsSelection + 1, SETTINGS.length)
     ctx.optionsMessage = null
+    ctx.playSound?.('cursor')
   } else if (key.name === 'left' || key.name === 'h') {
     change(ctx, -1)
+    // After the change rather than before it, which is what makes SOUND answer for
+    // itself: switching it on plays, switching it off does not, and either way the
+    // press you just made is the thing you hear the result of.
+    ctx.playSound?.('select')
   } else if (key.name === 'right' || key.name === 'l' || key.name === 'enter' || key.name === 'space') {
     change(ctx, 1)
+    ctx.playSound?.('select')
   } else if (key.name === 'escape' || key.name === 'q') {
     ctx.optionsMessage = null
+    ctx.playSound?.('back')
     ctx.setMode('home')
   }
 }

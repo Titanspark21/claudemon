@@ -853,7 +853,125 @@ test('the OPTION screen offers nothing that could stop a sprite drawing at all',
   const keys = SETTINGS.map((setting) => setting.key)
   assert.ok(!keys.includes('spriteMode'), 'no choice of renderer')
   assert.ok(!keys.includes('blockGrid'), 'and no choice of grid')
-  assert.deepEqual(keys, ['spriteScale', 'bell', 'updateCheck'], 'only what is left')
+  assert.deepEqual(keys, ['spriteScale', 'sound', 'bell', 'updateCheck'], 'only what is left')
+})
+
+test('SOUND is one switch for every noise the game makes, and it sticks', () => {
+  const app = startedGame()
+  app.openHomeSelection('options')
+  openSetting(app, 'sound')
+
+  assert.equal(app.config.sound !== false, true, 'on by default')
+
+  press(app, 'right')
+  assert.equal(app.config.sound, false)
+  assert.equal(loadConfig().sound, false, 'and it survives the process')
+
+  press(app, 'right')
+  assert.equal(app.config.sound, true, 'two values, so it comes straight back')
+})
+
+test('moving on the home menu makes a noise, and SOUND OFF stops all of them', () => {
+  const played = []
+  const app = startedGame({ playSound: (name) => played.push(name) })
+
+  press(app, 'right')
+  assert.deepEqual(played, ['cursor'], 'the cursor moved and was heard')
+
+  app.openHomeSelection('options')
+  openSetting(app, 'sound')
+  played.length = 0
+  press(app, 'right')
+
+  // The press that switched it off is the last thing that could have been heard,
+  // and it lands after the change, so even that one is silent.
+  assert.deepEqual(played, [], 'nothing once it is off')
+
+  press(app, 'escape')
+  press(app, 'left')
+  press(app, 'right')
+  assert.deepEqual(played, [], 'and nothing anywhere else either')
+})
+
+/** A game whose music is recorded rather than played. */
+function musicalGame(track = []) {
+  const app = startedGame({
+    playMusic: (name) => track.push(`start:${name}`),
+    endMusic: () => track.push('stop'),
+  })
+  return app
+}
+
+test('the battle theme starts with the battle and stops when it ends', () => {
+  const track = []
+  const app = musicalGame(track)
+  queueEncounter(app, { species: 10, name: 'Caterpie', level: 2, seed: 3 })
+
+  press(app, 'enter')
+  assert.deepEqual(track, ['start:battle'], 'it is playing before the first message')
+
+  clearMessages(app)
+  assert.deepEqual(track, ['start:battle'], 'and it does not restart on every keypress')
+
+  let guard = 0
+  while (app.mode === 'battle' && guard++ < 40) {
+    if (app.battle.message) press(app, 'enter')
+    else {
+      app.battle.menu = 'main'
+      app.battle.selection = 3 // RUN
+      press(app, 'enter')
+    }
+  }
+
+  assert.equal(app.mode, 'home')
+  assert.deepEqual(track, ['start:battle', 'stop'], 'running is one of the ways it ends')
+})
+
+test('SOUND OFF is silent in a battle too, and switching it off cuts the music', () => {
+  const track = []
+  const app = musicalGame(track)
+
+  app.openHomeSelection('options')
+  openSetting(app, 'sound')
+  press(app, 'right')
+  assert.equal(app.config.sound, false)
+  assert.deepEqual(track, ['stop'], 'the switch stops whatever was playing')
+
+  press(app, 'escape')
+  track.length = 0
+  queueEncounter(app, { species: 10, name: 'Caterpie', level: 2, seed: 3 })
+  press(app, 'enter')
+
+  assert.equal(app.mode, 'battle', 'the battle still starts')
+  assert.deepEqual(track, [], 'it just does not come with music')
+})
+
+test('quitting mid-battle takes the music with it', () => {
+  const track = []
+  const app = musicalGame(track)
+  queueEncounter(app, { species: 10, name: 'Caterpie', level: 2, seed: 3 })
+  press(app, 'enter')
+
+  // The real one ends the process, which would end the test run with it.
+  const exit = process.exit
+  process.exit = () => {}
+  try {
+    app.quit()
+  } finally {
+    process.exit = exit
+  }
+
+  assert.deepEqual(track, ['start:battle', 'stop'], 'the player does not outlive the game')
+})
+
+test('opening a menu entry sounds different from walking past it', () => {
+  const played = []
+  const app = startedGame({ playSound: (name) => played.push(name) })
+
+  press(app, 'right')
+  press(app, 'enter')
+  assert.deepEqual(played, ['cursor', 'select'])
+  assert.equal(app.mode, 'team', 'and it still opened the screen')
 })
 
 test('SIZE hands room back, and wraps rather than running off the end', () => {
