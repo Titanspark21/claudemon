@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<!--
+  The source of docs/card.png — the 1200x630 image link previews show.
+
+  It is a page rather than a drawing so that changing it is editing HTML, and so the
+  card cannot drift from the site's own type and colours. Re-render it with any
+  Chromium after editing:
+
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --hide-scrollbars --window-size=1200,630 \
+      --screenshot=docs/card.png docs/card.html
+
+  The size is fixed on purpose: 1.91:1 is what a summary_large_image card is cropped
+  to, so anything else gets its top and bottom taken off by whoever renders it.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>claudemon — link preview card</title>
+<style>
+  :root {
+    --bg: #0e0f0d;
+    --panel: #161814;
+    --line: #2b2e28;
+    --fg: #e6e6e6;
+    --dim: #8b8f88;
+    --green: #7fcf6a;
+    --amber: #e0b341;
+    --mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+
+  body { width: 1200px; height: 630px; overflow: hidden; background: var(--bg); font-family: var(--mono); }
+
+  .card { position: relative; width: 1200px; height: 630px; padding: 64px; }
+
+  h1 { font-size: 104px; line-height: 1; letter-spacing: -.03em; color: var(--fg); font-weight: 700; }
+  h1 .cursor { color: var(--green); }
+
+  p.tagline {
+    margin-top: 24px; max-width: 640px;
+    font-size: 31px; line-height: 1.45; color: var(--fg);
+  }
+  p.hook { margin-top: 10px; font-size: 31px; line-height: 1.45; color: var(--green); }
+
+  .strip {
+    display: inline-block; margin-top: 28px;
+    padding: 12px 20px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+    font-size: 21px; white-space: nowrap;
+  }
+  .strip .alert { color: var(--amber); }
+  .strip .meta { color: var(--dim); }
+
+  /* The band runs off both edges, like the one on the site. */
+  .grass { position: absolute; left: 0; right: 0; bottom: 0; }
+  .grass .teeth { height: 12px; background: repeating-linear-gradient(to right, var(--green) 0 12px, transparent 12px 24px); }
+  .grass .body { height: 30px; background: var(--green); }
+
+  /* Cropped to the box each sprite's pixels occupy — see the comment in index.html.
+     Bottom of the box is the feet, so one line of them stands on the band. */
+  .line {
+    position: absolute; right: 64px; bottom: 36px;
+    display: flex; align-items: flex-end; gap: 30px;
+    --zoom: 3;
+  }
+  .sprite {
+    display: block; overflow: hidden;
+    width: calc(var(--w) * var(--zoom) * 1px);
+    height: calc(var(--h) * var(--zoom) * 1px);
+  }
+  .sprite img {
+    display: block; width: calc(96px * var(--zoom)); height: auto;
+    image-rendering: pixelated;
+    margin-top: calc(var(--y) * var(--zoom) * -1px);
+    margin-left: calc(var(--x) * var(--zoom) * -1px);
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>claudemon<span class="cursor">▌</span></h1>
+  <p class="tagline">Wild Pokemon appear while you work in Claude&nbsp;Code.</p>
+  <p class="hook">Your prompts are steps through the grass.</p>
+  <div class="strip"><span class="alert">✦ A wild PIDGEY appeared!</span><span class="meta">  ·  24s left  ·  claudemon</span></div>
+
+  <div class="line">
+    <div class="sprite" style="--w: 38; --h: 42; --x: 30; --y: 29"><img src="sprites/4.png" alt=""></div>
+    <div class="sprite" style="--w: 60; --h: 56; --x: 23; --y: 22"><img src="sprites/5.png" alt=""></div>
+    <div class="sprite" style="--w: 74; --h: 80; --x: 9; --y: 8"><img src="sprites/6.png" alt=""></div>
+  </div>
+
+  <div class="grass"><div class="teeth"></div><div class="body"></div></div>
+</div>
+</body>
+</html>
