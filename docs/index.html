@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claudemon — wild Pokemon appear while you work in Claude Code</title>
+<meta name="description" content="Wild Pokemon appear while you work in Claude Code. Your prompts are steps through the grass. The original 151, fully local, in a terminal tab of its own.">
+<link rel="canonical" href="https://zamarrowski.github.io/claudemon/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="claudemon">
+<meta property="og:description" content="Wild Pokemon appear while you work in Claude Code. Your prompts are steps through the grass.">
+<meta property="og:url" content="https://zamarrowski.github.io/claudemon/">
+<meta property="og:image" content="https://zamarrowski.github.io/claudemon/home.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="claudemon">
+<meta name="twitter:description" content="Wild Pokemon appear while you work in Claude Code. Your prompts are steps through the grass.">
+<meta name="twitter:image" content="https://zamarrowski.github.io/claudemon/home.png">
+<meta name="theme-color" content="#0e0f0d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230e0f0d'/%3E%3Ccircle cx='8' cy='8' r='6' fill='%23e6e6e6'/%3E%3Cpath d='M2 8a6 6 0 0 1 12 0z' fill='%23d2554a'/%3E%3Crect x='2' y='7' width='12' height='2' fill='%230e0f0d'/%3E%3Ccircle cx='8' cy='8' r='2' fill='%230e0f0d'/%3E%3Ccircle cx='8' cy='8' r='1' fill='%23e6e6e6'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg:      #0e0f0d;
+    --panel:   #161814;
+    --line:    #2b2e28;
+    --fg:      #e6e6e6;
+    --dim:     #8b8f88;
+    --green:   #7fcf6a;
+    --red:     #d2554a;
+    --blue:    #6f9fe0;
+    --amber:   #e0b341;
+    --mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 16px;
+    line-height: 1.65;
+  }
+
+  .wrap { width: 100%; max-width: 62rem; margin: 0 auto; padding: 0 1.5rem; }
+
+  a { color: var(--green); text-decoration: none; border-bottom: 1px solid transparent; }
+  a:hover { border-bottom-color: var(--green); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+  /* ---------- top bar ---------- */
+
+  .top {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem;
+    padding: 1rem 0; border-bottom: 1px solid var(--line);
+  }
+  .top .name { color: var(--fg); font-weight: 700; letter-spacing: .02em; border: 0; }
+  .top .name::before { content: "◓ "; color: var(--red); }
+  .top nav { display: flex; flex-wrap: wrap; gap: .35rem 1.1rem; font-size: .875rem; }
+  .top nav a { color: var(--dim); }
+  .top nav a:hover { color: var(--fg); border-bottom-color: var(--dim); }
+
+  /* ---------- hero ---------- */
+
+  header.hero { padding: clamp(2.5rem, 7vw, 4.5rem) 0 0; }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(2.25rem, 9vw, 4rem);
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    font-weight: 700;
+  }
+  h1 .cursor {
+    color: var(--green);
+    animation: blink 1.1s steps(1, end) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .tagline {
+    margin: 1rem 0 0;
+    font-size: clamp(1.0625rem, 2.6vw, 1.375rem);
+    max-width: 34em;
+    color: var(--fg);
+  }
+  .tagline em { color: var(--green); font-style: normal; }
+
+  .grass { margin: 2rem 0 0; }
+  .grass .teeth { height: 8px; background: repeating-linear-gradient(to right, var(--green) 0 8px, transparent 8px 16px); }
+  .grass .body  { height: 20px; background: var(--green); }
+
+  /* PokeAPI's sprites are 96x96 with the creature adrift somewhere inside, and each one
+     sits differently — Charizard's wings reach 8px from the bottom edge, Charmander's
+     feet stop 25px short. So every sprite carries the box its pixels actually occupy:
+     --x/--y where they start, --w/--h how far they run. Cropping to that is what lets
+     sprites of three different sizes stand on one line. Measured with decodePng.
+
+     --box overrides the crop height where a row wants uniform boxes instead. */
+  .sprite {
+    display: block; overflow: hidden;
+    --box: var(--h);
+    width: calc(var(--w) * var(--zoom, 2) * 1px);
+    height: calc(var(--box) * var(--zoom, 2) * 1px);
+  }
+  .sprite img {
+    display: block; width: calc(96px * var(--zoom, 2)); height: auto;
+    image-rendering: pixelated;
+    margin-top: calc((var(--y) + var(--h) - var(--box)) * var(--zoom, 2) * -1px);
+    margin-left: calc(var(--x) * var(--zoom, 2) * -1px);
+  }
+
+  /* Charmander's line, standing on the band rather than on top of it. */
+  .grass .line { --zoom: 3; display: flex; align-items: flex-end; gap: 2rem; margin-bottom: -6px; }
+  @media (max-width: 64rem) { .grass .line { --zoom: 2; gap: 1.5rem; } }
+  @media (max-width: 40rem) { .grass .line { --zoom: 1; gap: 1rem; } }
+
+  .cta { display: flex; flex-wrap: wrap; gap: .75rem; margin: 2rem 0 0; }
+  .btn {
+    display: inline-block; padding: .55rem 1.1rem;
+    border: 1px solid var(--line); border-radius: 2px;
+    color: var(--fg); font-size: .9375rem;
+  }
+  .btn:hover { border-color: var(--dim); background: var(--panel); }
+  .btn.primary { border-color: var(--green); color: var(--green); }
+  .btn.primary:hover { background: rgba(127, 207, 106, .1); border-color: var(--green); }
+  .btn.star::before { content: "★ "; color: var(--amber); }
+  .btn.star:hover { border-color: var(--amber); }
+
+  /* ---------- terminal mock ---------- */
+
+  .term {
+    margin: 2.5rem 0 0;
+    border: 1px solid var(--line); border-radius: 3px;
+    background: var(--panel);
+    overflow-x: auto;
+  }
+  .term .bar {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .45rem .75rem; border-bottom: 1px solid var(--line);
+    color: var(--dim); font-size: .75rem;
+  }
+  .term .bar .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); flex: none; }
+  .term pre {
+    margin: 0; padding: .9rem 1rem;
+    font-size: clamp(.75rem, 2.2vw, .875rem); line-height: 1.7;
+    white-space: pre;
+  }
+  .term .prompt { color: var(--dim); }
+  .term .bar-full { color: var(--green); }
+  .term .bar-empty { color: #3f4539; }
+  .term .meta { color: var(--dim); }
+  .term .alert { color: var(--amber); }
+
+  /* ---------- sections ---------- */
+
+  section { padding: clamp(3rem, 8vw, 5rem) 0 0; }
+
+  h2 {
+    margin: 0 0 1.25rem;
+    font-size: .8125rem; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--dim);
+  }
+  h2::before { content: "─── "; color: var(--line); }
+
+  h3 { margin: 2rem 0 .5rem; font-size: 1rem; font-weight: 700; }
+
+  p { margin: 0 0 1rem; max-width: 42em; }
+  p.lede { font-size: 1.0625rem; }
+  .dim { color: var(--dim); }
+
+  ul { margin: 0 0 1rem; padding-left: 1.25rem; max-width: 42em; }
+  ul li { margin: 0 0 .5rem; }
+  ul li::marker { color: var(--green); }
+
+  /* ---------- screenshots ---------- */
+
+  figure { margin: 0 0 2rem; }
+  /* Scoped: the sprites are figures too, and a screenshot's frame around one of them
+     is a box with a Pokemon rattling about inside it. */
+  #screens figure img {
+    display: block; width: 100%; height: auto;
+    border: 1px solid var(--line); border-radius: 3px;
+    background: var(--bg);
+  }
+  figcaption { margin: .625rem 0 0; font-size: .875rem; color: var(--dim); }
+  figcaption b { color: var(--fg); font-weight: 700; }
+
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 40rem) { .pair { grid-template-columns: 1fr; } }
+
+  /* ---------- code ---------- */
+
+  .code { position: relative; margin: 0 0 1rem; }
+  .code pre {
+    margin: 0; padding: .85rem 3.5rem .85rem 1rem;
+    background: var(--panel);
+    border: 1px solid var(--line); border-left: 2px solid var(--green); border-radius: 3px;
+    font-size: .875rem; line-height: 1.7;
+    overflow-x: auto;
+  }
+  .code button {
+    position: absolute; top: .45rem; right: .45rem;
+    padding: .2rem .5rem;
+    font-family: var(--mono); font-size: .6875rem; letter-spacing: .08em;
+    color: var(--dim); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 2px;
+    cursor: pointer;
+  }
+  .code button:hover { color: var(--fg); border-color: var(--dim); }
+  .code button.done { color: var(--green); border-color: var(--green); }
+
+  code { font-family: var(--mono); font-size: .9em; color: var(--fg); background: var(--panel); padding: .1em .35em; border-radius: 2px; }
+
+  /* ---------- steps ---------- */
+
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+  ol.steps > li {
+    position: relative; counter-increment: step;
+    padding: 0 0 1.75rem 2.5rem;
+    border-left: 1px solid var(--line);
+    margin-left: .6rem;
+  }
+  ol.steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  ol.steps > li::before {
+    content: counter(step);
+    position: absolute; left: -.6rem; top: .15rem;
+    width: 1.2rem; height: 1.2rem;
+    display: grid; place-items: center;
+    font-size: .6875rem; color: var(--bg); background: var(--green);
+    border-radius: 2px;
+  }
+  ol.steps > li p:last-child { margin-bottom: 0; }
+  .warn { color: var(--amber); }
+
+  /* Feet on one line and the names under them, which wants boxes of one height: 42 is
+     the tallest of the three, so the shorter two keep their headroom instead of their
+     captions drifting up. */
+  .starters { --zoom: 3; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1.5rem; margin: 1rem 0 0; }
+  .starters figure { margin: 0; }
+  .starters .sprite { --box: 42; border-bottom: 2px solid var(--green); }
+  .starters figcaption { margin: .5rem 0 0; font-size: .8125rem; letter-spacing: .06em; }
+  @media (max-width: 40rem) { .starters { --zoom: 2; gap: 1rem; } }
+
+  /* ---------- table ---------- */
+
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .9375rem; }
+  th, td { text-align: left; padding: .6rem .75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); font-weight: 400; }
+  td:first-child { white-space: nowrap; }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    margin: clamp(3.5rem, 9vw, 6rem) 0 0;
+    padding: 2rem 0 3rem;
+    border-top: 1px solid var(--line);
+    font-size: .875rem; color: var(--dim);
+  }
+  footer p { max-width: 46em; }
+  footer p:last-child { margin-bottom: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <a class="name" href="#">claudemon</a>
+    <nav>
+      <a href="#screens">Screens</a>
+      <a href="#install">Install</a>
+      <a href="#inside">Inside</a>
+      <a href="https://github.com/zamarrowski/claudemon">GitHub</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>claudemon<span class="cursor">▌</span></h1>
+    <p class="tagline">Wild Pokemon appear while you work in Claude Code. Your prompts are <em>steps through the grass</em> — the longer the prompt, the further you walk, and the more chances something jumps out.</p>
+
+    <div class="cta">
+      <a class="btn primary" href="#install">Install</a>
+      <a class="btn" href="#screens">See it</a>
+      <a class="btn star" href="https://github.com/zamarrowski/claudemon">Star on GitHub</a>
+    </div>
+
+    <div class="term" aria-hidden="true">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>Terminal 1 — claude</span></div>
+<pre><span class="prompt">&gt;</span> refactor this component
+<span class="bar-full">███████</span><span class="bar-empty">░░░░░░░</span> <span class="meta">63% left | Opus 5</span>
+<span class="alert">✦ A wild PIDGEY appeared!</span><span class="meta">  ·  24s left  ·  claudemon</span></pre>
+    </div>
+    <p class="dim" style="margin-top:.75rem;font-size:.875rem">The status line in Claude tells you something is waiting. The game sits in a second terminal tab — that is where you go and fight it.</p>
+  </div>
+
+  <div class="grass">
+    <div class="wrap line">
+      <div class="sprite" style="--w: 38; --h: 42; --x: 30; --y: 29">
+        <img src="sprites/4.png" width="96" height="96" alt="Charmander, drawn as a pixel sprite">
+      </div>
+      <div class="sprite" style="--w: 60; --h: 56; --x: 23; --y: 22">
+        <img src="sprites/5.png" width="96" height="96" alt="Charmeleon">
+      </div>
+      <div class="sprite" style="--w: 74; --h: 80; --x: 9; --y: 8">
+        <img src="sprites/6.png" width="96" height="96" alt="Charizard">
+      </div>
+    </div>
+    <div class="teeth" aria-hidden="true"></div>
+    <div class="body" aria-hidden="true"></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <h2>The idea</h2>
+    <p class="lede">The walking happens while Claude does, not the moment you press enter: a prompt buys you the steps and the turn takes them, so anything that jumps out does it with the grass already moving. So is the waiting — every twenty seconds Claude spends working is another step, because that is the half of the session you actually have free.</p>
+    <p>One at a time, and only for half a minute: a Pokemon that appears while you are busy wanders off if you leave it there, so a long session never leaves a queue of battles waiting for you.</p>
+    <p>The original 151. Fully local — no account, no backend, nothing about you leaving the machine.</p>
+  </section>
+
+  <section id="screens">
+    <h2>Screens</h2>
+
+    <figure>
+      <img src="home.png" width="1058" height="788" alt="The home screen: an activity line reading Claude is working, Read, 3m09s, someone standing in a band of grass, and a team of five listed below">
+      <figcaption><b>Home</b> — waiting, which is most of it. The walk only moves while Claude does, so you can tell from across the desk without reading anything.</figcaption>
+    </figure>
+
+    <div class="pair">
+      <figure>
+        <img src="battle.png" width="1196" height="1656" alt="A battle: a wild Venonat facing your Squirtle, both drawn as pixel sprites, with health bars and a FIGHT / BAG / POKÉMON / RUN menu" loading="lazy">
+        <figcaption><b>Battle</b> — critical hits, the type chart, status conditions, PP. A ◓ by the foe's name means it is already in your Pokédex.</figcaption>
+      </figure>
+      <figure>
+        <img src="pokedex.png" width="1114" height="1574" alt="The Pokédex: the list of all 151 down the left with seen and caught markers, and Charmander on the right with its base stats, catch rate and what it evolves into" loading="lazy">
+        <figcaption><b>Pokédex</b> — seen and caught are tracked apart, and the stats fill in for the ones you caught.</figcaption>
+      </figure>
+    </div>
+
+    <figure>
+      <img src="team.png" width="1184" height="782" alt="The team screen: five Pokémon listed on the left, and Ditto on the right with its health, experience, stats and moves" loading="lazy">
+      <figcaption><b>Team</b> — details, moves, experience, <code>enter</code> to change your lead, and the box behind it.</figcaption>
+    </figure>
+  </section>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p>Typed inside Claude Code. Nothing to clone.</p>
+
+    <ol class="steps">
+      <li>
+        <p>Add the marketplace and install the plugin — that puts the hooks that make Pokemon appear in place.</p>
+        <div class="code">
+<pre>/plugin marketplace add zamarrowski/claudemon
+/plugin install claudemon@claudemon</pre>
+          <button type="button" aria-label="Copy the install commands">COPY</button>
+        </div>
+      </li>
+      <li>
+        <p><span class="warn">Restart Claude Code.</span> It only picks up a plugin's commands and hooks at startup, so until you restart, the next line does not exist yet.</p>
+      </li>
+      <li>
+        <p>Run the setup. It installs the <code>claudemon</code> command, the status line and the sprites, printing a line per step and saying so if one of them did not work.</p>
+        <div class="code">
+<pre>/claudemon-setup</pre>
+          <button type="button" aria-label="Copy the setup command">COPY</button>
+        </div>
+      </li>
+      <li>
+        <p><span class="warn">Restart Claude Code once more</span>, so the new status line loads.</p>
+      </li>
+      <li>
+        <p>In a <b>second terminal tab</b>, run <code>claudemon</code>. It asks for a name and a starter the first time, and after that it sits there waiting.</p>
+        <div class="code">
+<pre>claudemon</pre>
+          <button type="button" aria-label="Copy the launch command">COPY</button>
+        </div>
+        <div class="starters">
+          <figure>
+            <div class="sprite" style="--w: 35; --h: 33; --x: 28; --y: 30">
+              <img src="sprites/1.png" width="96" height="96" alt="Bulbasaur, drawn as a pixel sprite" loading="lazy">
+            </div>
+            <figcaption>BULBASAUR</figcaption>
+          </figure>
+          <figure>
+            <div class="sprite" style="--w: 38; --h: 42; --x: 30; --y: 29">
+              <img src="sprites/4.png" width="96" height="96" alt="Charmander" loading="lazy">
+            </div>
+            <figcaption>CHARMANDER</figcaption>
+          </figure>
+          <figure>
+            <div class="sprite" style="--w: 38; --h: 39; --x: 29; --y: 29">
+              <img src="sprites/7.png" width="96" height="96" alt="Squirtle" loading="lazy">
+            </div>
+            <figcaption>SQUIRTLE</figcaption>
+          </figure>
+        </div>
+      </li>
+    </ol>
+
+    <p style="margin-top:1.5rem">Then send a longish prompt in the Claude tab and watch the status line.</p>
+
+    <h3>What you need first</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Requirement</th><th>How to check</th></tr></thead>
+        <tbody>
+          <tr><td><b>Claude Code</b></td><td>You are already in it</td></tr>
+          <tr><td><b>Node.js 18+</b></td><td><code>node --version</code>. The game and the hooks run on it, and Claude Code ships as its own binary so it does not bring one. Nothing else to install — no dependencies, no build step</td></tr>
+          <tr><td><b>A truecolor terminal</b></td><td>iTerm2, Ghostty, WezTerm, Kitty, Alacritty, VS Code's terminal and macOS Terminal are all fine</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>From a clone instead</h3>
+    <p>For hacking on it, a clone works the same way and takes precedence over the installed copy.</p>
+    <div class="code">
+<pre>git clone https://github.com/zamarrowski/claudemon
+cd claudemon
+node tools/install.mjs</pre>
+      <button type="button" aria-label="Copy the clone commands">COPY</button>
+    </div>
+    <p class="dim">The 151 Pokemon ship with the plugin, so the only thing the install downloads is the sprites — 1.2 MB, a few seconds. <a href="https://github.com/zamarrowski/claudemon#updating">Updating and uninstalling</a> are in the README.</p>
+  </section>
+
+  <section id="inside">
+    <h2>What's in it</h2>
+    <ul>
+      <li>The original 151, with real base stats, types, catch rates and Red/Blue movesets.</li>
+      <li>Battles with critical hits, the type chart, status conditions, PP, one-hit KOs, fleeing and switching Pokemon mid-fight.</li>
+      <li>Catching, where weakening and status genuinely help.</li>
+      <li>Levelling, learning moves, and evolution by level or by stone.</li>
+      <li>A Pokédex tracking seen and caught separately, a team screen with the box behind it, and a shop.</li>
+      <li>A line telling you whether Claude is working, which tool it is on and for how long — and a bell when it finishes or gets stuck on a permission prompt, so the game tab is somewhere you can actually sit and wait.</li>
+      <li>A patch of grass with someone walking through it, who only walks while Claude is working. Something you can catch out of the corner of your eye.</li>
+      <li>Blips as you move through the menus, and a theme that plays from the first frame of a battle to the last — off in one place if you would rather work in silence.</li>
+    </ul>
+
+    <h3>Controls</h3>
+    <p>Arrow keys move, <code>enter</code> confirms, <code>esc</code> goes back, <code>q</code> quits. Any key advances a battle message. That is the whole scheme — it is the same everywhere.</p>
+  </section>
+
+  <footer>
+    <p>Pokemon is a trademark of Nintendo, Creatures Inc. and GAME FREAK Inc.; this is a personal, non-commercial toy.</p>
+    <p>MIT, by <a href="https://github.com/zamarrowski">zamarrowski</a> · <a href="https://github.com/zamarrowski/claudemon">source</a></p>
+  </footer>
+
+</div>
+
+<script>
+  for (const button of document.querySelectorAll('.code button')) {
+    button.addEventListener('click', async () => {
+      const text = button.parentElement.querySelector('pre').textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = 'COPIED';
+      } catch {
+        button.textContent = 'FAILED';
+      }
+      button.classList.add('done');
+      setTimeout(() => { button.textContent = 'COPY'; button.classList.remove('done'); }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

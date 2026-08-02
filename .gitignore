@@ -19,4 +19,4 @@ npm-debug.log*
 # are not:
 #
 #   data/  the dataset the plugin ships, so installing needs no PokeAPI round trip
-#   docs/  the screenshots the README shows
+#   docs/  the screenshots the README shows, and the landing page GitHub Pages serves
