@@ -13,7 +13,7 @@ import { createBattle } from '../src/battle.mjs'
 import { DEFAULT_CONFIG } from '../src/config.mjs'
 import { createPokemon } from '../src/pokemon.mjs'
 import { makeRng } from '../src/rng.mjs'
-import { addPokemon, createSave, markCaught, markSeen } from '../src/state.mjs'
+import { addPokemon, createSave, markCaught, markFaced, markSeen } from '../src/state.mjs'
 import { bold, dim } from '../src/ui/ansi.mjs'
 
 const [requested, colsArg, rowsArg] = process.argv.slice(2)
@@ -37,6 +37,10 @@ function sampleSave() {
   save.party[2].status = 'poison'
 
   for (const id of [10, 13, 19, 21, 41, 43, 74, 129, 133]) markSeen(save, id)
+  // A playthrough with some road behind it, so the Pokedex has a tally to show.
+  for (const [id, times] of [[16, 9], [19, 6], [25, 4], [10, 3], [41, 2], [129, 1]]) {
+    for (let met = 0; met < times; met++) markFaced(save, id)
+  }
   return save
 }
 

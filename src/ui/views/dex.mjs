@@ -7,6 +7,7 @@ import { loadData, species } from '../../data.mjs'
 import { STAT_NAMES } from '../../exp.mjs'
 import { spriteFile } from '../../paths.mjs'
 import { speciesGender, speciesName } from '../../pokemon.mjs'
+import { timesFaced } from '../../state.mjs'
 import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
 import { genderTag, hpBar, menuList, padRight, typeBadge, withFooter, wrap } from '../widgets.mjs'
@@ -57,6 +58,11 @@ export function draw(ctx, size) {
     detail.push(`${bold(speciesName(selected.id).toUpperCase())}${genderTag(
       speciesGender(selected.id))}  ${dim(`#${String(selected.id).padStart(3, '0')}`)}`)
     detail.push(selected.types.map(typeBadge).join(' '))
+    // How many of it you have stood in front of. Left off entirely at zero: an entry
+    // you have only ever seen has nothing to say here, and nor does one you caught
+    // before the tally existed.
+    const faced = timesFaced(ctx.save, selected.id)
+    if (faced > 0) detail.push(dim(`Faced ${faced === 1 ? 'once' : `${faced} times`}`))
     detail.push('')
     if (caught) {
       const stats = selected.stats

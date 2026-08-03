@@ -1003,6 +1003,23 @@ test('the Pokedex tells the two Nidoran apart without their suffixes', () => {
   assert.match(plain, /Nidoran♂/)
 })
 
+test('the Pokedex says how many of one you have faced, and stays quiet at none', () => {
+  const ctx = menuCtx()
+  // Charmander, the fourth entry: caught in the sample save, so its panel is filled in.
+  ctx.dexSelection = 3
+
+  const bare = drawDex(ctx, { cols: 100, rows: 40 }).lines.map(stripAnsi).join('\n')
+  assert.ok(!/Faced/.test(bare), 'a save with no tally yet says nothing')
+
+  ctx.save.dex.faced = { 4: 1 }
+  const once = drawDex(ctx, { cols: 100, rows: 40 }).lines.map(stripAnsi).join('\n')
+  assert.match(once, /Faced once/, 'and one reads as a word rather than "1 times"')
+
+  ctx.save.dex.faced = { 4: 12, 25: 3 }
+  const many = drawDex(ctx, { cols: 100, rows: 40 }).lines.map(stripAnsi).join('\n')
+  assert.match(many, /Faced 12 times/, 'the highlighted entry, not somebody else')
+})
+
 test('a Pokemon with no gender gets no symbol, and nor does an unreadable one', () => {
   const ctx = menuCtx()
   // Magnemite has no gender; the second one is what an older dataset looks like.

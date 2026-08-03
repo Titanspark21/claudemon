@@ -148,12 +148,24 @@ test('an encounter reaches the home screen and can be entered', () => {
 
   assert.ok(app.encounter, 'one is in the grass')
   assert.ok(app.save.dex.seen.includes(16), 'meeting one counts as seeing it')
+  assert.equal(app.save.dex.faced[16] ?? 0, 0, 'but not yet as facing it')
 
   // FIGHT is first in the menu whenever something is waiting.
   press(app, 'enter')
   assert.equal(app.mode, 'battle')
   assert.ok(app.battle, 'a battle should be running')
   assert.equal(app.encounter, null, 'facing it consumes it')
+  assert.equal(app.save.dex.faced[16], 1, 'and it goes on the Pokedex tally')
+})
+
+test('an encounter that wandered off never reaches the tally', () => {
+  const app = startedGame()
+  agedEncounter(app, 5)
+  agedEncounter(app, 31, { seed: 41 })
+
+  assert.equal(app.encounter, null, 'its window closed')
+  assert.ok(app.save.dex.seen.includes(16), 'you still met it')
+  assert.equal(app.save.dex.faced[16] ?? 0, 0, 'you just never stood in front of it')
 })
 
 test('facing an encounter empties the slot, so it is never replayed', () => {

@@ -15,8 +15,8 @@ import { makeRng, randomSeed } from './rng.mjs'
 import { ballsInBag, countOf, ITEMS, buy, removeItem, useItem } from './shop.mjs'
 import { play, startMusic, stopMusic } from './sound.mjs'
 import {
-  activePokemon, addPokemon, createSave, depositPokemon, healParty, markSeen,
-  publishStatus, saveGame, setLead, withdrawPokemon,
+  activePokemon, addPokemon, createSave, depositPokemon, healParty, markFaced,
+  markSeen, publishStatus, saveGame, setLead, withdrawPokemon,
 } from './state.mjs'
 import { checkForUpdate, createUpdateRun, currentNotice } from './update.mjs'
 import { ballSteps } from './ui/ball.mjs'
@@ -524,7 +524,9 @@ export function createApp({
     clearEncounter()
 
     const wild = createPokemon(encounter.species, encounter.level, makeRng(encounter.seed))
-    markSeen(ctx.save, encounter.species)
+    // Seen as well, which matters for an encounter that turned up before there was a
+    // save to write it into.
+    markFaced(ctx.save, encounter.species)
 
     const state = createBattle({ playerMon: lead, wildMon: wild, seed: encounter.seed })
 

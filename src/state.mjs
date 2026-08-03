@@ -25,7 +25,9 @@ export function createSave({ trainer, starterId, rng }) {
     box: [],
     bag: { 'poke-ball': 5, potion: 3 },
     money: 3000,
-    dex: { seen: [starterId], caught: [starterId] },
+    // The starter is caught without ever having been faced, so its tally starts empty
+    // like everything else's.
+    dex: { seen: [starterId], caught: [starterId], faced: {} },
     stats: { battles: 0, wins: 0, losses: 0, caught: 1, runs: 0 },
   }
 }
@@ -54,6 +56,10 @@ function migrate(save) {
   save.dex ??= { seen: [], caught: [] }
   save.dex.seen ??= []
   save.dex.caught ??= []
+  // A save from before the tally existed starts counting from here. How many of each
+  // it had already faced was never written down, and a number invented now would read
+  // on screen as if it had been.
+  save.dex.faced ??= {}
   save.stats ??= { battles: 0, wins: 0, losses: 0, caught: 0, runs: 0 }
 
   // Stats come from species data, so a dataset correction reaches old saves.
@@ -117,6 +123,31 @@ export function partyNeedsHealing(save) {
 export function markSeen(save, speciesId) {
   if (!save.dex.seen.includes(speciesId)) save.dex.seen.push(speciesId)
   return save
+}
+
+/**
+ * One more of a species on its tally, and seen along with it.
+ *
+ * Counted where an encounter is consumed rather than where it appears, so the number
+ * is how many of them you have actually stood in front of. The ones that wandered
+ * back into the grass while you were busy are seen, not faced.
+ */
+export function markFaced(save, speciesId) {
+  markSeen(save, speciesId)
+  save.dex.faced ??= {}
+  save.dex.faced[speciesId] = timesFaced(save, speciesId) + 1
+  return save
+}
+
+/**
+ * How many of a species you have faced.
+ *
+ * Zero for anything only ever seen, and for every entry in a save that predates the
+ * tally. JSON turns the keys into strings on the way to disk, which a numeric lookup
+ * reads back regardless.
+ */
+export function timesFaced(save, speciesId) {
+  return save.dex?.faced?.[speciesId] ?? 0
 }
 
 export function markCaught(save, speciesId) {
