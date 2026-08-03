@@ -17,11 +17,14 @@ import { draw as drawOptions } from '../src/ui/views/options.mjs'
 import { draw as drawShop } from '../src/ui/views/shop.mjs'
 import { draw as drawTeam } from '../src/ui/views/team.mjs'
 import { DEFAULT_CONFIG } from '../src/config.mjs'
+import { itemsInBag } from '../src/shop.mjs'
 import {
   BLOCK_GRIDS, MIN_CANVAS_COLS, NATIVE_CANVAS_COLS, blockRows, fitCanvasCols,
 } from '../src/ui/sprite.mjs'
 import { genderTag } from '../src/ui/widgets.mjs'
-import { cursor, reset, screen as screenCodes, stripAnsi, visibleLength } from '../src/ui/ansi.mjs'
+import {
+  cursor, gray, reset, screen as screenCodes, stripAnsi, visibleLength,
+} from '../src/ui/ansi.mjs'
 
 function fakeTerminal({ cols = 40, rows = 12 } = {}) {
   const writes = []
@@ -885,7 +888,7 @@ function menuCtx() {
     save: {
       trainer: { name: 'Tester' },
       money: 3000,
-      bag: { 'poke-ball': 5 },
+      bag: { 'poke-ball': 5, potion: 2, 'thunder-stone': 1 },
       dex: { seen: [4, 25], caught: [4] },
       party: [battleMon(4), battleMon(25)],
       box: [battleMon(19)],
@@ -898,7 +901,9 @@ function menuCtx() {
     dexSelection: 0,
     shopSelection: 0,
     optionsSelection: 0,
+    bagSelection: null,
     boxMessage: null,
+    bagMessage: null,
     shopMessage: null,
     optionsMessage: null,
   }
@@ -946,6 +951,90 @@ test('a box with nothing in it still says how to get out of it', () => {
   assert.ok(plain.some((line) => line.includes('The box is empty')), 'it says so')
   assert.equal(lines.length, 33, 'and it is closed like every other screen')
   assert.match(plain[plain.length - 1], /\[esc\]/)
+})
+
+// --- The bag over the team -----------------------------------------------------
+//
+// The same screen with its left column swapped for the item list. Everything the layout
+// has to keep doing — the hint row on the row the renderer draws, the details of the one
+// it is for still on the right — it has to keep doing with the bag open.
+
+/** The team screen with the bag open on an item, for the Pokemon in row `on`. */
+function bagCtx(key, on = 0) {
+  const ctx = menuCtx()
+  ctx.teamSelection = on
+  ctx.bagSelection = itemsInBag(ctx.save).indexOf(key)
+  assert.notEqual(ctx.bagSelection, -1, `${key} should be in the bag`)
+  return ctx
+}
+
+test('the bag opens over the team, on the Pokemon the cursor was on', () => {
+  const { lines } = drawTeam(bagCtx('potion', 1), { cols: 100, rows: 34 })
+  const plain = lines.map(stripAnsi)
+
+  assert.match(plain[0], /BAG/, 'the header says which list you are in')
+  assert.match(plain[0], /on PIKACHU/, 'and who it is for')
+  assert.ok(plain.some((line) => /Potion\s+x2/.test(line)), 'the items are the list now')
+  assert.ok(plain.some((line) => /Restores 20 HP/.test(line)), 'with what the one under the cursor does')
+
+  // The details on the right are still Pikachu's: they are how you see what the item is
+  // about to change.
+  assert.ok(plain.some((line) => /PIKACHU.*Lv/.test(line)))
+
+  assert.equal(lines.length, 33, 'closed like every other screen')
+  assert.match(plain[plain.length - 1], /\[enter\] use it/)
+})
+
+test('the bag marks the item that would evolve the one you have chosen', () => {
+  const stoned = drawTeam(bagCtx('thunder-stone', 1), { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+
+  // Pikachu is what the Thunder Stone is for, and the screen has to say so before you
+  // spend it: 2,100₽ is a lot to pay to find out by guessing.
+  const row = stoned.find((line) => /Thunder Stone/.test(line))
+  assert.match(row, /✦/, 'the item that works is marked')
+  assert.ok(
+    stoned.some((line) => /PIKACHU would become RAICHU/.test(line)),
+    'and it says so in words',
+  )
+
+  // The same stone on Charmander, which it does nothing for.
+  const wasted = drawTeam(bagCtx('thunder-stone', 0), { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+  assert.doesNotMatch(wasted.find((line) => /Thunder Stone/.test(line)), /✦/)
+  assert.ok(!wasted.some((line) => /would become/.test(line)), 'and promises nothing')
+})
+
+test('what an item just did survives a short window', () => {
+  const ctx = menuCtx()
+  ctx.bagMessage = 'Congratulations! PIKACHU evolved into RAICHU!'
+
+  for (const rows of [16, 20, 26, 34]) {
+    const { lines, overlays } = drawTeam(ctx, { cols: 100, rows })
+    assert.ok(lines.length <= rows - 1, `${rows} rows built ${lines.length} lines`)
+
+    // Through the renderer, because the row it refuses to write is the whole point: the
+    // sprite grows with the window, and the answer to a keypress used to be what got
+    // pushed off the bottom to make room for it.
+    const term = fakeTerminal({ cols: 100, rows })
+    term.screen.render(lines, overlays)
+    assert.ok(
+      stripAnsi(term.since(0)).includes('evolved into RAICHU'),
+      `at ${rows} rows the row saying what happened never got drawn`,
+    )
+  }
+})
+
+test('a ball in the bag is greyed rather than hidden', () => {
+  const ctx = bagCtx('poke-ball')
+  const { lines } = drawTeam(ctx, { cols: 100, rows: 34 })
+
+  const row = lines.find((line) => stripAnsi(line).includes('Poké Ball'))
+  assert.ok(row.includes(gray('Poké Ball')), 'it is in the bag, so it is on the list')
+  assert.ok(
+    lines.map(stripAnsi).some((line) => /Save it for something in the grass/.test(line)),
+    'and the screen says why it is not for use here',
+  )
 })
 
 // --- Gender symbols ------------------------------------------------------------

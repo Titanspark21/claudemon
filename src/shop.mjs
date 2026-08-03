@@ -1,8 +1,7 @@
 // Items, and the shop that sells them.
 
 import { BALLS } from './capture.mjs'
-import { species } from './data.mjs'
-import { isFainted, stoneEvolution } from './pokemon.mjs'
+import { displayName, evolveInto, isFainted, speciesName, stoneEvolution } from './pokemon.mjs'
 
 /**
  * Everything that can sit in the bag.
@@ -38,6 +37,31 @@ export function ballsInBag(save) {
   return Object.keys(BALLS)
     .filter((key) => (save.bag[key] ?? 0) > 0)
     .sort((a, b) => BALLS[a].multiplier - BALLS[b].multiplier)
+}
+
+/**
+ * Everything you are carrying, in the order the shop sells it.
+ *
+ * Ordered by `ITEMS` rather than by the save, so the list is the same list every time
+ * you open it: a bag whose rows moved as you spent things would put something else
+ * under the cursor every time you used one.
+ */
+export function itemsInBag(save) {
+  return Object.keys(ITEMS).filter((key) => countOf(save, key) > 0)
+}
+
+/** Kinds that are used on one of your own Pokemon. */
+const PARTY_ITEM_KINDS = new Set(['heal', 'cure', 'revive', 'stone'])
+
+/**
+ * Whether this is something to use on a party member.
+ *
+ * False for balls, which need something standing in front of you. The bag screen still
+ * lists them — they are in the bag — but out of a battle there is nothing to throw one
+ * at, and an item that quietly did nothing would read as a broken bag.
+ */
+export function usableOnParty(key) {
+  return PARTY_ITEM_KINDS.has(ITEMS[key]?.kind)
 }
 
 export function countOf(save, key) {
@@ -82,7 +106,9 @@ export function buy(save, key, quantity = 1) {
  * Returns a message rather than throwing, because every failure here is something
  * the player should simply be told.
  *
- * @returns {{ ok: boolean, message: string, evolvedInto?: number }}
+ * @returns {{ ok: boolean, message: string, evolvedInto?: number }} `evolvedInto` is
+ *   the species it has already become, not one for the caller to apply: it is there so
+ *   whoever holds the save can credit the Pokedex with an entry nobody caught.
  */
 export function useItem(save, key, mon) {
   const item = ITEMS[key]
@@ -123,8 +149,18 @@ export function useItem(save, key, mon) {
   if (item.kind === 'stone') {
     const target = stoneEvolution(mon, key)
     if (!target) return { ok: false, message: 'It would have no effect.' }
+
+    // Here, like every branch above it: an item applies itself. Reporting the evolution
+    // and leaving it for the caller to perform is what made a stone something you could
+    // buy, spend and watch do nothing — the one caller there was never read the field.
+    const before = displayName(mon)
+    evolveInto(mon, target)
     removeItem(save, key)
-    return { ok: true, message: `${species(target).name}!`, evolvedInto: target }
+    return {
+      ok: true,
+      message: `Congratulations! ${before.toUpperCase()} evolved into ${speciesName(target).toUpperCase()}!`,
+      evolvedInto: target,
+    }
   }
 
   return { ok: false, message: 'Nothing happened.' }
