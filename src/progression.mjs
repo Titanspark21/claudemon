@@ -10,6 +10,7 @@ import { movesLearnedAt, MAX_LEVEL, MOVE_LIMIT } from './exp.mjs'
 import {
   displayName, evolveInto, isFainted, levelOf, makeMoveSlot, pendingEvolution, refreshStats,
 } from './pokemon.mjs'
+import { markCaught } from './state.mjs'
 
 // Owned by exp.mjs, which builds the movesets this cap applies to. Re-exported
 // because callers reach for it alongside applyVictory.
@@ -39,7 +40,7 @@ export function applyVictory(save, mons, rewards) {
 
   for (const mon of mons) {
     if (isFainted(mon)) continue
-    steps.push(...gainExp(mon, rewards.exp))
+    steps.push(...gainExp(save, mon, rewards.exp))
   }
 
   return steps
@@ -53,7 +54,7 @@ export function applyVictory(save, mons, rewards) {
  * necessarily the one on the field — a Pokemon on the bench can level up, learn
  * a move and evolve on the back of a fight it left halfway through.
  */
-function gainExp(mon, amount) {
+function gainExp(save, mon, amount) {
   const steps = []
 
   const before = levelOf(mon)
@@ -85,6 +86,10 @@ function gainExp(mon, amount) {
   if (target) {
     const from = mon.species
     evolveInto(mon, target)
+    // An evolution is the only way a species joins your team without being caught, so
+    // it has to fill in its own entry. Without this the Pokedex would never credit you
+    // for the half of it you raised yourself.
+    markCaught(save, target)
     steps.push({ kind: 'evolve', from, to: target, mon, name: species(target).name })
   }
 
