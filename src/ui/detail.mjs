@@ -5,9 +5,9 @@
 
 import { move as moveData, species } from '../data.mjs'
 import { expProgress } from '../exp.mjs'
-import { displayName, levelOf } from '../pokemon.mjs'
+import { displayName, genderOf, levelOf } from '../pokemon.mjs'
 import { bold, dim } from './ansi.mjs'
-import { expBar, hpBar, padRight, statusTag, typeBadge } from './widgets.mjs'
+import { expBar, genderTag, hpBar, padRight, statusTag, typeBadge } from './widgets.mjs'
 
 /**
  * @param {object} mon a party or boxed Pokemon.
@@ -16,7 +16,8 @@ import { expBar, hpBar, padRight, statusTag, typeBadge } from './widgets.mjs'
 export function monDetail(mon) {
   const lines = []
 
-  lines.push(`${bold(displayName(mon).toUpperCase())} ${dim(`Lv${levelOf(mon)}`)} ${statusTag(mon.status)}`)
+  lines.push(`${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))} ${dim(
+    `Lv${levelOf(mon)}`)} ${statusTag(mon.status)}`)
   lines.push(species(mon.species).types.map(typeBadge).join(' '))
   lines.push('')
   lines.push(`HP  ${hpBar(mon.hp, mon.stats.hp, 22)} ${dim(`${mon.hp}/${mon.stats.hp}`)}`)

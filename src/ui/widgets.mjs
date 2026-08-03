@@ -181,3 +181,16 @@ export function statusTag(status) {
   const [label, [r, g, b]] = STATUS_TAGS[status] ?? ['???', [136, 136, 136]]
   return `${bg(r, g, b)}${fg(20, 20, 20)} ${label} ${clear}`
 }
+
+const GENDER_MARKS = { male: ['♂', [104, 144, 240]], female: ['♀', [240, 128, 168]] }
+
+/**
+ * The gender symbol, in one cell, sitting straight after a name the way the games
+ * print it. Empty for the ones with no gender, and for a dataset that cannot say.
+ */
+export function genderTag(gender) {
+  const mark = GENDER_MARKS[gender]
+  if (!mark) return ''
+  const [glyph, [r, g, b]] = mark
+  return `${fg(r, g, b)}${glyph}${clear}`
+}

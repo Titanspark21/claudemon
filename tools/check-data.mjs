@@ -65,6 +65,11 @@ for (const mon of pokedex) {
     String(mon.captureRate),
   )
   check(`${label} growth curve exists`, mon.growthRate in growth, mon.growthRate)
+  check(
+    `${label} gender ratio is -1 or 0-8`,
+    Number.isInteger(mon.genderRate) && mon.genderRate >= -1 && mon.genderRate <= 8,
+    String(mon.genderRate),
+  )
 
   // Every Pokemon knows at least one move at level 1, or it could not battle.
   check(`${label} has a learnset`, mon.learnset.length > 0)
@@ -191,6 +196,13 @@ fact('Machoke evolves by trade', machoke.evolutions[0]?.trigger === 'trade', mac
 const mewtwo = byId.get(150)
 fact('Mewtwo is legendary', mewtwo.legendary === true)
 fact('Mewtwo is hard to catch', mewtwo.captureRate === 3, String(mewtwo.captureRate))
+fact('Mewtwo has no gender', mewtwo.genderRate === -1, String(mewtwo.genderRate))
+
+// The ratio is in eighths, and these three are the entries that say so out loud: a
+// percentage, or a flipped sign, would still pass the range check above.
+fact('Nidoran♀ is always female', byId.get(29).genderRate === 8, String(byId.get(29).genderRate))
+fact('Nidoran♂ is always male', byId.get(32).genderRate === 0, String(byId.get(32).genderRate))
+fact('Bulbasaur is one-eighth female', byId.get(1).genderRate === 1, String(byId.get(1).genderRate))
 
 const caterpie = byId.get(10)
 fact('Caterpie is easy to catch', caterpie.captureRate === 255, String(caterpie.captureRate))

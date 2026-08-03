@@ -8,13 +8,14 @@
 import { move as moveData } from '../../data.mjs'
 import { expProgress } from '../../exp.mjs'
 import { spriteFile } from '../../paths.mjs'
-import { displayName, levelOf } from '../../pokemon.mjs'
+import { displayName, genderOf, levelOf } from '../../pokemon.mjs'
 import { ITEMS } from '../../shop.mjs'
 import { bold, brightGreen, brightYellow, dim, gray, visibleLength } from '../ansi.mjs'
 import { ballOverlays, ballScale, ballSteps } from '../ball.mjs'
 import { NATIVE_CANVAS_COLS, loadSprite, spriteHeight } from '../sprite.mjs'
 import {
-  expBar, hpBar, menuGrid, menuList, padLeft, padRight, panel, statusTag, typeBadge, wrap,
+  expBar, genderTag, hpBar, menuGrid, menuList, padLeft, padRight, panel, statusTag, typeBadge,
+  wrap,
 } from '../widgets.mjs'
 
 /** Name and HP bar for the foe; name, HP and EXP for yours. */
@@ -296,7 +297,7 @@ const CAUGHT_MARK = brightGreen('◓')
  *   what decides whether spending a ball here is worth it.
  */
 function foeInfo(mon, hp, width, caught) {
-  const name = `${bold(displayName(mon).toUpperCase())} ${dim(`Lv${levelOf(mon)}`)}`
+  const name = `${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))} ${dim(`Lv${levelOf(mon)}`)}`
   const tag = statusTag(mon.status)
   const mark = caught ? ` ${CAUGHT_MARK}` : ''
   return [
@@ -306,7 +307,7 @@ function foeInfo(mon, hp, width, caught) {
 }
 
 function playerInfo(mon, hp, width) {
-  const name = `${bold(displayName(mon).toUpperCase())} ${dim(`Lv${levelOf(mon)}`)}`
+  const name = `${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))} ${dim(`Lv${levelOf(mon)}`)}`
   const tag = statusTag(mon.status)
   const progress = expProgress(mon.species, mon.exp)
 
@@ -442,7 +443,8 @@ function messageBody(ctx, width) {
     case 'party': {
       const labels = ctx.save.party.map((mon) => {
         const fainted = mon.hp <= 0 ? gray(' FNT') : ''
-        return `${padRight(displayName(mon).toUpperCase(), 14)} ${dim(`Lv${levelOf(mon)}`)} ${
+        const name = `${displayName(mon).toUpperCase()}${genderTag(genderOf(mon))}`
+        return `${padRight(name, 14)} ${dim(`Lv${levelOf(mon)}`)} ${
           hpBar(mon.hp, mon.stats.hp, 10)}${fainted}`
       })
       return ['Switch to which Pokémon?', ...menuList(labels, battle.selection, { height: 4, width: inner })]

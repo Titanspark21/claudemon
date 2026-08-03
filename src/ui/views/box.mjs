@@ -5,12 +5,12 @@
 // the screen that gives it one.
 
 import { spriteFile } from '../../paths.mjs'
-import { displayName, isFainted, levelOf } from '../../pokemon.mjs'
+import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import { PARTY_LIMIT } from '../../state.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
-import { menuList, padRight, withFooter, wrap } from '../widgets.mjs'
+import { genderTag, menuList, padRight, withFooter, wrap } from '../widgets.mjs'
 
 const HINTS = ' ↑ ↓ browse · [enter] take it into your team · [esc] back'
 
@@ -40,7 +40,7 @@ export function draw(ctx, size) {
 
   const entries = box.map((mon) => {
     const name = isFainted(mon) ? gray(displayName(mon).toUpperCase()) : displayName(mon).toUpperCase()
-    return `${padRight(name, 12)} ${dim(`Lv${levelOf(mon)}`)}`
+    return `${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)}`
   })
 
   const list = menuList(entries, ctx.boxSelection, { height: Math.max(6, box.length), width: listWidth })

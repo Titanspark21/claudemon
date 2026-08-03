@@ -43,6 +43,7 @@ const OUTPUTS = ['pokedex.json', 'moves.json', 'types.json', 'growth.json']
 
 let requests = 0
 let cacheHits = 0
+let throttled = 0
 
 /**
  * Whether a usable dataset is already on disk.
@@ -69,6 +70,36 @@ function cachePath(url) {
   return join(CACHE_DIR, `${createHash('sha1').update(url).digest('hex')}.json`)
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * The earliest the next request may leave, and the earliest *any* of them may.
+ *
+ * Two separate brakes. The interval paces a build that is ~500 requests long, so the
+ * pool of 8 trickles rather than bursts: PokeAPI publishes no limit any more, but it
+ * answers from a CDN that will start refusing a flood, and being refused halfway
+ * through is worse than taking a minute longer. The cooldown is the reaction to
+ * actually being refused, and it is global on purpose — backing off in the one worker
+ * that got the 429 while the other seven keep knocking is how one 429 becomes a ban.
+ */
+let nextSlot = 0
+let cooldownUntil = 0
+
+/** One request every this often, across the whole pool. */
+const MIN_REQUEST_INTERVAL_MS = 150
+
+/** Waits for this request's turn, and for any cooldown in force when it arrives. */
+async function waitForSlot() {
+  const slot = Math.max(Date.now(), nextSlot, cooldownUntil)
+  nextSlot = slot + MIN_REQUEST_INTERVAL_MS
+
+  // A refusal landing while we wait moves the line, so re-check rather than sleeping
+  // once against a deadline that has since moved.
+  for (let delay = slot - Date.now(); delay > 0; delay = cooldownUntil - Date.now()) {
+    await sleep(delay)
+  }
+}
+
 /** Fetches JSON, memoised on disk. PokeAPI data is static, so the cache never expires. */
 async function getJson(url) {
   const cached = cachePath(url)
@@ -77,18 +108,32 @@ async function getJson(url) {
     return JSON.parse(readFileSync(cached, 'utf8'))
   }
 
-  for (let attempt = 1; attempt <= 4; attempt++) {
+  for (let attempt = 1; attempt <= 5; attempt++) {
     try {
+      // Inside the retry loop: a request that is being retried has to queue again
+      // like any other, or a failing URL becomes the one thing not being paced.
+      await waitForSlot()
+
       const response = await fetch(url)
+
+      // Being told to slow down is not a transport error, and it comes with an
+      // answer to "how long": prefer what the server says over anything we guess.
+      if (response.status === 429 || response.status === 503) {
+        const after = Number(response.headers.get('retry-after'))
+        const pause = Number.isFinite(after) && after > 0 ? after * 1000 : 2000 * attempt ** 2
+        cooldownUntil = Math.max(cooldownUntil, Date.now() + pause)
+        throttled++
+        throw new Error(`HTTP ${response.status}, waiting ${Math.round(pause / 1000)}s`)
+      }
+
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const body = await response.json()
       requests++
       writeFileSync(cached, JSON.stringify(body))
       return body
     } catch (error) {
-      if (attempt === 4) throw new Error(`${url}: ${error.message}`)
-      // Back off, in case we are being rate limited.
-      await new Promise((resolve) => setTimeout(resolve, 300 * attempt ** 2))
+      if (attempt === 5) throw new Error(`${url}: ${error.message}`)
+      await sleep(300 * attempt ** 2)
     }
   }
 }
@@ -253,6 +298,10 @@ async function main() {
       baseExp: entry.base_experience,
       captureRate: speciesEntry.capture_rate,
       growthRate: speciesEntry.growth_rate.name,
+      // Eighths of a chance of being female, or -1 for the ones with no gender at
+      // all. Kept as PokeAPI states it rather than as a percentage: the game derives
+      // gender from it by comparing against an IV, which wants the eighths.
+      genderRate: speciesEntry.gender_rate,
       stage: stageOf(entry.id),
       evolvesFrom: evolvesFrom.get(entry.id) ?? null,
       evolutions: evolutions.get(entry.id) ?? [],
@@ -333,7 +382,8 @@ async function main() {
   }
 
   console.log(
-    `\n  ${requests} requests, ${cacheHits} served from cache`,
+    `\n  ${requests} requests, ${cacheHits} served from cache`
+      + (throttled > 0 ? `, ${throttled} asked to slow down` : ''),
     dim(`\n  ${BUNDLED_DATA_DIR}\n`),
   )
 }

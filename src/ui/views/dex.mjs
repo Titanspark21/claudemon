@@ -6,9 +6,10 @@
 import { loadData, species } from '../../data.mjs'
 import { STAT_NAMES } from '../../exp.mjs'
 import { spriteFile } from '../../paths.mjs'
+import { speciesGender, speciesName } from '../../pokemon.mjs'
 import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
-import { hpBar, menuList, padRight, typeBadge, withFooter, wrap } from '../widgets.mjs'
+import { genderTag, hpBar, menuList, padRight, typeBadge, withFooter, wrap } from '../widgets.mjs'
 
 /** Three-character labels, so the base-stat bars line up. */
 const STAT_GLYPHS = {
@@ -41,7 +42,9 @@ export function draw(ctx, size) {
     const isCaught = ctx.save.dex.caught.includes(mon.id)
     const isSeen = isCaught || ctx.save.dex.seen.includes(mon.id)
     const mark = isCaught ? brightGreen('●') : isSeen ? dim('◐') : gray('·')
-    const name = isSeen ? mon.name : gray('-----')
+    // A species has a gender only where every one of them has the same one, which in
+    // Kanto is what separates the two Nidoran now that their names read alike.
+    const name = isSeen ? `${speciesName(mon.id)}${genderTag(speciesGender(mon.id))}` : gray('-----')
     return `${number} ${mark} ${name}`
   })
 
@@ -51,7 +54,8 @@ export function draw(ctx, size) {
   // Detail panel drawn alongside the list.
   const detail = []
   if (seen) {
-    detail.push(`${bold(selected.name.toUpperCase())}  ${dim(`#${String(selected.id).padStart(3, '0')}`)}`)
+    detail.push(`${bold(speciesName(selected.id).toUpperCase())}${genderTag(
+      speciesGender(selected.id))}  ${dim(`#${String(selected.id).padStart(3, '0')}`)}`)
     detail.push(selected.types.map(typeBadge).join(' '))
     detail.push('')
     if (caught) {

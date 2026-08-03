@@ -11,7 +11,10 @@ import {
   expForLevel, expFromDefeating, expProgress, levelFromExp, movesAtLevel, statsAtLevel,
 } from '../src/exp.mjs'
 import { attemptCatch, catchValue } from '../src/capture.mjs'
-import { createPokemon, evolveInto, levelOf, pendingEvolution, refreshStats } from '../src/pokemon.mjs'
+import {
+  createPokemon, displayName, evolveInto, genderOf, levelOf, pendingEvolution, refreshStats,
+  speciesGender, speciesName,
+} from '../src/pokemon.mjs'
 import { createBattle, submitAction } from '../src/battle.mjs'
 import { makeRng } from '../src/rng.mjs'
 
@@ -171,6 +174,93 @@ test('a Pokemon below its evolution level does not evolve', () => {
   assert.equal(pendingEvolution(mon(4, 15)), null)
   // Pikachu needs a stone, so it never evolves on level alone.
   assert.equal(pendingEvolution(mon(25, 50)), null)
+})
+
+// --- Gender ------------------------------------------------------------------
+//
+// Derived from the Attack IV against the species' ratio, so it is never stored and
+// never migrated. Pikachu is an even split, which puts the boundary at IV 16.
+
+test('gender comes from the Attack IV against the species ratio', () => {
+  const female = mon(25, 10)
+  female.ivs.attack = 15
+  assert.equal(genderOf(female), 'female')
+
+  const male = mon(25, 10)
+  male.ivs.attack = 16
+  assert.equal(genderOf(male), 'male')
+
+  // The ends of the range, so a ratio read as a percentage would not pass.
+  const lowest = mon(25, 10)
+  lowest.ivs.attack = 0
+  assert.equal(genderOf(lowest), 'female')
+  const highest = mon(25, 10)
+  highest.ivs.attack = 31
+  assert.equal(genderOf(highest), 'male')
+})
+
+test('the species with only one gender ignore the IV entirely', () => {
+  for (const iv of [0, 15, 16, 31]) {
+    const nidoranF = mon(29, 10)
+    nidoranF.ivs.attack = iv
+    assert.equal(genderOf(nidoranF), 'female', `Nidoran♀ at IV ${iv}`)
+
+    const nidoranM = mon(32, 10)
+    nidoranM.ivs.attack = iv
+    assert.equal(genderOf(nidoranM), 'male', `Nidoran♂ at IV ${iv}`)
+  }
+})
+
+test('the ones with no gender have none at any IV', () => {
+  for (const id of [81, 132, 137, 150]) {
+    for (const iv of [0, 31]) {
+      const genderless = mon(id, 10)
+      genderless.ivs.attack = iv
+      assert.equal(genderOf(genderless), null, `${species(id).name} at IV ${iv}`)
+    }
+  }
+})
+
+test('gender survives an evolution, which keeps the IVs', () => {
+  const bulbasaur = mon(1, 16)
+  const before = genderOf(bulbasaur)
+  assert.ok(before)
+
+  evolveInto(bulbasaur, 2)
+  assert.equal(genderOf(bulbasaur), before)
+})
+
+test('a dataset too old to know shows no gender, rather than all male', () => {
+  const pikachu = mon(25, 10)
+  pikachu.ivs.attack = 31
+  assert.equal(genderOf(pikachu), 'male')
+
+  // What an install predating the field has on disk: dataFile() prefers a local copy
+  // of the Pokedex, so new code can be reading one written before genders existed.
+  const entry = species(25)
+  const { genderRate } = entry
+  try {
+    delete entry.genderRate
+    assert.equal(genderOf(pikachu), null)
+  } finally {
+    entry.genderRate = genderRate
+  }
+})
+
+test('the two Nidoran lose their suffix and are told apart by gender instead', () => {
+  assert.equal(speciesName(29), 'Nidoran')
+  assert.equal(speciesName(32), 'Nidoran')
+  assert.equal(speciesGender(29), 'female')
+  assert.equal(speciesGender(32), 'male')
+
+  // An even split is nobody's species-wide gender.
+  assert.equal(speciesGender(25), null)
+  assert.equal(speciesGender(132), null)
+
+  assert.equal(displayName(mon(29, 5)), 'Nidoran')
+  const nicknamed = mon(29, 5)
+  nicknamed.nickname = 'Spike'
+  assert.equal(displayName(nicknamed), 'Spike')
 })
 
 // --- Catching ----------------------------------------------------------------

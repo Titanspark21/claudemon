@@ -3,13 +3,15 @@
 // Quiet when nothing is happening, and loud the moment something is waiting.
 
 import { spriteFile } from '../../paths.mjs'
-import { displayName, isFainted, levelOf } from '../../pokemon.mjs'
+import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import { totalBalls } from '../../state.mjs'
 import { VERSION } from '../../version.mjs'
 import { bold, brightGreen, brightYellow, dim, gray, visibleLength } from '../ansi.mjs'
 import { bandRows, bandScale, grassLines } from '../grass.mjs'
 import { fitCanvasCols, loadSprite, placeSprite } from '../sprite.mjs'
-import { centre, elapsed, hpBar, menuGrid, money, padRight, panel, wrap } from '../widgets.mjs'
+import {
+  centre, elapsed, genderTag, hpBar, menuGrid, money, padRight, panel, wrap,
+} from '../widgets.mjs'
 
 /**
  * The home menu. `id` is what the state machine acts on and `label` is only ever
@@ -174,7 +176,8 @@ export function draw(ctx, size) {
   if (lead) {
     const party = ctx.save.party.map((mon) => {
       const name = isFainted(mon) ? gray(displayName(mon).toUpperCase()) : displayName(mon).toUpperCase()
-      return `${padRight(name, 12)} ${dim(`Lv${levelOf(mon)}`)} ${hpBar(mon.hp, mon.stats.hp, 10)}`
+      return `${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)} ${
+        hpBar(mon.hp, mon.stats.hp, 10)}`
     })
     for (const line of panel(party, width, { title: 'Team' })) lines.push(` ${line}`)
   }
