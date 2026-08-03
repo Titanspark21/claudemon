@@ -208,6 +208,10 @@ battle message. That is the whole scheme — it is the same everywhere.
   game tab is somewhere you can actually sit and wait.
 - A patch of grass with someone walking through it, who only walks while Claude is
   working. Something you can catch out of the corner of your eye.
+- HEAL greyed out for as long as Claude has the keyboard, and a blackout that leaves
+  your team down rather than picking it up. Healing is a rest, and a rest is the half
+  of the session Claude is not using — so a team back at full health is something you
+  pick up in the gaps, not something you farm between two tool calls.
 - Blips as you move through the menus, and a theme that plays from the first frame of
   a battle to the last — off in one place if you would rather work in silence. The
   blips are generated from a few lines of notes rather than shipped, so a new one

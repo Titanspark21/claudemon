@@ -135,6 +135,19 @@ export function summariseActivity(sessions, now = Date.now()) {
   return { state: 'unknown', tool: null, since: null, sessions: 0 }
 }
 
+/**
+ * Whether Claude has the keyboard right now.
+ *
+ * Read off the summary rather than the sessions behind it, on purpose: everything
+ * this gates is something the player is told about by the activity row, and a screen
+ * saying "Claude needs you" while the game insists it is busy is worse than either
+ * answer on its own. 'unknown' is not working — a machine with no hook installed has
+ * to stay playable.
+ */
+export function isWorking(activity) {
+  return activity?.state === 'working'
+}
+
 // --- transitions -------------------------------------------------------------
 //
 // One function per thing that can happen to a session. Each returns the entry it
