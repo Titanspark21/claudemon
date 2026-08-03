@@ -19,8 +19,8 @@ const { isDataReady, move: moveOf, species } = await import('../src/data.mjs')
 const { SAVE_FILE } = await import('../src/paths.mjs')
 const {
   activePokemon, addPokemon, createSave, depositPokemon, healParty, loadSave,
-  markSeen, partyIsWipedOut, PARTY_LIMIT, saveGame, setLead, totalBalls,
-  withdrawPokemon,
+  markFaced, markSeen, partyIsWipedOut, PARTY_LIMIT, saveGame, setLead, timesFaced,
+  totalBalls, withdrawPokemon,
 } = await import('../src/state.mjs')
 const { buy, countOf, ITEMS, useItem, ballsInBag } = await import('../src/shop.mjs')
 const { applyVictory, learnMove, MOVE_LIMIT } = await import('../src/progression.mjs')
@@ -145,6 +145,39 @@ test('the Pokedex records what was only seen separately from what was caught', (
 
   markSeen(save, 150)
   assert.equal(save.dex.seen.filter((id) => id === 150).length, 1, 'no duplicates')
+})
+
+test('the Pokedex keeps a tally of how many of each you have faced', () => {
+  const save = newSave()
+
+  assert.equal(timesFaced(save, 16), 0, 'nothing faced yet')
+  markSeen(save, 16)
+  assert.equal(timesFaced(save, 16), 0, 'and seeing one is not facing it')
+
+  markFaced(save, 16)
+  markFaced(save, 16)
+  markFaced(save, 19)
+  assert.equal(timesFaced(save, 16), 2)
+  assert.equal(timesFaced(save, 19), 1)
+  assert.ok(save.dex.seen.includes(19), 'facing one you had never met also records it')
+
+  // The keys go to disk as strings, and the tally has to survive the round trip.
+  saveGame(save)
+  assert.equal(timesFaced(loadSave(), 16), 2)
+})
+
+test('a save from before the tally starts counting from zero rather than guessing', () => {
+  const save = newSave()
+  markSeen(save, 150)
+  delete save.dex.faced
+  saveGame(save)
+
+  const loaded = loadSave()
+  assert.deepEqual(loaded.dex.faced, {}, 'no invented numbers')
+  assert.equal(timesFaced(loaded, 150), 0)
+
+  markFaced(loaded, 150)
+  assert.equal(timesFaced(loaded, 150), 1, 'and it counts from here')
 })
 
 // --- Shop and items ----------------------------------------------------------

@@ -177,7 +177,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 |---|---|
 | Home | Whatever is in the grass and how long is left to face it, your team, and the menu |
 | Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP. A ◓ by the foe's name means it is already in your Pokédex |
-| Pokédex | All 151, with base stats and evolution requirements for the ones you caught |
+| Pokédex | All 151, with how many of each you have faced, and base stats and evolution requirements for the ones you caught |
 | Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box |
 | Box | Everything you caught with a full team, reached with `b` from the team screen. `enter` takes one back into the team |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
@@ -201,8 +201,8 @@ battle message. That is the whole scheme — it is the same everywhere.
   fleeing and switching Pokémon mid-fight.
 - Catching, where weakening and status genuinely help.
 - Levelling, learning moves, and evolution by level or by stone.
-- A Pokédex tracking seen and caught separately, a team screen with the box behind
-  it, and a shop.
+- A Pokédex tracking seen and caught separately and counting how many of each you
+  have faced, a team screen with the box behind it, and a shop.
 - A line telling you whether Claude is working, which tool it is on and for how
   long — and a bell when it finishes or gets stuck on a permission prompt, so the
   game tab is somewhere you can actually sit and wait.
