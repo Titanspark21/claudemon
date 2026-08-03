@@ -2,9 +2,10 @@
 //
 // Quiet when nothing is happening, and loud the moment something is waiting.
 
+import { isWorking } from '../../activity.mjs'
 import { spriteFile } from '../../paths.mjs'
 import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
-import { totalBalls } from '../../state.mjs'
+import { activePokemon, partyIsWipedOut, partyNeedsHealing, totalBalls } from '../../state.mjs'
 import { VERSION } from '../../version.mjs'
 import { bold, brightGreen, brightYellow, dim, gray, visibleLength } from '../ansi.mjs'
 import { bandRows, bandScale, grassLines } from '../grass.mjs'
@@ -36,9 +37,23 @@ const MENU_CELL = 10
 /**
  * FIGHT only appears when there is something to fight, and it goes first so the
  * default action is the one you opened the tab for.
+ *
+ * HEAL is marked rather than dropped while Claude works: healing is what you do in
+ * the gaps, and an entry that vanishes reads as a bug where a greyed-out one reads as
+ * a rule. `disabled` is the one flag both the drawing and the keys look at, so
+ * neither of them gets to decide it on its own.
  */
 export function menuItems(ctx) {
-  return ctx.encounter ? [{ id: 'fight', label: 'FIGHT' }, ...BASE_MENU] : BASE_MENU
+  const base = isWorking(ctx.activity)
+    ? BASE_MENU.map((item) => (item.id === 'heal' ? { ...item, disabled: true } : item))
+    : BASE_MENU
+  if (!ctx.encounter) return base
+
+  // Nobody left standing is nobody to send out. The entry stays, because the
+  // countdown above it is still counting and the Pokemon is still there — it just
+  // says no rather than swallowing the keypress, which is what it used to do.
+  const fight = { id: 'fight', label: 'FIGHT', disabled: !activePokemon(ctx.save) }
+  return [fight, ...base]
 }
 
 /**
@@ -75,6 +90,26 @@ export function activityRow(activity, now = Date.now()) {
   }
 
   return `${dim('○')} ${dim('Claude is idle')}${others}${age}`
+}
+
+/**
+ * Why HEAL is greyed out, for the one person looking straight at it.
+ *
+ * Only when the entry is both blocked and wanted: a team at full health does not need
+ * to be told about a button it was not reaching for, and this row sits on a screen
+ * somebody leaves open all day.
+ */
+export function restRow(ctx) {
+  if (!isWorking(ctx.activity)) return ''
+
+  // A team that is down cannot fight either, and that is the more urgent half of it:
+  // this is the row explaining why the entry you just pressed did nothing.
+  if (partyIsWipedOut(ctx.save)) {
+    return dim('Your team is down — HEAL comes back when Claude stops working.')
+  }
+  if (!partyNeedsHealing(ctx.save)) return ''
+
+  return dim('HEAL is a rest — it comes back when Claude stops working.')
 }
 
 /**
@@ -182,9 +217,16 @@ export function draw(ctx, size) {
     for (const line of panel(party, width, { title: 'Team' })) lines.push(` ${line}`)
   }
 
+  // Directly under the team it is talking about, and above the entry it explains.
+  const rest = restRow(ctx)
+  if (rest) lines.push(` ${rest}`)
+
   const items = menuItems(ctx)
+  // A blocked entry is greyed the same way a fainted party member is, so the screen
+  // has one way of saying "here, but not right now".
+  const labels = items.map((item) => (item.disabled ? gray(item.label) : item.label))
   // Built before the grass so both know how many rows the menu is about to take.
-  const menuRows = menuGrid(items.map((item) => item.label), ctx.homeSelection, {
+  const menuRows = menuGrid(labels, ctx.homeSelection, {
     columns: Math.min(items.length, Math.max(1, Math.floor(width / MENU_CELL))),
     width,
   })
@@ -228,8 +270,15 @@ export function onKey(ctx, key) {
     ctx.homeSelection = wrap(ctx.homeSelection + (key.name === 'left' ? -1 : 1), items.length)
     ctx.playSound?.('cursor')
   } else if (key.name === 'enter' || key.name === 'space') {
+    const item = items[ctx.homeSelection]
+    // A blocked entry answers rather than doing nothing at all: the two notes that
+    // back out of a screen, which already read as "no" everywhere else in the game.
+    if (item.disabled) {
+      ctx.playSound?.('back')
+      return
+    }
     ctx.playSound?.('select')
-    ctx.openHomeSelection(items[ctx.homeSelection].id)
+    ctx.openHomeSelection(item.id)
   } else if (key.name === 'q') {
     ctx.quit()
   }

@@ -359,10 +359,15 @@ test('a battle cannot start with a fainted team', () => {
   for (const mon of app.save.party) mon.hp = 0
 
   queueEncounter(app)
-  press(app, 'enter')
+  const fight = homeView.menuItems(app).find((item) => item.id === 'fight')
+  assert.equal(fight.disabled, true, 'FIGHT is greyed out with nobody to send out')
 
+  press(app, 'enter')
   assert.equal(app.mode, 'home', 'should refuse and stay put')
   assert.ok(app.encounter, 'the encounter is still there, for what is left of its window')
+
+  app.startNextBattle()
+  assert.equal(app.mode, 'home', 'and the rule holds reached straight through')
   assert.match(app.notice, /fainted/i)
 })
 
@@ -740,6 +745,128 @@ test('healing at home restores the team', () => {
 
   assert.equal(app.save.party[0].hp, app.save.party[0].stats.hp)
   assert.equal(app.save.party[0].status, null)
+})
+
+/** Puts the home cursor on an entry by id, whatever the menu looks like right now. */
+const onHome = (app, id) => {
+  const index = homeView.menuItems(app).findIndex((item) => item.id === id)
+  assert.ok(index >= 0, `no such home entry: ${id}`)
+  app.homeSelection = index
+}
+
+const healEntry = (app) => homeView.menuItems(app).find((item) => item.id === 'heal')
+
+test('healing waits until Claude stops working', () => {
+  const app = startedGame()
+  app.save.party[0].hp = 1
+
+  reportSession('working', { tool: 'Edit' })
+  app.refreshActivity()
+  assert.equal(healEntry(app).disabled, true, 'HEAL is greyed out while Claude has the keyboard')
+
+  onHome(app, 'heal')
+  press(app, 'enter')
+  assert.equal(app.save.party[0].hp, 1, 'and the key on it does nothing')
+
+  app.openHomeSelection('heal')
+  assert.equal(app.save.party[0].hp, 1, 'the rule holds even reached straight through')
+  assert.match(app.notice, /working/i)
+
+  // Claude stuck on a permission prompt is not Claude working — that is your gap.
+  reportSession('waiting')
+  app.refreshActivity()
+  assert.ok(!healEntry(app).disabled, 'HEAL comes back the moment the work stops')
+
+  press(app, 'enter')
+  assert.equal(app.save.party[0].hp, app.save.party[0].stats.hp, 'and it heals')
+  endSession('test-session')
+})
+
+test('a machine with no activity hook can still heal', () => {
+  const app = startedGame()
+  app.save.party[0].hp = 1
+
+  assert.equal(app.activity.state, 'unknown', 'nothing is reporting at all')
+  assert.ok(!healEntry(app).disabled)
+
+  onHome(app, 'heal')
+  press(app, 'enter')
+  assert.equal(app.save.party[0].hp, app.save.party[0].stats.hp)
+})
+
+/** Loses a battle outright: one nearly-dead Pokemon against something far bigger. */
+function loseABattle(app) {
+  app.save.party.length = 1
+  app.save.party[0] = createPokemon(4, 5, makeRng(11))
+  app.save.party[0].hp = 1
+
+  queueEncounter(app, { species: 150, name: 'Mewtwo', level: 70, seed: 3 })
+  press(app, 'enter')
+  assert.equal(app.mode, 'battle', 'the fight started')
+
+  let guard = 0
+  while (app.mode === 'battle' && guard++ < 80) {
+    if (app.battle.message) press(app, 'enter')
+    else if (app.battle.menu === 'fight') {
+      app.battle.selection = 0
+      press(app, 'enter')
+    } else {
+      app.battle.menu = 'main'
+      app.battle.selection = 0 // FIGHT
+      press(app, 'enter')
+    }
+  }
+  assert.ok(guard < 80, 'the battle should have ended')
+  assert.equal(app.mode, 'home', 'and sent you home')
+}
+
+test('a blackout is a rest too, so it waits for Claude as well', () => {
+  const app = startedGame()
+
+  reportSession('working', { tool: 'Bash' })
+  app.refreshActivity()
+  loseABattle(app)
+
+  // Otherwise this is the cheapest heal in the game: lose on purpose, wake up at full
+  // health, and carry on catching without the prompt ever ending.
+  assert.equal(app.save.party[0].hp, 0, 'nobody got up')
+  assert.equal(homeView.menuItems(app).find((item) => item.id === 'heal').disabled, true)
+  assert.match(homeView.restRow(app), /team is down/i, 'and the screen says why')
+
+  reportSession('idle')
+  app.refreshActivity()
+  app.openHomeSelection('heal')
+  assert.equal(app.save.party[0].hp, app.save.party[0].stats.hp, 'the rest comes when Claude stops')
+  endSession('test-session')
+})
+
+test('a blackout with nobody working still picks the team back up', () => {
+  const app = startedGame()
+  assert.equal(app.activity.state, 'unknown', 'nothing is reporting at all')
+
+  loseABattle(app)
+  assert.equal(app.save.party[0].hp, app.save.party[0].stats.hp, 'you scurried back to safety')
+})
+
+test('the screen says why HEAL is greyed out, and only when that helps', () => {
+  const app = startedGame()
+  assert.equal(homeView.restRow(app), '', 'nothing is blocked and nothing is hurt')
+
+  reportSession('working')
+  app.refreshActivity()
+  assert.equal(homeView.restRow(app), '', 'a team at full health was not reaching for it')
+
+  app.save.party[0].hp = 1
+  assert.match(homeView.restRow(app), /rest/i, 'a hurt team is owed the reason')
+
+  app.save.party[0].hp = app.save.party[0].stats.hp
+  app.save.party[0].moves[0].pp = 0
+  assert.match(homeView.restRow(app), /rest/i, 'and so is one with nothing left to throw')
+
+  reportSession('idle')
+  app.refreshActivity()
+  assert.equal(homeView.restRow(app), '', 'it goes away with the work')
+  endSession('test-session')
 })
 
 test('buying in the shop moves money and stock', () => {

@@ -3,7 +3,7 @@
 // Owns the save, the encounter queue and which screen is showing. Views are pure
 // draw/onKey pairs; every decision that changes the game lives here.
 
-import { readSessions, summariseActivity } from './activity.mjs'
+import { isWorking, readSessions, summariseActivity } from './activity.mjs'
 import { species } from './data.mjs'
 import { createBattle, submitAction, switchIn } from './battle.mjs'
 import { encounterTtlMs, saveConfig, spriteScale, updateCheckMode } from './config.mjs'
@@ -436,6 +436,14 @@ export function createApp({
       case 'shop': ctx.shopSelection = 0; ctx.shopMessage = null; ctx.setMode('shop'); break
       case 'options': ctx.optionsSelection = 0; ctx.optionsMessage = null; ctx.setMode('options'); break
       case 'heal':
+        // Healing is what you do in the gaps. The menu greys the entry out while
+        // Claude works, but the rule belongs here too: nothing else guarantees the id
+        // arrived from a screen that had drawn it grey, and the menu can go stale
+        // between the keypress and this line.
+        if (isWorking(ctx.activity)) {
+          ctx.notice = 'Not while Claude is working — rest when it does.'
+          break
+        }
         healParty(ctx.save)
         ctx.persist()
         ctx.notice = 'Your team is back to full health.'
@@ -1005,8 +1013,19 @@ function processNextStep(ctx) {
   }
 
   if (step.kind === 'blackout') {
-    queueMessages(ctx, ['You have no Pokémon able to fight!', 'You scurried back to safety...'])
-    healParty(ctx.save)
+    const messages = ['You have no Pokémon able to fight!', 'You scurried back to safety...']
+
+    // A blackout is healing, so it waits for Claude the same way HEAL does. Left
+    // alone it is the cheapest heal in the game and the way around the rule: lose a
+    // battle on purpose, wake up at full health, carry on catching inside the same
+    // prompt. Losing everything now costs you the rest of the walk instead.
+    if (isWorking(ctx.activity)) {
+      messages.push('There is no rest while Claude works — your team stays down.')
+    } else {
+      healParty(ctx.save)
+    }
+
+    queueMessages(ctx, messages)
     syncBars(battle)
     return
   }

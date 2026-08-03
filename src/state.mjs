@@ -101,6 +101,19 @@ export function healParty(save) {
   return save
 }
 
+/**
+ * Whether healing would change anything: hurt, ailing, or out of PP.
+ *
+ * PP counts because a full heal restores it, and a team standing at full health with
+ * nothing left to throw is one that still needs the rest. Used to decide whether the
+ * home screen owes anyone an explanation, so it has to agree with `healParty`.
+ */
+export function partyNeedsHealing(save) {
+  return save.party.some((mon) => mon.hp < mon.stats.hp
+    || mon.status != null
+    || mon.moves.some((slot) => slot.pp < slot.maxPp))
+}
+
 export function markSeen(save, speciesId) {
   if (!save.dex.seen.includes(speciesId)) save.dex.seen.push(speciesId)
   return save
