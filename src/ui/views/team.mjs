@@ -1,11 +1,11 @@
 // Your team: who is in it, how they are doing, and what they know.
 
 import { spriteFile } from '../../paths.mjs'
-import { displayName, isFainted, levelOf } from '../../pokemon.mjs'
+import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
-import { menuList, padRight, withFooter, wrap } from '../widgets.mjs'
+import { genderTag, menuList, padRight, withFooter, wrap } from '../widgets.mjs'
 
 const HINTS = ' ↑ ↓ browse · [enter] lead · [b] the box · [d] send it there · [esc] back'
 
@@ -30,7 +30,9 @@ export function draw(ctx, size) {
   const entries = party.map((mon, index) => {
     const name = isFainted(mon) ? gray(displayName(mon).toUpperCase()) : displayName(mon).toUpperCase()
     const leadMark = index === 0 ? brightYellow('★') : ' '
-    return `${leadMark} ${padRight(name, 12)} ${dim(`Lv${levelOf(mon)}`)}`
+    // The symbol goes inside the padded cell: the longest name in Kanto is ten
+    // characters, so it still lands clear of the level.
+    return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)}`
   })
 
   const list = menuList(entries, ctx.teamSelection, { height: Math.max(6, party.length), width: listWidth })

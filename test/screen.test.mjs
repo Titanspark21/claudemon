@@ -20,6 +20,7 @@ import { DEFAULT_CONFIG } from '../src/config.mjs'
 import {
   BLOCK_GRIDS, MIN_CANVAS_COLS, NATIVE_CANVAS_COLS, blockRows, fitCanvasCols,
 } from '../src/ui/sprite.mjs'
+import { genderTag } from '../src/ui/widgets.mjs'
 import { cursor, reset, screen as screenCodes, stripAnsi, visibleLength } from '../src/ui/ansi.mjs'
 
 function fakeTerminal({ cols = 40, rows = 12 } = {}) {
@@ -691,6 +692,9 @@ function battleMon(species) {
     hp: 20,
     exp: 200,
     status: null,
+    // Middling and fixed, which is enough for the gender symbol to be worked out and
+    // to come out the same on every run.
+    ivs: { hp: 15, attack: 15, defense: 15, spAttack: 15, spDefense: 15, speed: 15 },
     stats: { hp: 20, attack: 10, defense: 10, spAttack: 10, spDefense: 10, speed: 10 },
     moves: [
       { move: 'tackle', pp: 30, maxPp: 30 },
@@ -842,7 +846,7 @@ test('a foe already in the Pokedex wears a ball, and a new one does not', () => 
   assert.ok(!fresh.includes('◓'), 'one you have never caught carries no ball')
 
   const owned = nameRow(battleCtx({ foe: 143, caught: [143] }))
-  assert.match(owned, /SNORLAX Lv\d+ ◓/, 'one you have caught carries a ball after its level')
+  assert.match(owned, /SNORLAX[♂♀]? Lv\d+ ◓/, 'one you have caught carries a ball after its level')
 
   // Someone else's number in the dex is not this foe's.
   const other = nameRow(battleCtx({ foe: 143, caught: [4, 25] }))
@@ -942,4 +946,73 @@ test('a box with nothing in it still says how to get out of it', () => {
   assert.ok(plain.some((line) => line.includes('The box is empty')), 'it says so')
   assert.equal(lines.length, 33, 'and it is closed like every other screen')
   assert.match(plain[plain.length - 1], /\[esc\]/)
+})
+
+// --- Gender symbols ------------------------------------------------------------
+//
+// One cell, straight after the name. Kanto's longest name is ten characters and the
+// name cells are twelve, so it costs no column anybody was using.
+
+test('the team shows a gender symbol beside every Pokemon that has one', () => {
+  const ctx = menuCtx()
+  const { lines } = drawTeam(ctx, { cols: 100, rows: 34 })
+  const plain = lines.map(stripAnsi)
+
+  // Charmander is one-eighth female and Pikachu an even split, so at IV 15 the two in
+  // the party come out one of each: a symbol that ignored the ratio could not.
+  assert.ok(plain.some((line) => /CHARMANDER♂/.test(line)), 'Charmander is male here')
+  assert.ok(plain.some((line) => /PIKACHU♀/.test(line)), 'Pikachu is female here')
+})
+
+test('a gender symbol takes one cell, so the name column still lines up', () => {
+  assert.equal(visibleLength(genderTag('male')), 1)
+  assert.equal(visibleLength(genderTag('female')), 1)
+  assert.equal(genderTag(null), '')
+
+  const ctx = menuCtx()
+  const { lines } = drawTeam(ctx, { cols: 100, rows: 34 })
+  const plain = lines.map(stripAnsi)
+
+  // Both rows put the level in the same column, which is what padding through
+  // visibleLength buys and what a two-cell glyph would break.
+  const levelColumns = plain
+    .filter((line) => /Lv\d/.test(line) && /CHARMANDER|PIKACHU/.test(line))
+    .map((line) => line.indexOf('Lv'))
+  assert.equal(levelColumns.length, 2)
+  assert.equal(levelColumns[0], levelColumns[1])
+})
+
+test('both sides of a battle wear their gender', () => {
+  const { lines } = drawBattle(battleCtx({ foe: 25, player: 4 }), { cols: 100, rows: 34 })
+  const plain = lines.map(stripAnsi).join('\n')
+
+  assert.match(plain, /PIKACHU♀/)
+  assert.match(plain, /CHARMANDER♂/)
+})
+
+test('the Pokedex tells the two Nidoran apart without their suffixes', () => {
+  const ctx = menuCtx()
+  ctx.save.dex.seen = [29, 32]
+  ctx.save.dex.caught = [29]
+
+  const { lines } = drawDex(ctx, { cols: 100, rows: 40 })
+  const plain = lines.map(stripAnsi).join('\n')
+
+  assert.ok(!/Nidoran-[fm]/.test(plain), 'the PokeAPI suffix is gone')
+  assert.match(plain, /Nidoran♀/)
+  assert.match(plain, /Nidoran♂/)
+})
+
+test('a Pokemon with no gender gets no symbol, and nor does an unreadable one', () => {
+  const ctx = menuCtx()
+  // Magnemite has no gender; the second one is what an older dataset looks like.
+  ctx.save.party = [battleMon(81), battleMon(25)]
+  delete ctx.save.party[1].ivs
+
+  const { lines } = drawTeam(ctx, { cols: 100, rows: 34 })
+  const plain = lines.map(stripAnsi)
+
+  assert.ok(plain.some((line) => /MAGNEMITE\s/.test(line)), 'Magnemite stands alone')
+  assert.ok(plain.some((line) => /PIKACHU\s/.test(line)), 'and so does the one we cannot read')
+  assert.ok(!plain.join('\n').match(/[♂♀]/), 'no symbol anywhere on the screen')
 })
