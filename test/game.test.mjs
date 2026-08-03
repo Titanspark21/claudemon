@@ -353,6 +353,31 @@ test('reaching the evolution level evolves at the end of the payout', () => {
   assert.equal(steps.at(-1).kind, 'evolve')
 })
 
+test('an evolution fills in its own Pokedex entry', () => {
+  const save = newSave(4)
+  const mon = save.party[0]
+
+  applyVictory(save, [mon], { exp: expForLevel(4, 16) - mon.exp, money: 0 })
+
+  assert.ok(save.dex.caught.includes(5), 'Charmeleon is caught, not merely seen')
+  assert.ok(save.dex.seen.includes(5))
+  assert.ok(save.dex.caught.includes(4), 'and Charmander stays in the dex behind it')
+  // Raising one is not catching one, so the tally the trainer card reads is untouched.
+  assert.equal(save.stats.caught, 1)
+})
+
+test('a save that evolved before the dex was told is repaired on load', () => {
+  const save = newSave(4)
+  // What such a save looks like: a Charmeleon on the team, and no entry for it.
+  save.party[0].species = 5
+  saveGame(save)
+
+  const loaded = loadSave()
+
+  assert.ok(loaded.dex.caught.includes(5))
+  assert.equal(loaded.stats.caught, save.stats.caught, 'a repair is not a new catch')
+})
+
 test('everyone who took part earns the experience, and the money is paid once', () => {
   const save = newSave()
   const starter = save.party[0]

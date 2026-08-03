@@ -62,6 +62,12 @@ function migrate(save) {
   save.dex.faced ??= {}
   save.stats ??= { battles: 0, wins: 0, losses: 0, caught: 0, runs: 0 }
 
+  // Anything you are holding is caught, whatever route it took to get there. Saves
+  // from before evolution filled in its own entry are missing every species that was
+  // raised into rather than thrown a ball at, and the standing invariant repairs them
+  // without having to know which ones.
+  for (const mon of [...save.party, ...save.box]) markCaught(save, mon.species)
+
   // Stats come from species data, so a dataset correction reaches old saves.
   for (const mon of [...save.party, ...save.box]) refreshStats(mon)
 
