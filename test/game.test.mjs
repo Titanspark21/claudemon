@@ -253,6 +253,10 @@ test('the right stone evolves and the wrong one does nothing', () => {
   const right = useItem(save, 'thunder-stone', pikachu)
   assert.equal(right.ok, true)
   assert.equal(right.evolvedInto, 26, 'Pikachu becomes Raichu')
+  // The item applies itself, like the potions above it. Reporting the evolution and
+  // leaving it to the caller is what made stones something you could only buy.
+  assert.equal(pikachu.species, 26, 'and it has actually evolved')
+  assert.match(right.message, /RAICHU/)
   assert.equal(countOf(save, 'thunder-stone'), 0)
 })
 

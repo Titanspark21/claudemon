@@ -12,10 +12,12 @@ import { applyVictory, describeStep, learnMove } from './progression.mjs'
 import { createPokemon, displayName, isFainted, levelOf } from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { makeRng, randomSeed } from './rng.mjs'
-import { ballsInBag, countOf, ITEMS, buy, removeItem, useItem } from './shop.mjs'
+import {
+  ballsInBag, countOf, ITEMS, buy, itemsInBag, removeItem, useItem, usableOnParty,
+} from './shop.mjs'
 import { play, startMusic, stopMusic } from './sound.mjs'
 import {
-  activePokemon, addPokemon, createSave, depositPokemon, healParty, markFaced,
+  activePokemon, addPokemon, createSave, depositPokemon, healParty, markCaught, markFaced,
   markSeen, publishStatus, saveGame, setLead, withdrawPokemon,
 } from './state.mjs'
 import { checkForUpdate, createUpdateRun, currentNotice } from './update.mjs'
@@ -43,7 +45,13 @@ const VIEWS = {
   update: updateView,
 }
 
-/** Items worth offering mid-battle: balls, healing, status cures. */
+/**
+ * Items worth offering mid-battle: balls, healing, status cures.
+ *
+ * Not the stones, the way the games have always had it: an evolution is not something
+ * you do with a Pokemon halfway through a fight. They are used from the BAG screen,
+ * on whoever you pick — which is the only place they can be used at all.
+ */
 const BATTLE_ITEM_KINDS = new Set(['heal', 'cure', 'revive'])
 
 /**
@@ -127,6 +135,17 @@ export function createApp({
      * sides, and the side you are not looking at is where its result landed.
      */
     boxMessage: null,
+
+    /**
+     * Which item the bag is open on, or null while it is shut.
+     *
+     * One field rather than two, because "shut" and "on no item" are the same state: the
+     * bag opens over the team screen, so this is also what says whether the arrow keys
+     * are moving through your items or through your Pokemon.
+     */
+    bagSelection: null,
+    bagMessage: null,
+
     shopSelection: 0,
     shopMessage: null,
     optionsSelection: 0,
@@ -432,7 +451,9 @@ export function createApp({
     switch (id) {
       case 'fight': ctx.startNextBattle(); break
       case 'dex': ctx.setMode('dex'); break
-      case 'team': ctx.teamSelection = 0; ctx.boxMessage = null; ctx.setMode('team'); break
+      // The bag opens over the team screen, so it has to arrive shut: the one it was
+      // last open for is not necessarily still in the party.
+      case 'team': ctx.teamSelection = 0; ctx.clearTeamMessages(); ctx.closeBag(); ctx.setMode('team'); break
       case 'shop': ctx.shopSelection = 0; ctx.shopMessage = null; ctx.setMode('shop'); break
       case 'options': ctx.optionsSelection = 0; ctx.optionsMessage = null; ctx.setMode('options'); break
       case 'heal':
@@ -496,6 +517,59 @@ export function createApp({
     ctx.boxSelection = Math.min(index, Math.max(0, ctx.save.box.length - 1))
     ctx.boxMessage = `${displayName(mon).toUpperCase()} joined your team.`
     ctx.persist()
+  }
+
+  // --- the bag ---------------------------------------------------------------
+
+  /** Clears whatever the team screen was saying, from either of the two things on it. */
+  ctx.clearTeamMessages = () => {
+    ctx.boxMessage = null
+    ctx.bagMessage = null
+  }
+
+  /** Opens the bag over the team screen, on the Pokemon the cursor is on. */
+  ctx.openBag = () => {
+    if (itemsInBag(ctx.save).length === 0) {
+      // Opening an empty bag would be a screen with nothing on it and no way to tell
+      // why, so the answer comes without leaving the team.
+      ctx.bagMessage = 'Your bag is empty — the shop sells balls, potions and stones.'
+      return
+    }
+    ctx.bagSelection = 0
+    ctx.bagMessage = null
+  }
+
+  ctx.closeBag = () => {
+    ctx.bagSelection = null
+    ctx.bagMessage = null
+  }
+
+  /**
+   * Uses an item on one of your team.
+   *
+   * The half of using an item the game only had inside a battle, where the target is
+   * decided for you. Here it is whoever the team screen is on, which is what a stone
+   * needs — the one it fits is rarely the one leading — and what a potion between
+   * fights wanted all along.
+   */
+  ctx.useFromBag = (key, index) => {
+    const mon = ctx.save.party[index]
+    if (!key || !mon) return
+
+    if (!usableOnParty(key)) {
+      ctx.bagMessage = `Save the ${ITEMS[key].name} for something in the grass.`
+      return
+    }
+
+    const result = applyItem(ctx, key, mon)
+    ctx.bagMessage = result.message
+    // A refusal keeps the bag open on the item it refused: it is an answer about that
+    // item, and what you want next is a different one. Anything that worked hands the
+    // screen back to the team, where you choose who is next.
+    if (!result.ok) return
+
+    ctx.persist()
+    ctx.bagSelection = null
   }
 
   ctx.buyItem = (key, quantity) => {
@@ -832,6 +906,20 @@ function chooseMainOption(ctx) {
   }
 }
 
+/**
+ * Uses an item, and settles what using it meant beyond the Pokemon it was used on.
+ *
+ * Both bags come through here — the battle's and the field's — because a stone is an
+ * evolution, and an evolution is a Pokedex entry you earned by raising the thing
+ * yourself rather than throwing a ball at it. Which screen you happened to be standing
+ * on must not decide whether you are credited for it.
+ */
+function applyItem(ctx, key, mon) {
+  const result = useItem(ctx.save, key, mon)
+  if (result.evolvedInto) markCaught(ctx.save, result.evolvedInto)
+  return result
+}
+
 /** Balls plus anything that heals or cures, in a stable order. */
 function usableBattleItems(save) {
   const balls = ballsInBag(save)
@@ -869,7 +957,7 @@ function chooseItem(ctx) {
 
   const mon = battle.state.player.mon
   const before = mon.hp
-  const result = useItem(ctx.save, key, mon)
+  const result = applyItem(ctx, key, mon)
   if (!result.ok) {
     queueMessages(ctx, [result.message])
     openMenu(battle, 'main')

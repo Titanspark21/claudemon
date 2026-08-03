@@ -23,7 +23,7 @@ const { isDataReady } = await import('../src/data.mjs')
 const { clearEncounter, peekQueue, writeEncounter } = await import('../src/queue.mjs')
 const { loadSave } = await import('../src/state.mjs')
 const { createPokemon, levelOf, makeMoveSlot } = await import('../src/pokemon.mjs')
-const { ballsInBag, countOf } = await import('../src/shop.mjs')
+const { ballsInBag, countOf, itemsInBag, SHOP_STOCK } = await import('../src/shop.mjs')
 const { HIT_FRAMES } = await import('../src/ui/views/battle.mjs')
 const { SETTINGS } = await import('../src/ui/views/options.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
@@ -67,6 +67,20 @@ const openSetting = (app, key) => {
 }
 const type = (app, text) => {
   for (const char of text) press(app, char, char)
+}
+
+/**
+ * Walks the home cursor onto an entry with the arrow keys, however many rows along it
+ * happens to be. A count written down here would only ever say how long the menu was
+ * on the day the test was written.
+ */
+const walkHomeTo = (app, id) => {
+  const items = homeView.menuItems(app)
+  for (let step = 0; step < items.length; step++) {
+    if (homeView.menuItems(app)[app.homeSelection].id === id) return
+    press(app, 'right')
+  }
+  assert.fail(`the home cursor never reached ${id}`)
 }
 
 /** Dismisses messages until the game wants input again. Bounded, so a stuck
@@ -203,9 +217,8 @@ test('an encounter timing out leaves the cursor on the entry it was on', () => {
   queueEncounter(app)
   assert.equal(app.homeSelection, 0, 'the cursor starts on FIGHT')
 
-  // Over to HEAL, four entries along the six-item menu.
-  for (let step = 0; step < 4; step++) press(app, 'right')
-  assert.equal(homeView.menuItems(app)[app.homeSelection].id, 'heal')
+  // Over to HEAL, wherever along the menu it now sits.
+  walkHomeTo(app, 'heal')
 
   clearEncounter()
   app.pump()
@@ -964,6 +977,126 @@ test('the box refuses a full team, and the team keeps its last Pokemon', () => {
   assert.match(app.boxMessage, /full/)
 })
 
+/**
+ * Opens the bag over the team screen and puts the cursor on an item, whatever else is
+ * in there. The Pokemon it is for is whoever the team cursor is already on.
+ */
+const openBagOn = (app, key) => {
+  press(app, 'i')
+  assert.notEqual(app.bagSelection, null, 'the bag should be open')
+
+  const index = itemsInBag(app.save).indexOf(key)
+  assert.notEqual(index, -1, `${key} should be in the bag`)
+  app.bagSelection = index
+}
+
+test('a potion can be used out of a battle, on whoever needs it', () => {
+  const app = startedGame()
+  const benched = createPokemon(25, 9, makeRng(1))
+  benched.hp = 1
+  app.save.party.push(benched)
+
+  app.openHomeSelection('team')
+
+  // Who first, then what: down to the second Pokemon, which is the one a battle could
+  // never have reached, and the bag opens on it.
+  press(app, 'down')
+  openBagOn(app, 'potion')
+  const potions = countOf(app.save, 'potion')
+  press(app, 'enter')
+
+  assert.equal(benched.hp, Math.min(benched.stats.hp, 21), 'the bench got the potion')
+  assert.equal(countOf(app.save, 'potion'), potions - 1)
+  assert.equal(app.bagSelection, null, 'and the bag closed again')
+  assert.equal(app.mode, 'team', 'without leaving the team screen')
+  assert.equal(countOf(loadSave(), 'potion'), potions - 1, 'spent on disk, not just on screen')
+})
+
+test('a stone bought in the shop evolves somebody and fills in the Pokedex', () => {
+  const app = startedGame()
+  app.save.party.push(createPokemon(25, 20, makeRng(4)))
+  app.save.money = 5000
+
+  app.openHomeSelection('shop')
+  app.shopSelection = SHOP_STOCK.indexOf('thunder-stone')
+  assert.notEqual(app.shopSelection, -1, 'the shop sells the Thunder Stone')
+  press(app, 'enter')
+  assert.equal(countOf(app.save, 'thunder-stone'), 1, 'bought')
+
+  press(app, 'escape')
+  app.openHomeSelection('team')
+  press(app, 'down') // Pikachu, behind the starter
+  openBagOn(app, 'thunder-stone')
+  press(app, 'enter')
+
+  assert.equal(app.save.party[1].species, 26, 'Pikachu is a Raichu now')
+  assert.equal(countOf(app.save, 'thunder-stone'), 0, 'and the stone is gone')
+  assert.match(app.bagMessage, /RAICHU/)
+  assert.ok(app.save.dex.caught.includes(26), 'an evolution you raised is an entry you earned')
+  assert.equal(loadSave().party[1].species, 26, 'and it is on disk')
+})
+
+test('the wrong stone is refused, kept, and leaves the bag open', () => {
+  const app = startedGame()
+  app.save.party.push(createPokemon(25, 20, makeRng(4)))
+  app.save.bag['fire-stone'] = 1
+
+  app.openHomeSelection('team')
+  press(app, 'down')
+  openBagOn(app, 'fire-stone')
+  press(app, 'enter')
+
+  assert.equal(app.save.party[1].species, 25, 'Pikachu is unmoved')
+  assert.equal(countOf(app.save, 'fire-stone'), 1, 'a wasted stone is not spent')
+  assert.match(app.bagMessage, /no effect/i)
+  assert.notEqual(app.bagSelection, null, 'and you are still in the bag, on another item')
+})
+
+test('a ball in the bag says so rather than doing nothing', () => {
+  const app = startedGame()
+  app.openHomeSelection('team')
+  openBagOn(app, 'poke-ball')
+
+  press(app, 'enter')
+
+  assert.match(app.bagMessage, /grass/i)
+  assert.equal(countOf(app.save, 'poke-ball'), 5, 'and it stays in the bag')
+})
+
+test('the bag keeps the team keys to itself, then hands them back', () => {
+  const app = startedGame()
+  app.save.party.push(createPokemon(25, 9, makeRng(1)))
+
+  app.openHomeSelection('team')
+  openBagOn(app, 'potion')
+
+  // `d` sends a Pokemon to the box on the team screen. Reaching it from inside the bag
+  // would be somebody's Charizard.
+  press(app, 'd')
+  assert.equal(app.save.party.length, 2, 'nothing left the team')
+  press(app, 'b')
+  assert.equal(app.mode, 'team', 'and the box did not open either')
+
+  press(app, 'escape')
+  assert.equal(app.bagSelection, null, 'the first one puts the bag away')
+  assert.equal(app.mode, 'team')
+
+  press(app, 'escape')
+  assert.equal(app.mode, 'home', 'the second one leaves')
+})
+
+test('an empty bag says so instead of opening on nothing', () => {
+  const app = startedGame()
+  app.save.bag = {}
+
+  app.openHomeSelection('team')
+  press(app, 'i')
+
+  assert.equal(app.bagSelection, null, 'it stayed shut')
+  assert.match(app.bagMessage, /empty/i)
+  assert.equal(app.mode, 'team')
+})
+
 test('the Pokedex scrolls without falling off either end', () => {
   const app = startedGame()
   app.openHomeSelection('dex')
@@ -1193,7 +1326,7 @@ test('OPTION is on the home menu, and opening it does not disturb the others', (
   )
 
   // Along to OPTION with the arrow keys, the way a keyboard gets there.
-  for (let step = 0; step < 4; step++) press(app, 'right')
+  walkHomeTo(app, 'options')
   press(app, 'enter')
   assert.equal(app.mode, 'options')
 
