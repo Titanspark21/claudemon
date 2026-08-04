@@ -341,6 +341,21 @@ function moveMenu(mon, rawSelection, width) {
   return rows
 }
 
+/**
+ * One row per party member: name, level and a health bar.
+ *
+ * Shared by the two menus that ask you to point at one of your own — who to send out,
+ * and who an item is for. The same Pokemon should read the same way in both.
+ */
+function partyLabels(save) {
+  return save.party.map((mon) => {
+    const fainted = mon.hp <= 0 ? gray(' FNT') : ''
+    const name = `${displayName(mon).toUpperCase()}${genderTag(genderOf(mon))}`
+    return `${padRight(name, 14)} ${dim(`Lv${levelOf(mon)}`)} ${
+      hpBar(mon.hp, mon.stats.hp, 10)}${fainted}`
+  })
+}
+
 export function draw(ctx, size) {
   const { cols, rows: totalRows } = size
   const battle = ctx.battle
@@ -440,14 +455,19 @@ function messageBody(ctx, width) {
       if (labels.length === 0) return ['Your bag is empty.', dim('  [esc] back')]
       return ['Use which item?', ...menuList(labels, battle.selection, { height: 4, width: inner })]
     }
-    case 'party': {
-      const labels = ctx.save.party.map((mon) => {
-        const fainted = mon.hp <= 0 ? gray(' FNT') : ''
-        const name = `${displayName(mon).toUpperCase()}${genderTag(genderOf(mon))}`
-        return `${padRight(name, 14)} ${dim(`Lv${levelOf(mon)}`)} ${
-          hpBar(mon.hp, mon.stats.hp, 10)}${fainted}`
-      })
-      return ['Switch to which Pokémon?', ...menuList(labels, battle.selection, { height: 4, width: inner })]
+    case 'party':
+      return [
+        'Switch to which Pokémon?',
+        ...menuList(partyLabels(ctx.save), battle.selection, { height: 4, width: inner }),
+      ]
+    case 'target': {
+      // The same rows as the switch menu, fainted ones included and not dimmed out:
+      // for a Revive, the one lying down is the whole point of the list.
+      const item = ITEMS[battle.bagItem]
+      return [
+        `Use the ${bold(item ? item.name : 'item')} on which Pokémon?`,
+        ...menuList(partyLabels(ctx.save), battle.selection, { height: 4, width: inner }),
+      ]
     }
     case 'learn': {
       const step = battle.learnStep
@@ -495,6 +515,8 @@ export function menuLength(ctx) {
     case 'main': return 4
     case 'fight': return battle.state.player.mon.moves.length
     case 'bag': return battle.bagItems.length
+    // Both of the menus that ask you to point at one of your own.
+    case 'target':
     case 'party': return ctx.save.party.length
     case 'learn': return battle.learnStep.mon.moves.length + 1
     default: return 0

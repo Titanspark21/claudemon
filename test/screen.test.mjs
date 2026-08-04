@@ -729,7 +729,8 @@ function battleCtx({
       effect,
       ball,
       selection: 0,
-      bagItems: ['poke-ball'],
+      bagItems: ['poke-ball', 'revive'],
+      bagItem: menu === 'target' ? 'revive' : null,
     },
   }
 }
@@ -819,7 +820,7 @@ test('a shared row draws both sprites, and neither over the other', () => {
 })
 
 test('the message box always fits, whatever is open and however short the window', () => {
-  for (const menu of [null, 'main', 'fight', 'bag', 'party']) {
+  for (const menu of [null, 'main', 'fight', 'bag', 'party', 'target']) {
     for (let rows = 18; rows <= 60; rows += 2) {
       const { lines } = drawBattle(battleCtx({ menu }), { cols: 120, rows })
       assert.ok(
