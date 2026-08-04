@@ -1319,6 +1319,78 @@ test('the battle theme starts with the battle and stops when it ends', () => {
   assert.deepEqual(track, ['start:battle', 'stop'], 'running is one of the ways it ends')
 })
 
+/** Reads on until the fanfare starts, or gives up rather than hanging. */
+function readToFanfare(app, track) {
+  let guard = 0
+  while (app.battle?.message && !track.includes('start:victory') && guard++ < 40) {
+    press(app, 'enter')
+  }
+  assert.ok(track.includes('start:victory'), 'the fanfare never played')
+}
+
+test('winning hands the battle theme over to the fanfare, on the line that says so', () => {
+  const track = []
+  const app = musicalGame(track)
+  // Strong enough to end the fight on its first turn, so the win is not in doubt.
+  const ace = createPokemon(25, 20, makeRng(1))
+  ace.moves = [makeMoveSlot('thunder-shock')]
+  app.save.party[0] = ace
+  queueEncounter(app, { species: 10, name: 'Caterpie', level: 2, seed: 3 })
+
+  press(app, 'enter')
+  clearMessages(app)
+  assert.deepEqual(track, ['start:battle'], 'the theme is still under the fight')
+
+  attack(app)
+  assert.deepEqual(track, ['start:battle'], 'and under the blow that ends it')
+
+  readToFanfare(app, track)
+  assert.match(app.battle.message, /fainted/i, 'it turns over as the news arrives')
+  assert.deepEqual(track, ['start:battle', 'start:victory'], 'one track replacing the other')
+
+  clearMessages(app)
+  assert.equal(app.mode, 'home')
+  assert.deepEqual(
+    track,
+    ['start:battle', 'start:victory', 'stop'],
+    'and the fanfare does not follow you home',
+  )
+})
+
+test('a catch gets the same fanfare, because it is the same win', () => {
+  const track = []
+  const app = musicalGame(track)
+  app.save.bag['master-ball'] = 1
+  queueEncounter(app, { species: 25, name: 'Pikachu', level: 6, seed: 5 })
+
+  press(app, 'enter')
+  clearMessages(app)
+
+  app.battle.selection = 1 // BAG
+  press(app, 'enter')
+  app.battle.selection = app.battle.bagItems.indexOf('master-ball')
+  press(app, 'enter')
+
+  // The ball is in the air, and a fanfare over the shakes would give the result away.
+  assert.deepEqual(track, ['start:battle'], 'nothing has been decided on screen yet')
+
+  readToFanfare(app, track)
+  assert.match(app.battle.message, /caught/i, 'it waits for the ball to hold')
+
+  clearMessages(app)
+  assert.equal(app.mode, 'home')
+  assert.deepEqual(track, ['start:battle', 'start:victory', 'stop'])
+})
+
+test('losing is not a victory, whatever else it is', () => {
+  const track = []
+  const app = musicalGame(track)
+
+  loseABattle(app)
+
+  assert.deepEqual(track, ['start:battle', 'stop'], 'no fanfare for a blackout')
+})
+
 test('SOUND OFF is silent in a battle too, and switching it off cuts the music', () => {
   const track = []
   const app = musicalGame(track)

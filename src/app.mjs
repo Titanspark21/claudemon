@@ -647,7 +647,7 @@ export function createApp({
       return
     }
 
-    if (playNextBeat(battle)) return
+    if (playNextBeat(ctx)) return
 
     // The turn is played out: either continue the post-battle sequence or hand
     // the menu back to the player.
@@ -805,7 +805,7 @@ function syncBars(battle) {
 function queueEvents(ctx, events) {
   const battle = ctx.battle
   battle.events.push(...events)
-  if (!battle.message) playNextBeat(battle)
+  if (!battle.message) playNextBeat(ctx)
 }
 
 function queueMessages(ctx, texts) {
@@ -827,30 +827,35 @@ function queueMessages(ctx, texts) {
  *
  * @returns {boolean} whether there was anything left to say.
  */
-function playNextBeat(battle) {
+function playNextBeat(ctx) {
+  const battle = ctx.battle
+
   // Whatever was still draining belongs to the beat just finished. Landing it
   // now keeps each beat starting from a settled bar, however fast keys arrive.
   battle.hp = { ...battle.hpTarget }
 
   // Anything before the next message was left over by a caller that queued state
   // changes of its own.
-  applyPendingEvents(battle)
+  applyPendingEvents(ctx)
 
   const next = battle.events.shift()
   battle.message = next ? next.text : null
-  applyPendingEvents(battle)
+  applyPendingEvents(ctx)
 
   return battle.message != null
 }
 
 /** Consumes state changes up to the next thing worth reading. */
-function applyPendingEvents(battle) {
+function applyPendingEvents(ctx) {
+  const battle = ctx.battle
   while (battle.events.length > 0 && battle.events[0].type !== 'message') {
-    applyBattleEvent(battle, battle.events.shift())
+    applyBattleEvent(ctx, battle.events.shift())
   }
 }
 
-function applyBattleEvent(battle, event) {
+function applyBattleEvent(ctx, event) {
+  const battle = ctx.battle
+
   switch (event.type) {
     case 'damage':
     case 'heal':
@@ -863,6 +868,19 @@ function applyBattleEvent(battle, event) {
     case 'catch':
       // The engine has already decided; the frames are the interface catching up.
       battle.ball = { shakes: event.shakes, caught: event.caught, frame: 0, done: false }
+      break
+    case 'end':
+      // The end of the battle arrives glued to the line that announces it — "FOE
+      // CATERPIE fainted!", "Gotcha!" — so this is the frame the music should turn
+      // over on, and the reason it is here rather than in beginPostBattle: that runs
+      // as soon as the engine returns, which is several messages before any of it is
+      // on screen, and would cut the theme off mid-attack.
+      //
+      // Both ways a battle goes your way get the fanfare, which is what the games do:
+      // weakening something and landing the ball is the harder of the two wins. It
+      // plays over the spoils and stops at the home screen, where finishBattle stops
+      // whatever was playing. Running is not a victory and losing is certainly not.
+      if (event.outcome === 'win' || event.outcome === 'caught') ctx.playMusic('victory')
       break
     default:
       // Stat stages, ailments and the outcome all speak for themselves through

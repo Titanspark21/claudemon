@@ -3,7 +3,8 @@
 // Two kinds, and they get here differently. A blip is a few hundred samples of a
 // square wave, so the blips are written down as notes and rendered to WAV on first
 // use — a new one costs three numbers in the table below rather than a binary file in
-// the repo. The battle theme is a real recording and ships as one, under assets/.
+// the repo. The battle theme and the victory fanfare are real recordings and ship as
+// ones, under assets/.
 //
 // Playing is somebody else's job: there is no audio in Node, so a sound is a file
 // handed to whatever player the machine already has. That is the one part that can
@@ -48,16 +49,24 @@ export const SOUNDS = {
  * The sounds that play under a screen rather than on a keypress.
  *
  * Apart from the blips, because they are a different kind of noise: a blip happens
- * because you did something, and this happens whether you touch anything or not. It
- * plays for as long as a battle lasts, and the loop below restarts the file when it
- * ends — every restart is a small gap, so a track worth shipping is a long one.
+ * because you did something, and this happens whether you touch anything or not. There
+ * is only ever one of these playing, so starting one is how the last one ends.
  *
  * A `file` rather than notes. A square wave can carry a menu blip; two minutes of it
  * is two minutes of somebody being buzzed at while they work.
+ *
+ * `loop` says what happens when the file runs out, and every track states it rather
+ * than inheriting it. A theme has to outlast the screen it plays under, so it starts
+ * again — every restart is a small gap, which is why a looping track worth shipping is
+ * a long one. A fanfare is a thing that happens once and would be a joke the second
+ * time round.
  */
 export const MUSIC = {
   /** A wild Pokemon, from the first frame of the battle to the last. */
-  battle: { file: assetFile('battle.wav') },
+  battle: { file: assetFile('battle.wav'), loop: true },
+
+  /** The battle went your way. Plays over the spoils and stops at the home screen. */
+  victory: { file: assetFile('victory.wav'), loop: false },
 }
 
 /**
@@ -362,12 +371,14 @@ function arrangeSilenceAtExit() {
 }
 
 /**
- * Starts a long sound and keeps it going until something stops it.
+ * Starts a long sound, and keeps it going until it ends or something stops it.
  *
  * Its own channel: it does not touch the blip throttle above and the blips do not
  * touch it, so a cursor moving during a battle is a second sound rather than an
- * interruption. Asking for what is already playing is deliberately nothing at all —
- * restarting the track every time a screen re-entered would be a stutter.
+ * interruption. One channel, though, so a new track is the end of whatever was under
+ * it — which is what makes the fanfare the thing that stops the battle theme. Asking
+ * for what is already playing is deliberately nothing at all: restarting the track
+ * every time a screen re-entered would be a stutter.
  *
  * Fails the way everything else here does. No player, no writable home, a player that
  * will not start: the battle happens in silence and nobody is told.
@@ -422,6 +433,12 @@ export function startMusic(name) {
     })
     child.once('exit', () => {
       if (music !== session) return
+      // A one-shot is over when the player is: nothing to restart, and the slot goes
+      // back so the next track does not have to fight it for the channel.
+      if (!spec.loop) {
+        music = null
+        return
+      }
       if (Date.now() - startedAt < MIN_LOOP_MS) {
         music = null
         return
