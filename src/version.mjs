@@ -90,5 +90,12 @@ export function newestInstalled(cache = PLUGIN_CACHE) {
  * `claude plugin update` would not touch the clone the launcher is pointing at.
  */
 export function isPluginCopy(root = APP_ROOT, cache = PLUGIN_CACHE) {
-  return root.startsWith(`${cache}/`) || root === cache
+  if (root === cache) return true
+  // The paths are built with path.join, so the separator is "\" on Windows. A
+  // hardcoded "/" here made an installed plugin look like a clone there, sending
+  // the updater down the git-pull path in a directory that is not a clone. Accept
+  // either separator so the check holds on both.
+  if (!root.startsWith(cache)) return false
+  const next = root[cache.length]
+  return next === '/' || next === '\\'
 }
