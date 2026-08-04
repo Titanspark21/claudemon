@@ -214,11 +214,12 @@ battle message. That is the whole scheme — it is the same everywhere.
   your team down rather than picking it up. Healing is a rest, and a rest is the half
   of the session Claude is not using — so a team back at full health is something you
   pick up in the gaps, not something you farm between two tool calls.
-- Blips as you move through the menus, and a theme that plays from the first frame of
-  a battle to the last — off in one place if you would rather work in silence. The
-  blips are generated from a few lines of notes rather than shipped, so a new one
-  costs three numbers; the theme is two minutes of mono WAV in `assets/`, which is the
-  one format every player on every platform will open.
+- Blips as you move through the menus, a theme that plays from the first frame of a
+  battle to the last, and a fanfare that takes over on the line that says you won or
+  that the ball held — off in one place if you would rather work in silence. The blips
+  are generated from a few lines of notes rather than shipped, so a new one costs three
+  numbers; the two tracks are mono WAV in `assets/`, which is the one format every
+  player on every platform will open.
 
 ## Credits
 
@@ -228,8 +229,9 @@ they are somebody else's artwork, so they are downloaded at install time rather 
 redistributed.
 
 `assets/battle.wav` is the trainer battle theme from the Game Boy games, trimmed to
-two minutes and downmixed to mono. It is not original to this repo and it is not
-covered by the LICENSE, which applies to the code.
+two minutes and downmixed to mono; `assets/victory.wav` is the victory fanfare, given
+the same treatment. Neither is original to this repo and neither is covered by the
+LICENSE, which applies to the code.
 
 Pokemon is a trademark of Nintendo, Creatures Inc. and GAME FREAK Inc.; this is a
 personal, non-commercial toy.
