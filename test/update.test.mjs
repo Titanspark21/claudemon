@@ -118,8 +118,9 @@ test('a plugin copy is recognised whatever the path separator', () => {
   // The cache path is built with path.join, so on Windows the version dir is joined
   // with "\". Comparing against a hardcoded "/" made an installed plugin look like a
   // clone there, sending the updater down the git-pull path in a directory that is
-  // not a clone.
-  const cache = '/home/someone/.claude/plugins/cache/claudemon/claudemon'
+  // not a clone and leaving the launchers unrelinked. Both separators, because a root
+  // that reaches us through a shell rather than path.join can still be spelled "/".
+  const cache = 'C:\\Users\\someone\\.claude\\plugins\\cache\\claudemon\\claudemon'
   assert.equal(isPluginCopy(`${cache}\\0.5.0`, cache), true)
   assert.equal(isPluginCopy(`${cache}/0.5.0`, cache), true)
   assert.equal(isPluginCopy(`${cache}-old\\0.5.0`, cache), false)
