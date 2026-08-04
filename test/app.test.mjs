@@ -510,11 +510,131 @@ test('a potion fills the bar rather than jumping it', () => {
   battle.selection = index
   press(app, 'enter')
 
+  assert.equal(battle.menu, 'target', 'and then ask who it is for')
+  battle.selection = 0 // the one on the field
+  press(app, 'enter')
+
   let guard = 0
   while (battle.hpTarget.player === 5 && guard++ < 10) press(app, 'enter')
 
   assert.ok(guard < 10, 'the heal should reach the bar')
   assert.ok(battle.hpTarget.player > battle.hp.player, 'as something to animate towards')
+})
+
+// --- Items on somebody other than the one on the field -------------------------
+
+/**
+ * Uses an item from the battle bag on a party member, through the menus a player
+ * would use. Put the item in the bag first: the bag is built as it opens.
+ *
+ * @param {number} target index into the party
+ */
+function useBattleItem(app, key, target) {
+  app.battle.selection = 1 // BAG
+  press(app, 'enter')
+  assert.equal(app.battle.menu, 'bag')
+
+  const index = app.battle.bagItems.indexOf(key)
+  assert.notEqual(index, -1, `${key} should be offered`)
+  app.battle.selection = index
+  press(app, 'enter')
+
+  assert.equal(app.battle.menu, 'target', 'choosing an item should ask who it is for')
+  app.battle.selection = target
+  press(app, 'enter')
+}
+
+/** A team-mate on the bench, in whatever shape the test needs it. */
+function bench(app, hp) {
+  const mon = createPokemon(25, 9, makeRng(1))
+  mon.hp = hp
+  app.save.party.push(mon)
+  return mon
+}
+
+test('a revive brings a fainted team-mate back mid-battle', () => {
+  const app = startedGame()
+  const fallen = bench(app, 0)
+  const battle = duel(app)
+  app.save.bag.revive = 1
+
+  useBattleItem(app, 'revive', 1)
+  clearMessages(app)
+
+  assert.ok(fallen.hp > 0, 'it is back on its feet')
+  assert.equal(fallen.hp, Math.floor(fallen.stats.hp / 2), 'at half health')
+  assert.equal(countOf(app.save, 'revive'), 0, 'and the revive was spent')
+  assert.equal(battle.state.player.mon.species, 4, 'the Charmander is still the one out there')
+})
+
+test('a Pokemon revived mid-battle can be sent straight back out', () => {
+  const app = startedGame()
+  const fallen = bench(app, 0)
+  const battle = duel(app)
+  app.save.bag.revive = 1
+
+  useBattleItem(app, 'revive', 1)
+  clearMessages(app)
+
+  // POKÉMON is the third entry on the main menu, and the revived one is second.
+  battle.selection = 2
+  press(app, 'enter')
+  assert.equal(battle.menu, 'party')
+  battle.selection = 1
+  press(app, 'enter')
+  clearMessages(app)
+
+  assert.equal(battle.state.player.mon, fallen, 'the one you just revived is out')
+})
+
+test('a potion reaches a team-mate on the bench', () => {
+  const app = startedGame()
+  const hurt = bench(app, 1)
+  const battle = duel(app)
+
+  useBattleItem(app, 'potion', 1)
+
+  assert.match(battle.message ?? '', /PIKACHU/, 'the message says who it was for')
+  clearMessages(app)
+  assert.ok(hurt.hp > 1, 'and the one on the bench is the one that was healed')
+  assert.equal(battle.state.player.mon.species, 4, 'not the one on the field')
+})
+
+test('an item that would do nothing costs neither the item nor the turn', () => {
+  const app = startedGame()
+  bench(app, 0)
+  const battle = duel(app)
+  app.save.bag.revive = 1
+  const turn = battle.state.turn
+
+  // A revive pointed at the Charmander, which is standing there in perfect health.
+  useBattleItem(app, 'revive', 0)
+
+  assert.match(battle.message ?? '', /no effect/i)
+  clearMessages(app)
+  assert.equal(countOf(app.save, 'revive'), 1, 'the revive is still in the bag')
+  assert.equal(battle.state.turn, turn, 'and the foe never got a free hit out of it')
+})
+
+test('backing out of the target list returns to the item you were holding', () => {
+  const app = startedGame()
+  const battle = duel(app)
+  app.save.bag['super-potion'] = 1
+
+  battle.selection = 1 // BAG
+  press(app, 'enter')
+  const index = battle.bagItems.indexOf('super-potion')
+  battle.selection = index
+  press(app, 'enter')
+  assert.equal(battle.menu, 'target')
+
+  press(app, 'escape')
+  assert.equal(battle.menu, 'bag', 'the target list is a step inside the bag')
+  assert.equal(battle.selection, index, 'on the item you were about to use')
+  assert.equal(battle.bagItem, null, 'and nothing is left waiting for a target')
+
+  press(app, 'escape')
+  assert.equal(battle.menu, 'main')
 })
 
 test('the frame timer does nothing outside a battle', () => {
