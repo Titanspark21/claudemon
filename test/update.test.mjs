@@ -114,6 +114,17 @@ test('a copy inside the plugin cache is a plugin, and anything else is a clone',
   assert.equal(isPluginCopy(`${cache}-old/0.5.0`, cache), false)
 })
 
+test('a plugin copy is recognised whatever the path separator', () => {
+  // The cache path is built with path.join, so on Windows the version dir is joined
+  // with "\". Comparing against a hardcoded "/" made an installed plugin look like a
+  // clone there, sending the updater down the git-pull path in a directory that is
+  // not a clone.
+  const cache = '/home/someone/.claude/plugins/cache/claudemon/claudemon'
+  assert.equal(isPluginCopy(`${cache}\\0.5.0`, cache), true)
+  assert.equal(isPluginCopy(`${cache}/0.5.0`, cache), true)
+  assert.equal(isPluginCopy(`${cache}-old\\0.5.0`, cache), false)
+})
+
 // --- When to look ------------------------------------------------------------
 
 test('a check is due when there has never been one', () => {
