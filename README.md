@@ -176,9 +176,9 @@ battle message. That is the whole scheme — it is the same everywhere.
 | Screen | What it does |
 |---|---|
 | Home | Whatever is in the grass and how long is left to face it, your team, and the menu |
-| Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP. A ◓ by the foe's name means it is already in your Pokédex |
+| Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP. The bag asks which of your team an item is for, so a Revive reaches somebody already down. A ◓ by the foe's name means it is already in your Pokédex |
 | Pokédex | All 151, with how many of each you have faced, and base stats and evolution requirements for the ones you caught |
-| Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box. `i` opens the bag on whoever the cursor is on: a potion for somebody on the bench, and the evolution stones, which are used nowhere else. A ✦ marks an item that would evolve them |
+| Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box. `i` opens the bag on whoever the cursor is on: a potion between fights, and the evolution stones, which are used nowhere else. A ✦ marks an item that would evolve them |
 | Box | Everything you caught with a full team, reached with `b` from the team screen. `enter` takes one back into the team |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
 | Option | How big sprites are drawn, the menu sounds, the bell, and when the version check runs — daily, every launch, or never. `← →` changes a setting, and the Pokémon underneath redraws as you do |

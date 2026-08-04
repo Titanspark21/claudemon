@@ -622,6 +622,8 @@ export function createApp({
       postSteps: null,
       learnStep: null,
       bagItems: [],
+      /** The item waiting for a target, while the party is up to choose one. */
+      bagItem: null,
     }
 
     ctx.save.stats.battles++
@@ -714,6 +716,18 @@ export function createApp({
   ctx.backOutOfBattleMenu = () => {
     const battle = ctx.battle
     if (!battle || battle.menu === 'learn') return
+
+    // Choosing who to use an item on is a step inside the bag, so backing out of it
+    // is backing out to the bag — and to the item you were holding, rather than to
+    // the top of a list you have just scrolled through.
+    if (battle.menu === 'target') {
+      const index = battle.bagItems.indexOf(battle.bagItem)
+      battle.bagItem = null
+      openMenu(battle, 'bag')
+      if (index >= 0) battle.selection = index
+      return
+    }
+
     openMenu(battle, 'main')
   }
 
@@ -725,6 +739,7 @@ export function createApp({
       case 'main': return chooseMainOption(ctx)
       case 'fight': return chooseMove(ctx)
       case 'bag': return chooseItem(ctx)
+      case 'target': return chooseItemTarget(ctx)
       case 'party': return choosePartyMember(ctx)
       case 'learn': return resolveLearnChoice(ctx)
       default: return undefined
@@ -955,21 +970,48 @@ function chooseItem(ctx) {
     return
   }
 
-  const mon = battle.state.player.mon
+  // Everything else is used on one of your own, and which one is the player's to
+  // say: the one that needs a potion is often not the one on the field, and the one
+  // that needs a Revive never is.
+  battle.bagItem = key
+  openMenu(battle, 'target')
+}
+
+/**
+ * Uses the item the bag is holding on whichever of your team you picked.
+ *
+ * The target matters beyond the Pokemon it heals: a Revive is for somebody already
+ * down, so an item that could only ever reach the one still standing was an item
+ * that could not be used at all.
+ */
+function chooseItemTarget(ctx) {
+  const battle = ctx.battle
+  const key = battle.bagItem
+  const mon = ctx.save.party[battle.selection]
+  if (!key || !mon) return
+
   const before = mon.hp
   const result = applyItem(ctx, key, mon)
+  battle.bagItem = null
+
   if (!result.ok) {
+    // Nothing spent and no turn taken — an item that would do nothing is a question
+    // answered, not a move made. The menu comes back the way it does for a move with
+    // no PP or a switch to somebody who has fainted.
     queueMessages(ctx, [result.message])
-    openMenu(battle, 'main')
     return
   }
 
-  // An item changes the save on the spot rather than through the engine, so the
-  // bar is told about it the same way the engine would have.
+  // An item changes the save on the spot rather than through the engine, so the bar
+  // is told about it the same way the engine would have — but only for the one on
+  // the field, since a Pokemon on the bench has no bar to animate.
+  const onField = mon === battle.state.player.mon
   queueEvents(ctx, [
-    { type: 'message', text: `You used a ${ITEMS[key].name}.` },
+    { type: 'message', text: `You used a ${ITEMS[key].name} on ${displayName(mon).toUpperCase()}.` },
     { type: 'message', text: result.message },
-    ...(mon.hp === before ? [] : [{ type: 'heal', side: 'player', amount: mon.hp - before, hpAfter: mon.hp }]),
+    ...(!onField || mon.hp === before
+      ? []
+      : [{ type: 'heal', side: 'player', amount: mon.hp - before, hpAfter: mon.hp }]),
   ])
 
   // Using an item costs the turn, so the foe still gets to act.

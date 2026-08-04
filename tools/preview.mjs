@@ -165,7 +165,7 @@ const scenes = {
       hpTarget: { player: state.player.mon.hp, foe: state.foe.mon.hp },
       effect: null,
       ball: null,
-      postSteps: null, learnStep: null, bagItems: [],
+      postSteps: null, learnStep: null, bagItems: [], bagItem: null,
     }
     return app
   },
@@ -181,6 +181,18 @@ const scenes = {
     const app = scenes.battle()
     app.battle.menu = 'fight'
     app.battle.selection = 2
+    return app
+  },
+  // Choosing who an item is for: the one screen where a fainted party member is a
+  // target rather than something to be warned about, so the row is not dimmed out.
+  'battle-item': () => {
+    const app = scenes.battle()
+    app.save.bag.revive = 1
+    app.save.party[1].hp = 0
+    app.battle.bagItems = ['poke-ball', 'great-ball', 'potion', 'revive']
+    app.battle.bagItem = 'revive'
+    app.battle.menu = 'target'
+    app.battle.selection = 1
     return app
   },
   'battle-message': () => {
