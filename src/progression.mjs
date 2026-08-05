@@ -69,33 +69,70 @@ function gainExp(save, mon, amount) {
     refreshStats(mon)
     steps.push({ kind: 'level', level, mon, name: displayName(mon), stats: { ...mon.stats } })
 
-    for (const name of movesLearnedAt(mon.species, level)) {
-      if (mon.moves.some((slot) => slot.move === name)) continue
+    steps.push(...learnMovesAt(mon, level))
 
-      if (mon.moves.length < MOVE_LIMIT) {
-        mon.moves.push(makeMoveSlot(name))
-        steps.push({ kind: 'learn', move: name, mon, name: displayName(mon) })
-      } else {
-        steps.push({ kind: 'learn-choice', move: name, mon, name: displayName(mon) })
-      }
+    // The evolution belongs to the level that triggered it, not to the end of the
+    // climb: the levels above it are lived as the new species, and so are the moves
+    // they teach. Abra reaching 16 becomes a Kadabra that then learns Confusion at
+    // 16 — checking the old learnset for all of it left it knowing only Teleport.
+    const target = pendingEvolution(mon, level)
+    if (target) {
+      const from = mon.species
+      evolveInto(mon, target)
+      // An evolution is the only way a species joins your team without being caught, so
+      // it has to fill in its own entry. Without this the Pokedex would never credit you
+      // for the half of it you raised yourself.
+      markCaught(save, target)
+      steps.push({ kind: 'evolve', from, to: target, mon, name: species(target).name })
+      steps.push(...learnMovesAt(mon, level))
     }
-  }
-
-  // Evolution comes last, after every level has been counted.
-  const target = pendingEvolution(mon)
-  if (target) {
-    const from = mon.species
-    evolveInto(mon, target)
-    // An evolution is the only way a species joins your team without being caught, so
-    // it has to fill in its own entry. Without this the Pokedex would never credit you
-    // for the half of it you raised yourself.
-    markCaught(save, target)
-    steps.push({ kind: 'evolve', from, to: target, mon, name: species(target).name })
   }
 
   if (levelOf(mon) >= MAX_LEVEL) steps.push({ kind: 'maxed', mon, name: displayName(mon) })
 
   return steps
+}
+
+/**
+ * What reaching a level teaches, for whatever species this one is by then.
+ *
+ * Reads `mon.species` on every call rather than taking it as an argument, because an
+ * evolution can change it between two calls for the same level.
+ *
+ * A full moveset is left alone and asked about instead — the answer arrives much
+ * later, from the interface, through {@link learnMove}.
+ */
+function learnMovesAt(mon, level) {
+  const steps = []
+
+  for (const name of movesLearnedAt(mon.species, level)) {
+    if (mon.moves.some((slot) => slot.move === name)) continue
+
+    if (mon.moves.length < MOVE_LIMIT) {
+      mon.moves.push(makeMoveSlot(name))
+      steps.push({ kind: 'learn', move: name, mon, name: displayName(mon) })
+    } else {
+      steps.push({ kind: 'learn-choice', move: name, mon, name: displayName(mon) })
+    }
+  }
+
+  return steps
+}
+
+/**
+ * What an evolution teaches on arrival, for one that did not come up through a climb.
+ *
+ * A stone is used from the bag, so nobody was counting levels when it went off — but
+ * the rule is the rule the levels follow: the learnset that decides is the one
+ * belonging to what it just became, read at the level it is standing on. A Shellder
+ * given a Water Stone at 50 becomes a Cloyster that knows what a Cloyster knows at 50.
+ *
+ * Call it after the evolution, never before: it reads the species off the Pokemon.
+ *
+ * @returns {object[]} learn and learn-choice steps, the same ones a level-up produces
+ */
+export function learnEvolutionMoves(mon) {
+  return learnMovesAt(mon, levelOf(mon))
 }
 
 /** Swaps a known move for a new one. Pass a null slot to decline. */

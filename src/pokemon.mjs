@@ -114,9 +114,12 @@ export function healFully(mon) {
  * Which species this one becomes at its current level, or null.
  *
  * Only level-up evolutions happen on their own; stones are used from the bag.
+ *
+ * @param {number} [level] the level to judge it at, for a caller walking a climb
+ *   one level at a time: the experience is already banked, so the Pokemon's own
+ *   level is the top of the climb rather than the rung being asked about.
  */
-export function pendingEvolution(mon) {
-  const level = levelOf(mon)
+export function pendingEvolution(mon, level = levelOf(mon)) {
   for (const evolution of species(mon.species).evolutions) {
     if (evolution.trigger !== 'level-up') continue
     if (evolution.level !== null && level >= evolution.level) return evolution.to
