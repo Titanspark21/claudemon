@@ -357,6 +357,63 @@ test('reaching the evolution level evolves at the end of the payout', () => {
   assert.equal(steps.at(-1).kind, 'evolve')
 })
 
+test('a Pokemon that evolves learns what its new form knows at that level', () => {
+  const save = newSave(4)
+  const abra = createPokemon(63, 15, makeRng(11))
+  addPokemon(save, abra)
+  assert.deepEqual(abra.moves.map((slot) => slot.move), ['teleport'], 'Abra knows one move')
+
+  const steps = applyVictory(save, [abra], { exp: expForLevel(63, 16) - abra.exp, money: 0 })
+
+  assert.equal(abra.species, 64, 'Kadabra')
+  // Confusion is on Kadabra's learnset at 16, not Abra's, so reading the old one
+  // left the Kadabra standing there with nothing but Teleport.
+  assert.ok(abra.moves.some((slot) => slot.move === 'confusion'), 'and it learned Confusion')
+  const learned = steps.filter((step) => step.kind === 'learn').map((step) => step.move)
+  assert.ok(learned.includes('confusion'), 'and said so')
+
+  const evolveAt = steps.findIndex((step) => step.kind === 'evolve')
+  const learnAt = steps.findIndex((step) => step.kind === 'learn' && step.move === 'confusion')
+  assert.ok(evolveAt < learnAt, 'the new move arrives with the evolution, after it')
+})
+
+test('levels above the evolution teach the evolved form its own moves', () => {
+  const save = newSave(4)
+  const abra = createPokemon(63, 10, makeRng(12))
+  addPokemon(save, abra)
+
+  // Straight past the evolution at 16 and on to 20, in one payout.
+  const steps = applyVictory(save, [abra], { exp: expForLevel(63, 20) - abra.exp, money: 0 })
+  const known = abra.moves.map((slot) => slot.move)
+
+  assert.equal(abra.species, 64)
+  assert.ok(known.includes('confusion'), 'Confusion at 16')
+  assert.ok(known.includes('disable'), 'Disable at 20, as a Kadabra')
+
+  // The evolution sits on the level that triggered it, not at the end of the climb.
+  const evolveAt = steps.findIndex((step) => step.kind === 'evolve')
+  const lastLevelAt = steps.map((step) => step.kind).lastIndexOf('level')
+  assert.ok(evolveAt < lastLevelAt, 'it evolved at 16 and kept levelling as a Kadabra')
+  assert.equal(steps[evolveAt - 1].kind, 'level')
+  assert.equal(steps[evolveAt - 1].level, 16)
+})
+
+test('a payout big enough to cross two evolutions performs both', () => {
+  const save = newSave(4)
+  const mon = save.party[0]
+
+  // Level 5 to 40, past Charmeleon at 16 and Charizard at 36 in one go.
+  const steps = applyVictory(save, [mon], { exp: expForLevel(4, 40) - mon.exp, money: 0 })
+
+  assert.equal(mon.species, 6, 'a Charizard, not a Charmeleon still owed one')
+  assert.deepEqual(
+    steps.filter((step) => step.kind === 'evolve').map((step) => step.to),
+    [5, 6],
+    'and it went through the middle of the family rather than skipping it',
+  )
+  assert.ok(save.dex.caught.includes(5) && save.dex.caught.includes(6), 'both are entries')
+})
+
 test('an evolution fills in its own Pokedex entry', () => {
   const save = newSave(4)
   const mon = save.party[0]
