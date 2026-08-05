@@ -40,6 +40,28 @@ jobs:
       - if: steps.sprites.outputs.cache-hit != 'true'
         run: node tools/fetch-sprites.mjs
 
+  # No `needs:` — the linter reads source, so it does not wait on 302 sprites it will
+  # never open. It starts with the sprites job and usually finishes first, which is
+  # what makes a missing import show up in a PR before the matrix has warmed up.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # One version rather than the matrix: the linter reads the same source
+          # whatever runs it, so three legs would be three identical answers. Which
+          # one hardly matters now that the floor is ESLint's own — 24 without
+          # tracking `latest`, and the matrix below is what proves the floor itself.
+          node-version: '24'
+          cache: npm
+
+      # `ci` rather than `install`, so the lockfile decides the version and a lint
+      # error is always the code's rather than a linter that moved under us.
+      - run: npm ci
+
+      - run: npm run lint
+
   test:
     needs: sprites
     runs-on: ubuntu-latest
@@ -48,8 +70,9 @@ jobs:
       # whether the current one passes.
       fail-fast: false
       matrix:
-        # 18 is the floor the README promises. Nothing in here needs more than that.
-        node: ['18', '20', '22', '24']
+        # 20.19 is the floor the README promises, and the leg is pinned to it rather
+        # than to 20 so the oldest thing tested is the oldest thing promised.
+        node: ['20.19', '22', '24']
 
     steps:
       - uses: actions/checkout@v4
@@ -66,7 +89,7 @@ jobs:
       # unconditional so a cache miss costs a download rather than a red run.
       - run: node tools/fetch-sprites.mjs
 
-      # The shell expands the glob, which is what makes this work the same on 18 as
+      # The shell expands the glob, which is what makes this work the same on 20.19 as
       # on 24 — `node --test` only learned to expand patterns itself in 21, and it
       # does not take a bare directory on every release either.
       - run: node --test test/*.test.mjs

@@ -116,6 +116,7 @@ export function truncate(text, maxWidth) {
 
   while (index < raw.length && visible < maxWidth) {
     if (raw[index] === '\x1b') {
+      // eslint-disable-next-line no-control-regex
       const match = /^\x1b\[[0-9;]*[A-Za-z]/.exec(raw.slice(index))
       if (match) {
         out += match[0]

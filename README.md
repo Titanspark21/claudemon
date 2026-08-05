@@ -76,7 +76,7 @@ waiting. Send a longish prompt in the Claude tab and watch the status line.
 | | How to check |
 |---|---|
 | **Claude Code** | You are already in it |
-| **Node.js 18 or newer** | `node --version`. The game and the hooks run on it, and Claude Code ships as its own binary so it does not bring one. Nothing else to install — no dependencies, no build step |
+| **Node.js 20.19 or newer** | `node --version`. The game and the hooks run on it, and Claude Code ships as its own binary so it does not bring one. Nothing else to install — no dependencies, no build step |
 | **A terminal with truecolor** | iTerm2, Ghostty, WezTerm, Kitty, Alacritty, VS Code's terminal and macOS Terminal are all fine |
 
 The 151 Pokemon ship with the plugin, so the only thing the install downloads is the
@@ -167,6 +167,12 @@ node tools/install.mjs
 That does everything the steps above do, including installing the plugin from the
 clone — so it needs no slash commands and only one restart, at the end. Keep the
 directory where it is: the launcher prefers it while it exists.
+
+Two checks, one floor — the 20.19 above, which is what `engines` says and what the
+oldest leg of CI runs. `node --test test/*.test.mjs` installs nothing, because the game
+has no runtime dependencies. `npm ci && npm run lint` brings in the only ones there
+are: a linter, which has opinions about correctness and none about how the code looks.
+The odd `.19` is its floor, and the two are one number on purpose.
 
 ## Controls
 

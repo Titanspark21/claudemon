@@ -64,7 +64,7 @@ export function clearActivity(sessionId) {
 
 /** Every session still worth listening to, freshest first. */
 export function readSessions(now = Date.now()) {
-  let names = []
+  let names
   try {
     names = readdirSync(SESSIONS_DIR)
   } catch {
@@ -82,7 +82,7 @@ export function readSessions(now = Date.now()) {
 
 /** Drops the files of sessions that ended without saying so. */
 export function pruneSessions(now = Date.now()) {
-  let names = []
+  let names
   try {
     names = readdirSync(SESSIONS_DIR)
   } catch {

@@ -132,7 +132,9 @@ async function getJson(url) {
       writeFileSync(cached, JSON.stringify(body))
       return body
     } catch (error) {
-      if (attempt === 5) throw new Error(`${url}: ${error.message}`)
+      // The message names the URL, which the original does not; the cause keeps the
+      // stack of whatever actually failed — a DNS error reads nothing like a 500.
+      if (attempt === 5) throw new Error(`${url}: ${error.message}`, { cause: error })
       await sleep(300 * attempt ** 2)
     }
   }
