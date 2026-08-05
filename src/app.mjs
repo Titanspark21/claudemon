@@ -8,7 +8,7 @@ import { species } from './data.mjs'
 import { createBattle, submitAction, switchIn } from './battle.mjs'
 import { encounterTtlMs, saveConfig, spriteScale, updateCheckMode } from './config.mjs'
 import { expFromDefeating } from './exp.mjs'
-import { applyVictory, describeStep, learnMove } from './progression.mjs'
+import { applyVictory, describeStep, learnEvolutionMoves, learnMove } from './progression.mjs'
 import { createPokemon, displayName, isFainted, levelOf } from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { makeRng, randomSeed } from './rng.mjs'
@@ -562,7 +562,19 @@ export function createApp({
     }
 
     const result = applyItem(ctx, key, mon)
-    ctx.bagMessage = result.message
+
+    // A stone that taught something has to say so, in the battle's own words through the
+    // same describeStep, because a move learned from the bag is not a different event.
+    // As rows rather than one long line: WEEPINBELL becoming a VICTREEBEL that learns
+    // POISON POWDER is eighty-six columns of sentence, and this screen has one row.
+    const taught = (result.steps ?? []).flatMap(describeStep)
+    // The one thing this screen cannot do is ask which of four moves to give up — that
+    // menu only exists after a battle. So it keeps what it knows, and the bag closes the
+    // question rather than leaving it hanging.
+    if (result.steps?.some((step) => step.kind === 'learn-choice')) {
+      taught.push('There was no room for it, so it kept the four it knows.')
+    }
+    ctx.bagMessage = taught.length > 0 ? [result.message, ...taught] : result.message
     // A refusal keeps the bag open on the item it refused: it is an answer about that
     // item, and what you want next is a different one. Anything that worked hands the
     // screen back to the team, where you choose who is next.
@@ -946,11 +958,17 @@ function chooseMainOption(ctx) {
  * evolution, and an evolution is a Pokedex entry you earned by raising the thing
  * yourself rather than throwing a ball at it. Which screen you happened to be standing
  * on must not decide whether you are credited for it.
+ *
+ * An evolution is also a moveset. A stone is the only one that happens away from a
+ * fight, and the rule it follows is the fight's: what the new form knows at the level
+ * it is standing on, it knows now.
  */
 function applyItem(ctx, key, mon) {
   const result = useItem(ctx.save, key, mon)
-  if (result.evolvedInto) markCaught(ctx.save, result.evolvedInto)
-  return result
+  if (!result.evolvedInto) return result
+
+  markCaught(ctx.save, result.evolvedInto)
+  return { ...result, steps: learnEvolutionMoves(mon) }
 }
 
 /** Balls plus anything that heals or cures, in a stable order. */

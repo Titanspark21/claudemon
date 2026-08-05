@@ -108,7 +108,8 @@ export function buy(save, key, quantity = 1) {
  *
  * @returns {{ ok: boolean, message: string, evolvedInto?: number }} `evolvedInto` is
  *   the species it has already become, not one for the caller to apply: it is there so
- *   whoever holds the save can credit the Pokedex with an entry nobody caught.
+ *   whoever holds the save can credit the Pokedex with an entry nobody caught, and
+ *   teach it what its new form knows.
  */
 export function useItem(save, key, mon) {
   const item = ITEMS[key]
@@ -156,6 +157,10 @@ export function useItem(save, key, mon) {
     const before = displayName(mon)
     evolveInto(mon, target)
     removeItem(save, key)
+    // What the new form knows at this level is not settled here, for the same reason
+    // the Pokedex entry is not: both belong to modules a bag has no business importing,
+    // and one of them imports this one back. `evolvedInto` is what asks for them, and
+    // every caller goes through the one place that answers it.
     return {
       ok: true,
       message: `Congratulations! ${before.toUpperCase()} evolved into ${speciesName(target).toUpperCase()}!`,

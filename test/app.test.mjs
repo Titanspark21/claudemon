@@ -1156,6 +1156,54 @@ test('a stone bought in the shop evolves somebody and fills in the Pokedex', () 
   assert.equal(loadSave().party[1].species, 26, 'and it is on disk')
 })
 
+test('a stone teaches what the new form knows at the level it arrived at', () => {
+  const app = startedGame()
+  const shellder = createPokemon(90, 50, makeRng(4))
+  // Room to learn, the way the same test on the battle side makes it.
+  shellder.moves = shellder.moves.slice(0, 2)
+  app.save.party.push(shellder)
+  app.save.bag['water-stone'] = 1
+
+  app.openHomeSelection('team')
+  press(app, 'down')
+  openBagOn(app, 'water-stone')
+  press(app, 'enter')
+
+  assert.equal(shellder.species, 91, 'a Cloyster')
+  // Spike Cannon is Cloyster's move at 50, and a Shellder never learns it. The stone is
+  // the only thing that was ever going to bring it.
+  assert.ok(shellder.moves.some((slot) => slot.move === 'spike-cannon'), 'and it learned it')
+  assert.match([].concat(app.bagMessage).join(' '), /learned Spike Cannon/i, 'and said so')
+  assert.ok(
+    loadSave().party[1].moves.some((slot) => slot.move === 'spike-cannon'),
+    'on disk, not just on screen',
+  )
+})
+
+test('a stone that cannot fit the move keeps the four it has and says why', () => {
+  const app = startedGame()
+  // A Shellder that reached 50 the long way is already full: Clamp, Aurora Beam, Leer
+  // and Ice Beam.
+  const shellder = createPokemon(90, 50, makeRng(4))
+  app.save.party.push(shellder)
+  app.save.bag['water-stone'] = 1
+  const before = shellder.moves.map((slot) => slot.move)
+
+  app.openHomeSelection('team')
+  press(app, 'down')
+  openBagOn(app, 'water-stone')
+  press(app, 'enter')
+
+  assert.equal(shellder.species, 91, 'it still evolves')
+  assert.deepEqual(shellder.moves.map((slot) => slot.move), before, 'and keeps its moves')
+
+  // There is no forget-a-move menu outside a battle, so the screen has to close the
+  // question instead of leaving it open on a prompt that never comes.
+  const said = [].concat(app.bagMessage).join(' ')
+  assert.match(said, /Spike Cannon/i)
+  assert.match(said, /kept the four it knows/)
+})
+
 test('the wrong stone is refused, kept, and leaves the bag open', () => {
   const app = startedGame()
   app.save.party.push(createPokemon(25, 20, makeRng(4)))

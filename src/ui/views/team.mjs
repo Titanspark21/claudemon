@@ -112,24 +112,29 @@ export function draw(ctx, size) {
 
   const right = [...monDetail(selected), '', ...spriteBlock]
 
-  // One row for both of this screen's answers: what the bag is about to do, or how the
-  // last thing you asked for went.
+  // The bottom of this screen, for both of the things it answers: what the bag is about
+  // to do, or how the last thing you asked for went. Usually one row — but a stone that
+  // evolved somebody and taught it a move said two things, and they arrive as two rows
+  // rather than one line long enough to wrap and shove the layout down.
   const note = bag ? bagNote(ctx, bag, selected) : (ctx.bagMessage ?? ctx.boxMessage)
+  const noteRows = note ? [].concat(note) : []
+  // The rows it costs: itself, plus the blank line that lifts it off the lists.
+  const noteHeight = noteRows.length > 0 ? noteRows.length + 1 : 0
 
   // And it is paid for before the sprite rather than after it. `withFooter` drops
   // whatever will not fit, which on a short window was this row — an item used, a
   // Pokemon evolved, and nothing on screen saying so. The bottom of a sprite is the
   // cheapest thing here to lose, and losing it is what the trimming was always for.
-  const budget = Math.max(1, rows - 2 - lines.length - (note ? 2 : 0))
+  const budget = Math.max(1, rows - 2 - lines.length - noteHeight)
   const depth = Math.min(Math.max(list.length, right.length), budget)
 
   for (let row = 0; row < depth; row++) {
     lines.push(` ${padRight(list[row] ?? '', listWidth)}  ${dim('│')}  ${right[row] ?? ''}`)
   }
 
-  if (note) {
+  if (noteRows.length > 0) {
     lines.push('')
-    lines.push(` ${note}`)
+    for (const row of noteRows) lines.push(` ${row}`)
   }
 
   return { lines: withFooter(lines, dim(bag ? BAG_HINTS : HINTS), rows), overlays }

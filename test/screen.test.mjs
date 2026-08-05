@@ -1026,6 +1026,27 @@ test('what an item just did survives a short window', () => {
   }
 })
 
+test('a stone that also taught something gets a row for each half of it', () => {
+  const ctx = menuCtx()
+  // What using one leaves behind: two facts, and one line long enough to hold both
+  // would wrap on an eighty-column terminal and push the layout down a row.
+  ctx.bagMessage = [
+    'Congratulations! SHELLDER evolved into CLOYSTER!',
+    'Cloyster learned Spike Cannon!',
+  ]
+
+  for (const rows of [16, 20, 26, 34]) {
+    const { lines, overlays } = drawTeam(ctx, { cols: 100, rows })
+    assert.ok(lines.length <= rows - 1, `${rows} rows built ${lines.length} lines`)
+
+    const term = fakeTerminal({ cols: 100, rows })
+    term.screen.render(lines, overlays)
+    const drawn = stripAnsi(term.since(0))
+    assert.ok(drawn.includes('evolved into CLOYSTER'), `the evolution went missing at ${rows}`)
+    assert.ok(drawn.includes('learned Spike Cannon'), `the move went missing at ${rows}`)
+  }
+})
+
 test('a ball in the bag is greyed rather than hidden', () => {
   const ctx = bagCtx('poke-ball')
   const { lines } = drawTeam(ctx, { cols: 100, rows: 34 })
