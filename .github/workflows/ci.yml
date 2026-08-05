@@ -40,6 +40,27 @@ jobs:
       - if: steps.sprites.outputs.cache-hit != 'true'
         run: node tools/fetch-sprites.mjs
 
+  # No `needs:` — the linter reads source, so it does not wait on 302 sprites it will
+  # never open. It starts with the sprites job and usually finishes first, which is
+  # what makes a missing import show up in a PR before the matrix has warmed up.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # ESLint 10 does not run on 18, which is fine: linting is a contributor's
+          # step, and the test matrix is what covers the range the README promises.
+          # 24 keeps this job clear of that floor without tracking `latest`.
+          node-version: '24'
+          cache: npm
+
+      # `ci` rather than `install`, so the lockfile decides the version and a lint
+      # error is always the code's rather than a linter that moved under us.
+      - run: npm ci
+
+      - run: npm run lint
+
   test:
     needs: sprites
     runs-on: ubuntu-latest
