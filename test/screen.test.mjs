@@ -169,6 +169,7 @@ function rowWrite(frame, row) {
   if (at < 0) return null
 
   const rest = frame.slice(at + jump.length)
+  // eslint-disable-next-line no-control-regex
   const next = rest.search(/\x1b\[\d+;\d+H/)
   return next < 0 ? rest : rest.slice(0, next)
 }

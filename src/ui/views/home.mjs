@@ -157,7 +157,7 @@ export function draw(ctx, size) {
 
   // Where the grass goes, filled in at the end once it is known whether the
   // window has room to spare for it.
-  let grassAt = -1
+  let grassAt
 
   // Header
   const title = `${brightYellow('◓')} ${bold('claudemon')}`

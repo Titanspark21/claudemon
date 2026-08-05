@@ -122,9 +122,11 @@ export function decodePng(buffer) {
 
     for (let x = 0; x < width; x++) {
       const target = (y * width + x) * 4
-      let r = 0
-      let g = 0
-      let b = 0
+      // No initial colour: every branch below writes all three. Alpha is the one
+      // that has a default, because only two colour types carry it.
+      let r
+      let g
+      let b
       let a = 255
 
       if (colorType === 3) {
