@@ -21,9 +21,10 @@ export default [
     // Naming it here is what puts it in the run.
     files: ['**/*.mjs', 'bin/claudemon'],
     languageOptions: {
-      // The floor the README promises. Parsing at the floor means syntax the oldest
-      // supported Node cannot run is a lint error rather than a crash report.
-      ecmaVersion: 2022,
+      // The floor the README promises, which is Node 20.19 and so ES2023. Parsing at
+      // the floor means syntax the oldest supported Node cannot run is a lint error
+      // here rather than a crash report from somebody running it.
+      ecmaVersion: 2023,
       sourceType: 'module',
       globals: globals.node,
     },
