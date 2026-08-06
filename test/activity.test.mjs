@@ -1,10 +1,3 @@
-// What Claude Code is doing, and the hooks that report it.
-//
-// The regression that matters most here is the dullest one: the hook reads a
-// field out of a payload it does not control, and when that field is wrong it
-// fails silently — no error, no log, just a game where nothing ever appears. So
-// the hook scripts are run as real processes against real payloads.
-
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -32,13 +25,10 @@ const {
 } = await import('../src/activity.mjs')
 const { DEFAULT_CONFIG } = await import('../src/config.mjs')
 const { stripAnsi } = await import('../src/ui/ansi.mjs')
-const { stepsFromPrompt, stepsWhileWorking } = await import('../src/encounter.mjs')
+const { stepsFromPrompt, stepsWhileWorking } =
+  await import('../src/encounter.mjs')
 const { activityRow } = await import('../src/ui/views/home.mjs')
 
-/**
- * Runs a hook the way Claude Code does: a real process, JSON on stdin, in its
- * own directory so one test cannot see another's sessions.
- */
 function runHook(
   script,
   payload,
@@ -46,19 +36,18 @@ function runHook(
 ) {
   if (config) writeFileSync(join(home, 'config.json'), JSON.stringify(config))
 
-  const stdout = execFileSync(process.execPath, [join(root, 'scripts', script)], {
-    input: JSON.stringify(payload),
-    encoding: 'utf8',
-    env: { ...process.env, CLAUDEMON_HOME: home },
-  })
+  const stdout = execFileSync(
+    process.execPath,
+    [join(root, 'scripts', script)],
+    {
+      input: JSON.stringify(payload),
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDEMON_HOME: home },
+    },
+  )
   return { home, stdout }
 }
 
-/**
- * The hook's own directory, read straight off disk. Going through the modules
- * would read this process's sandbox instead: paths.mjs resolves CLAUDEMON_HOME
- * once, at import.
- */
 function queueIn(home) {
   try {
     return readFileSync(join(home, 'queue.jsonl'), 'utf8')
@@ -72,15 +61,14 @@ function queueIn(home) {
 
 function sessionIn(home, id) {
   try {
-    return JSON.parse(readFileSync(join(home, 'sessions', `${id}.json`), 'utf8'))
+    return JSON.parse(
+      readFileSync(join(home, 'sessions', `${id}.json`), 'utf8'),
+    )
   } catch {
     return null
   }
 }
 
-// --- the hook payload ---------------------------------------------------------
-
-/** A prompt submitted, then the first sign of Claude working on it. */
 function promptThenWork(
   session,
   { prompt = 'x'.repeat(120), event = 'PreToolUse', ...options } = {},
@@ -98,16 +86,18 @@ function promptThenWork(
 
   runHook(
     'on-activity.mjs',
-    { session_id: session, cwd: '/tmp', hook_event_name: event, tool_name: 'Read' },
+    {
+      session_id: session,
+      cwd: '/tmp',
+      hook_event_name: event,
+      tool_name: 'Read',
+    },
     { home },
   )
   return home
 }
 
 test('a submitted prompt buys a walk rather than taking one', () => {
-  // encounterChance 1 makes the roll certain, so this tests the wiring and not
-  // the dice — which is exactly what makes it worth asserting that the grass is
-  // still empty. Nothing jumps out at the keystroke, however lucky you are.
   const { home } = runHook(
     'on-prompt.mjs',
     {
@@ -119,32 +109,55 @@ test('a submitted prompt buys a walk rather than taking one', () => {
     { config: { encounterChance: 1 } },
   )
 
-  assert.equal(queueIn(home).length, 0, 'nothing appears in the same instant you press enter')
-  assert.equal(sessionIn(home, 'aaa').pendingSteps, 3, 'three steps, owed to the turn')
+  assert.equal(
+    queueIn(home).length,
+    0,
+    'nothing appears in the same instant you press enter',
+  )
+  assert.equal(
+    sessionIn(home, 'aaa').pendingSteps,
+    3,
+    'three steps, owed to the turn',
+  )
 })
 
 test('the walk a prompt bought is taken once Claude gets going', () => {
   const home = promptThenWork('aaa1', { config: { encounterChance: 1 } })
 
   const queued = queueIn(home)
-  assert.equal(queued.length, 1, 'three steps, but only ever one Pokemon in the grass')
+  assert.equal(
+    queued.length,
+    1,
+    'three steps, but only ever one Pokemon in the grass',
+  )
   assert.ok(queued[0].name && queued[0].level >= 2, 'and it is a real one')
   assert.equal(queued[0].session, 'aaa1')
-  assert.ok(!Number.isNaN(Date.parse(queued[0].at)), 'stamped, so it can time out')
-  assert.equal(sessionIn(home, 'aaa1').pendingSteps, 0, 'and the walk is spent, not owed twice')
+  assert.ok(
+    !Number.isNaN(Date.parse(queued[0].at)),
+    'stamped, so it can time out',
+  )
+  assert.equal(
+    sessionIn(home, 'aaa1').pendingSteps,
+    0,
+    'and the walk is spent, not owed twice',
+  )
 })
 
 test('a turn that never touches a tool still takes the walk it bought', () => {
-  // The answer came straight back. Stop is the last chance to spend the steps, and
-  // endTurn writes off whatever it does not.
-  const home = promptThenWork('aaa4', { event: 'Stop', config: { encounterChance: 1 } })
+  const home = promptThenWork('aaa4', {
+    event: 'Stop',
+    config: { encounterChance: 1 },
+  })
 
   assert.equal(queueIn(home).length, 1)
   assert.equal(sessionIn(home, 'aaa4').pendingSteps, 0)
 })
 
 test('a prompt does not stack a second Pokemon behind the first', () => {
-  const home = promptThenWork('aaa2', { prompt: 'x'.repeat(400), config: { encounterChance: 1 } })
+  const home = promptThenWork('aaa2', {
+    prompt: 'x'.repeat(400),
+    config: { encounterChance: 1 },
+  })
 
   const first = queueIn(home)
   assert.equal(first.length, 1)
@@ -157,13 +170,13 @@ test('a prompt does not stack a second Pokemon behind the first', () => {
 })
 
 test('an encounter nobody faced is replaced once it has timed out', () => {
-  const home = promptThenWork('aaa3', { config: { encounterChance: 1, encounterTtlSeconds: 30 } })
+  const home = promptThenWork('aaa3', {
+    config: { encounterChance: 1, encounterTtlSeconds: 30 },
+  })
 
   const [stale] = queueIn(home)
   assert.ok(stale)
 
-  // Backdate it past its window: the grass is empty again as far as anyone reading
-  // this file is concerned.
   writeFileSync(
     join(home, 'queue.jsonl'),
     `${JSON.stringify({ ...stale, at: new Date(Date.now() - 31_000).toISOString() })}\n`,
@@ -172,16 +185,21 @@ test('an encounter nobody faced is replaced once it has timed out', () => {
   promptThenWork('aaa3', { home })
 
   const queued = queueIn(home)
-  assert.equal(queued.length, 1, 'the stale entry is replaced, not queued behind')
+  assert.equal(
+    queued.length,
+    1,
+    'the stale entry is replaced, not queued behind',
+  )
   assert.notEqual(queued[0].at, stale.at, 'and it is a fresh encounter')
 })
 
 test('the walk a prompt bought is only ever taken once', () => {
-  const home = promptThenWork('aaa5', { prompt: 'x'.repeat(400), config: { encounterChance: 1 } })
+  const home = promptThenWork('aaa5', {
+    prompt: 'x'.repeat(400),
+    config: { encounterChance: 1 },
+  })
   assert.equal(queueIn(home).length, 1)
 
-  // Face it, and the grass is empty again — but no time has passed, so the only
-  // thing that could fill it is a debt that was already paid.
   writeFileSync(join(home, 'queue.jsonl'), '')
   runHook(
     'on-activity.mjs',
@@ -191,7 +209,11 @@ test('the walk a prompt bought is only ever taken once', () => {
 
   assert.equal(queueIn(home).length, 0, 'the second tool call walks nowhere')
 
-  runHook('on-activity.mjs', { session_id: 'aaa5', hook_event_name: 'Stop' }, { home })
+  runHook(
+    'on-activity.mjs',
+    { session_id: 'aaa5', hook_event_name: 'Stop' },
+    { home },
+  )
   assert.equal(queueIn(home).length, 0, 'and neither does the end of the turn')
 })
 
@@ -213,14 +235,20 @@ test('submitting a prompt marks the session as working', () => {
 })
 
 test('an empty prompt still starts the turn but walks nowhere', () => {
-  const home = promptThenWork('ccc', { prompt: '   ', config: { encounterChance: 1 } })
+  const home = promptThenWork('ccc', {
+    prompt: '   ',
+    config: { encounterChance: 1 },
+  })
 
   assert.equal(sessionIn(home, 'ccc').state, 'working')
-  assert.equal(queueIn(home).length, 0, 'no steps bought, so the tool call has nothing to spend')
+  assert.equal(
+    queueIn(home).length,
+    0,
+    'no steps bought, so the tool call has nothing to spend',
+  )
 })
 
 test('the hook says nothing on stdout, whatever happens', () => {
-  // Anything printed here is injected into the model's context on every prompt.
   const { stdout } = runHook(
     'on-prompt.mjs',
     {
@@ -239,8 +267,6 @@ test('a payload the hook cannot make sense of is survivable', () => {
     assert.doesNotThrow(() => runHook('on-prompt.mjs', payload))
   }
 })
-
-// --- the activity hook --------------------------------------------------------
 
 test('a tool call records what Claude is running', () => {
   const { home } = runHook('on-activity.mjs', {
@@ -268,7 +294,10 @@ test('a notification means Claude is stuck waiting on you', () => {
 })
 
 test('stopping ends the turn', () => {
-  const { home } = runHook('on-activity.mjs', { session_id: 'hhh', hook_event_name: 'Stop' })
+  const { home } = runHook('on-activity.mjs', {
+    session_id: 'hhh',
+    hook_event_name: 'Stop',
+  })
   assert.equal(sessionIn(home, 'hhh').state, 'idle')
 })
 
@@ -280,7 +309,11 @@ test('ending a session takes its file with it', () => {
   })
   assert.ok(sessionIn(home, 'iii'))
 
-  runHook('on-activity.mjs', { session_id: 'iii', hook_event_name: 'SessionEnd' }, { home })
+  runHook(
+    'on-activity.mjs',
+    { session_id: 'iii', hook_event_name: 'SessionEnd' },
+    { home },
+  )
   assert.equal(sessionIn(home, 'iii'), null)
 })
 
@@ -297,7 +330,6 @@ test('time spent working walks you through the grass', () => {
 
   assert.equal(queueIn(home).length, 0, 'no time has passed yet')
 
-  // Backdate the clock by two minutes: six steps at twenty seconds each.
   const session = sessionIn(home, 'jjj')
   writeFileSync(
     join(home, 'sessions', 'jjj.json'),
@@ -308,10 +340,18 @@ test('time spent working walks you through the grass', () => {
     }),
   )
 
-  runHook('on-activity.mjs', { session_id: 'jjj', hook_event_name: 'Stop' }, { home })
+  runHook(
+    'on-activity.mjs',
+    { session_id: 'jjj', hook_event_name: 'Stop' },
+    { home },
+  )
 
   const queued = queueIn(home)
-  assert.equal(queued.length, 1, 'two minutes of waiting turns up one Pokemon, not six')
+  assert.equal(
+    queued.length,
+    1,
+    'two minutes of waiting turns up one Pokemon, not six',
+  )
   assert.ok(queued[0].name, 'and it is a real one')
   assert.equal(sessionIn(home, 'jjj').state, 'idle')
 })
@@ -327,8 +367,6 @@ test('a long turn does not bank a queue of battles for later', () => {
     { config: { encounterChance: 1, workStepSeconds: 20 } },
   )
 
-  // Ten tool calls, each after two minutes of work. The clock keeps moving, but the
-  // grass only ever holds the one Pokemon.
   for (let call = 0; call < 10; call++) {
     const session = sessionIn(home, 'mmm')
     writeFileSync(
@@ -360,8 +398,6 @@ test('time spent stopped is not cashed in by the next tool call', () => {
     { config: { encounterChance: 1, workStepSeconds: 20 } },
   )
 
-  // Half an hour sat on a permission prompt is not half an hour of waiting for
-  // Claude, and must not pay out the moment the tool is approved.
   const session = sessionIn(home, 'lll')
   writeFileSync(
     join(home, 'sessions', 'lll.json'),
@@ -379,8 +415,16 @@ test('time spent stopped is not cashed in by the next tool call', () => {
   )
   assert.equal(queueIn(home).length, 0)
 
-  runHook('on-activity.mjs', { session_id: 'lll', hook_event_name: 'Stop' }, { home })
-  assert.equal(queueIn(home).length, 0, 'the clock restarted with the tool call')
+  runHook(
+    'on-activity.mjs',
+    { session_id: 'lll', hook_event_name: 'Stop' },
+    { home },
+  )
+  assert.equal(
+    queueIn(home).length,
+    0,
+    'the clock restarted with the tool call',
+  )
 })
 
 test('an idle session does not walk anywhere', () => {
@@ -393,29 +437,33 @@ test('an idle session does not walk anywhere', () => {
     { config: { encounterChance: 1, workStepSeconds: 20 } },
   )
 
-  runHook('on-activity.mjs', { session_id: 'kkk', hook_event_name: 'Stop' }, { home })
+  runHook(
+    'on-activity.mjs',
+    { session_id: 'kkk', hook_event_name: 'Stop' },
+    { home },
+  )
   assert.equal(queueIn(home).length, 0)
 })
 
-// --- the status line ----------------------------------------------------------
-//
-// Run as a process for the same reason the hooks are: Claude Code hands it a JSON
-// payload on stdin and shows whatever comes back, and neither half of that is
-// something a unit test of an exported function would notice going wrong.
-
 function runStatusLine(home, payload = {}) {
-  const stdout = execFileSync(process.execPath, [join(root, 'scripts', 'statusline.mjs')], {
-    input: JSON.stringify(payload),
-    encoding: 'utf8',
-    env: { ...process.env, CLAUDEMON_HOME: home },
-  })
-  // The row is coloured, and the colours are not what these tests are about.
+  const stdout = execFileSync(
+    process.execPath,
+    [join(root, 'scripts', 'statusline.mjs')],
+    {
+      input: JSON.stringify(payload),
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDEMON_HOME: home },
+    },
+  )
   return stripAnsi(stdout)
 }
 
 test('the status line says what is waiting and how long is left of it', () => {
   const home = mkdtempSync(join(tmpdir(), 'claudemon-bar-'))
-  writeFileSync(join(home, 'config.json'), JSON.stringify({ encounterTtlSeconds: 30 }))
+  writeFileSync(
+    join(home, 'config.json'),
+    JSON.stringify({ encounterTtlSeconds: 30 }),
+  )
   writeFileSync(
     join(home, 'queue.jsonl'),
     `${JSON.stringify({ v: 1, species: 16, name: 'Pidgey', level: 4, at: new Date(Date.now() - 9_000).toISOString() })}\n`,
@@ -423,15 +471,16 @@ test('the status line says what is waiting and how long is left of it', () => {
 
   const row = runStatusLine(home)
   assert.match(row, /A wild PIDGEY appeared!/)
-  // The countdown is what stops a row nobody redrew from claiming there is still
-  // something in the grass half a minute after there is not.
   assert.match(row, /2[01]s left/)
   assert.match(row, /claudemon/, 'and where to go about it')
 })
 
 test('the status line drops the encounter once its window has closed', () => {
   const home = mkdtempSync(join(tmpdir(), 'claudemon-bar-'))
-  writeFileSync(join(home, 'config.json'), JSON.stringify({ encounterTtlSeconds: 30 }))
+  writeFileSync(
+    join(home, 'config.json'),
+    JSON.stringify({ encounterTtlSeconds: 30 }),
+  )
   writeFileSync(
     join(home, 'queue.jsonl'),
     `${JSON.stringify({ v: 1, species: 16, name: 'Pidgey', level: 4, at: new Date(Date.now() - 31_000).toISOString() })}\n`,
@@ -440,24 +489,29 @@ test('the status line drops the encounter once its window has closed', () => {
   assert.doesNotMatch(runStatusLine(home), /appeared/)
 })
 
-// --- steps --------------------------------------------------------------------
-
 test('a prompt is always at least one step and never more than the cap', () => {
   assert.equal(stepsFromPrompt(1, DEFAULT_CONFIG), 1)
   assert.equal(stepsFromPrompt(40, DEFAULT_CONFIG), 1)
   assert.equal(stepsFromPrompt(41, DEFAULT_CONFIG), 2)
-  assert.equal(stepsFromPrompt(100_000, DEFAULT_CONFIG), DEFAULT_CONFIG.maxSteps)
+  assert.equal(
+    stepsFromPrompt(100_000, DEFAULT_CONFIG),
+    DEFAULT_CONFIG.maxSteps,
+  )
 })
 
 test('working time only pays out whole steps, and banks the rest', () => {
   const config = { ...DEFAULT_CONFIG, workStepSeconds: 20 }
 
   assert.deepEqual(stepsWhileWorking(19_000, config), { steps: 0, taken: 0 })
-  assert.deepEqual(stepsWhileWorking(20_000, config), { steps: 1, taken: 20_000 })
+  assert.deepEqual(stepsWhileWorking(20_000, config), {
+    steps: 1,
+    taken: 20_000,
+  })
 
-  // The point of `taken`: a steady stream of quick tool calls must accumulate
-  // rather than losing the remainder each time.
-  assert.deepEqual(stepsWhileWorking(35_000, config), { steps: 1, taken: 20_000 })
+  assert.deepEqual(stepsWhileWorking(35_000, config), {
+    steps: 1,
+    taken: 20_000,
+  })
 })
 
 test('working time past the cap is dropped rather than banked', () => {
@@ -465,21 +519,28 @@ test('working time past the cap is dropped rather than banked', () => {
   const { steps, taken } = stepsWhileWorking(60 * 60_000, config)
 
   assert.equal(steps, 8)
-  assert.equal(taken, 60 * 60_000, 'the whole hour is spent, not banked into a swarm')
+  assert.equal(
+    taken,
+    60 * 60_000,
+    'the whole hour is spent, not banked into a swarm',
+  )
 })
 
 test('turning workStepSeconds off stops the clock walking', () => {
-  assert.deepEqual(stepsWhileWorking(10 * 60_000, { ...DEFAULT_CONFIG, workStepSeconds: 0 }), {
-    steps: 0,
-    taken: 0,
-  })
+  assert.deepEqual(
+    stepsWhileWorking(10 * 60_000, { ...DEFAULT_CONFIG, workStepSeconds: 0 }),
+    {
+      steps: 0,
+      taken: 0,
+    },
+  )
 })
-
-// --- reading it back ----------------------------------------------------------
 
 test('a session that says nothing for long enough is assumed dead', () => {
   const now = Date.now()
-  const sessions = [{ session: 'a', state: 'working', at: now - STALE_MS - 1, since: now }]
+  const sessions = [
+    { session: 'a', state: 'working', at: now - STALE_MS - 1, since: now },
+  ]
 
   assert.equal(summariseActivity(sessions, now).state, 'unknown')
 })
@@ -503,11 +564,19 @@ test('needing you outranks working, and working outranks idle', () => {
     since: now - 9_000,
     tool: 'Bash',
   }
-  const waiting = { session: 'c', state: 'waiting', at: now - 100, since: now - 1_000 }
+  const waiting = {
+    session: 'c',
+    state: 'waiting',
+    at: now - 100,
+    since: now - 1_000,
+  }
 
   assert.equal(summariseActivity([idle], now).state, 'idle')
   assert.equal(summariseActivity([idle, working], now).state, 'working')
-  assert.equal(summariseActivity([idle, working, waiting], now).state, 'waiting')
+  assert.equal(
+    summariseActivity([idle, working, waiting], now).state,
+    'waiting',
+  )
 })
 
 test('the summary describes the session that is actually moving', () => {
@@ -519,7 +588,13 @@ test('the summary describes the session that is actually moving', () => {
     since: now - 60_000,
     tool: 'Read',
   }
-  const fresh = { session: 'b', state: 'working', at: now - 500, since: now - 4_000, tool: 'Bash' }
+  const fresh = {
+    session: 'b',
+    state: 'working',
+    at: now - 500,
+    since: now - 4_000,
+    tool: 'Bash',
+  }
 
   const summary = summariseActivity([stale, fresh], now)
   assert.equal(summary.tool, 'Bash')
@@ -530,7 +605,11 @@ test('transitions keep the clock running across a turn but reset it between turn
   const first = beginTurn('trans', '/tmp')
   const tool = noteTool('trans', '/tmp', 'Grep')
 
-  assert.equal(tool.since, first.since, 'a tool call is the same turn, still ticking')
+  assert.equal(
+    tool.since,
+    first.since,
+    'a tool call is the same turn, still ticking',
+  )
 
   const done = endTurn('trans', '/tmp')
   assert.ok(done.since >= first.since, 'stopping starts a new clock')
@@ -546,9 +625,27 @@ test('transitions keep the clock running across a turn but reset it between turn
 
 test('sessions are read back freshest first, and the ancient ones are pruned', () => {
   const now = Date.now()
-  writeActivity({ v: 1, session: 'old', state: 'idle', at: now - 3 * 24 * 60 * 60_000, since: now })
-  writeActivity({ v: 1, session: 'recent', state: 'working', at: now - 1_000, since: now - 1_000 })
-  writeActivity({ v: 1, session: 'newest', state: 'working', at: now, since: now })
+  writeActivity({
+    v: 1,
+    session: 'old',
+    state: 'idle',
+    at: now - 3 * 24 * 60 * 60_000,
+    since: now,
+  })
+  writeActivity({
+    v: 1,
+    session: 'recent',
+    state: 'working',
+    at: now - 1_000,
+    since: now - 1_000,
+  })
+  writeActivity({
+    v: 1,
+    session: 'newest',
+    state: 'working',
+    at: now,
+    since: now,
+  })
 
   const live = readSessions(now)
   assert.deepEqual(
@@ -563,16 +660,20 @@ test('sessions are read back freshest first, and the ancient ones are pruned', (
   for (const id of ['recent', 'newest']) endSession(id)
 })
 
-// --- what it looks like -------------------------------------------------------
-
 test('the activity row says nothing when nothing is reporting', () => {
-  assert.equal(activityRow({ state: 'unknown', tool: null, since: null, sessions: 0 }), '')
+  assert.equal(
+    activityRow({ state: 'unknown', tool: null, since: null, sessions: 0 }),
+    '',
+  )
   assert.equal(activityRow(null), '')
 })
 
 test('the activity row names the tool and how long it has been at it', () => {
   const now = Date.now()
-  const row = activityRow({ state: 'working', tool: 'Bash', since: now - 74_000, sessions: 1 }, now)
+  const row = activityRow(
+    { state: 'working', tool: 'Bash', since: now - 74_000, sessions: 1 },
+    now,
+  )
 
   assert.match(row, /Claude is working/)
   assert.match(row, /Bash/)
@@ -585,12 +686,21 @@ test('the activity row shouts when Claude is blocked on you', () => {
     activityRow({ state: 'waiting', tool: null, since: now, sessions: 1 }, now),
     /needs you/,
   )
-  assert.match(activityRow({ state: 'idle', tool: null, since: now, sessions: 1 }, now), /idle/)
+  assert.match(
+    activityRow({ state: 'idle', tool: null, since: now, sessions: 1 }, now),
+    /idle/,
+  )
 })
 
 test('a second busy tab is counted, not hidden', () => {
   const now = Date.now()
-  assert.match(activityRow({ state: 'working', tool: 'Edit', since: now, sessions: 3 }, now), /\+2/)
+  assert.match(
+    activityRow(
+      { state: 'working', tool: 'Edit', since: now, sessions: 3 },
+      now,
+    ),
+    /\+2/,
+  )
 })
 
 process.on('exit', () => rmSync(sandbox, { recursive: true, force: true }))

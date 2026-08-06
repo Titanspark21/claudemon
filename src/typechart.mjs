@@ -1,13 +1,5 @@
-// Type effectiveness.
-
 import { loadData } from './data.mjs'
 
-/**
- * How much a move of `moveType` is multiplied against a defender's types.
- *
- * Multiplies across both of the defender's types, so Rock hitting a Fire/Flying
- * Charizard lands at 4x. An immunity anywhere gives 0.
- */
 export function effectiveness(moveType, defenderTypes) {
   const chart = loadData().types
   const relations = chart[moveType]
@@ -22,7 +14,6 @@ export function effectiveness(moveType, defenderTypes) {
   return multiplier
 }
 
-/** The line the game shows after a hit, or null when it was neutral. */
 export function effectivenessMessage(multiplier) {
   if (multiplier === 0) return "It doesn't affect the foe..."
   if (multiplier >= 2) return "It's super effective!"

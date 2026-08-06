@@ -1,5 +1,3 @@
-// First run: your name, then your first Pokemon.
-
 import { species } from '../../data.mjs'
 import { STAT_NAMES, statsAtLevel } from '../../exp.mjs'
 import { spriteFile } from '../../paths.mjs'
@@ -10,7 +8,6 @@ import { centre, typeBadge, wrap } from '../widgets.mjs'
 
 const MAX_NAME = 12
 
-/** IVs are unknown at this point, so show the average roll. */
 const AVERAGE_IV = 15
 
 export function draw(ctx, size) {
@@ -32,7 +29,9 @@ export function draw(ctx, size) {
     const cursor = ctx.setup.blink ? '█' : ' '
     lines.push(centre(`${bold(ctx.setup.name)}${cursor}`, cols))
     lines.push('')
-    lines.push(centre(dim(`[enter] confirm · up to ${MAX_NAME} characters`), cols))
+    lines.push(
+      centre(dim(`[enter] confirm · up to ${MAX_NAME} characters`), cols),
+    )
     return { lines, overlays }
   }
 
@@ -45,7 +44,12 @@ export function draw(ctx, size) {
   const sprite = loadSprite(spriteFile('front', chosenId, 'png'), {
     cols: fitCanvasCols(size, 14, ctx.spriteScale),
   })
-  if (sprite) placeSprite(lines, sprite, Math.max(1, Math.floor((cols - sprite.cols) / 2)))
+  if (sprite)
+    placeSprite(
+      lines,
+      sprite,
+      Math.max(1, Math.floor((cols - sprite.cols) / 2)),
+    )
   else lines.push(centre(gray('(sprite unavailable)'), cols))
 
   lines.push('')
@@ -70,7 +74,9 @@ export function draw(ctx, size) {
   lines.push('')
   const picker = STARTERS.map((id, index) => {
     const name = species(id).name.toUpperCase()
-    return index === ctx.setup.selection ? `${brightYellow('▶')} ${bold(name)}` : dim(name)
+    return index === ctx.setup.selection
+      ? `${brightYellow('▶')} ${bold(name)}`
+      : dim(name)
   }).join('    ')
   lines.push(centre(picker, cols))
 
@@ -91,8 +97,12 @@ export function onKey(ctx, key) {
       ctx.setup.name = ctx.setup.name.slice(0, -1)
       return
     }
-    // Printable characters only, so arrow keys do not end up in the name.
-    if (key.char && key.char.length === 1 && key.char >= ' ' && ctx.setup.name.length < MAX_NAME) {
+    if (
+      key.char &&
+      key.char.length === 1 &&
+      key.char >= ' ' &&
+      ctx.setup.name.length < MAX_NAME
+    ) {
       ctx.setup.name += key.char
     }
     return

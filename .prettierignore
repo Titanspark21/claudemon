@@ -1,20 +1,9 @@
-# The dataset the plugin ships. Generated, and written minified by tools/fetch-data.mjs
-# — one very long line per file, deliberately. Expanding it here would be undone the
-# next time anybody reruns the fetch.
 data/
 
-# The landing page GitHub Pages serves, and the card it renders. Both are laid out by
-# hand, and prettier's HTML mode rewrites them end to end — one attribute per line, the
-# doctype lowercased — for nothing gained on a page nobody diffs.
 docs/
 
-# npm writes this one, and npm decides its shape.
 package-lock.json
 
-# The tables in here are aligned by eye. Prettier pads them by code point rather than by
-# display width, so every row carrying an em dash or a ◓ comes out ragged in the source
-# and no better in the render.
 README.md
 
-# Where CI points CLAUDEMON_HOME. Downloaded sprites, never source.
 .claudemon-ci/

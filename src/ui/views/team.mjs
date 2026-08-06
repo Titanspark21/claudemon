@@ -1,11 +1,3 @@
-// Your team: who is in it, how they are doing, and what they know.
-//
-// Also where the bag is. Every item is used on somebody, so the somebody comes first
-// and the bag opens over this screen rather than beside it — the Pokemon whose details
-// are already on the right is the one it is for. `ctx.bagSelection` is null while the
-// bag is shut and an index into it once it is open, which is what tells the two halves
-// of this file apart.
-
 import { spriteFile } from '../../paths.mjs'
 import {
   displayName,
@@ -23,31 +15,19 @@ import { genderTag, menuList, padRight, withFooter, wrap } from '../widgets.mjs'
 
 const HINTS =
   ' ↑ ↓ browse · [enter] lead · [i] items · [b] the box · [d] send it there · [esc] back'
-const BAG_HINTS = ' ↑ ↓ choose an item · [enter] use it · [esc] put the bag away'
+const BAG_HINTS =
+  ' ↑ ↓ choose an item · [enter] use it · [esc] put the bag away'
 
-/** The mark on an item that would evolve the one you have chosen. */
 const EVOLVES = '✦'
 
-/** What is in the bag, or null when it is shut. */
 function bagItems(ctx) {
   return ctx.bagSelection === null ? null : itemsInBag(ctx.save)
 }
 
-/**
- * Which item the cursor is on. Clamped rather than trusted: using the last of something
- * takes a row out of the list under a cursor that was already sitting on it.
- */
 function bagIndex(ctx, bag) {
   return Math.min(Math.max(0, ctx.bagSelection), Math.max(0, bag.length - 1))
 }
 
-/**
- * What the highlighted item would do to the one you have chosen, under the two lists.
- *
- * The mark and this line are the same fact said twice, on purpose: a stone fits exactly
- * one species out of the six in front of you, and finding out by spending it costs
- * 2,100₽ a go.
- */
 function bagNote(ctx, bag, mon) {
   if (ctx.bagMessage) return ctx.bagMessage
 
@@ -60,9 +40,11 @@ function bagNote(ctx, bag, mon) {
       target,
     ).toUpperCase()}.`
   }
-  // The same words the refusal uses, because they are the same fact: one arrives before
-  // you press it and one after, and two phrasings would read as two different rules.
-  return dim(usableOnParty(key) ? ITEMS[key].description : 'Save it for something in the grass.')
+  return dim(
+    usableOnParty(key)
+      ? ITEMS[key].description
+      : 'Save it for something in the grass.',
+  )
 }
 
 export function draw(ctx, size) {
@@ -87,8 +69,6 @@ export function draw(ctx, size) {
   const selected = party[Math.min(ctx.teamSelection, party.length - 1)]
   const bag = bagItems(ctx)
 
-  // The header says which of the two lists is under the cursor, and who the bag is for:
-  // one screen doing two jobs has to be plain about which one it is doing.
   lines.push(
     bag
       ? ` ${brightYellow('◓')} ${bold('BAG')}    ${dim(`on ${displayName(selected).toUpperCase()}`)}`
@@ -98,7 +78,9 @@ export function draw(ctx, size) {
 
   const entries = bag
     ? bag.map((key) => {
-        const name = usableOnParty(key) ? ITEMS[key].name : gray(ITEMS[key].name)
+        const name = usableOnParty(key)
+          ? ITEMS[key].name
+          : gray(ITEMS[key].name)
         const mark = stoneEvolution(selected, key) ? brightYellow(EVOLVES) : ' '
         return `${mark} ${padRight(name, 15)} ${dim(`x${countOf(ctx.save, key)}`)}`
       })
@@ -107,8 +89,6 @@ export function draw(ctx, size) {
           ? gray(displayName(mon).toUpperCase())
           : displayName(mon).toUpperCase()
         const leadMark = index === 0 ? brightYellow('★') : ' '
-        // The symbol goes inside the padded cell: the longest name in Kanto is ten
-        // characters, so it still lands clear of the level.
         return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)}`
       })
 
@@ -124,24 +104,19 @@ export function draw(ctx, size) {
 
   const right = [...monDetail(selected), '', ...spriteBlock]
 
-  // The bottom of this screen, for both of the things it answers: what the bag is about
-  // to do, or how the last thing you asked for went. Usually one row — but a stone that
-  // evolved somebody and taught it a move said two things, and they arrive as two rows
-  // rather than one line long enough to wrap and shove the layout down.
-  const note = bag ? bagNote(ctx, bag, selected) : (ctx.bagMessage ?? ctx.boxMessage)
+  const note = bag
+    ? bagNote(ctx, bag, selected)
+    : (ctx.bagMessage ?? ctx.boxMessage)
   const noteRows = note ? [].concat(note) : []
-  // The rows it costs: itself, plus the blank line that lifts it off the lists.
   const noteHeight = noteRows.length > 0 ? noteRows.length + 1 : 0
 
-  // And it is paid for before the sprite rather than after it. `withFooter` drops
-  // whatever will not fit, which on a short window was this row — an item used, a
-  // Pokemon evolved, and nothing on screen saying so. The bottom of a sprite is the
-  // cheapest thing here to lose, and losing it is what the trimming was always for.
   const budget = Math.max(1, rows - 2 - lines.length - noteHeight)
   const depth = Math.min(Math.max(list.length, right.length), budget)
 
   for (let row = 0; row < depth; row++) {
-    lines.push(` ${padRight(list[row] ?? '', listWidth)}  ${dim('│')}  ${right[row] ?? ''}`)
+    lines.push(
+      ` ${padRight(list[row] ?? '', listWidth)}  ${dim('│')}  ${right[row] ?? ''}`,
+    )
   }
 
   if (noteRows.length > 0) {
@@ -149,13 +124,14 @@ export function draw(ctx, size) {
     for (const row of noteRows) lines.push(` ${row}`)
   }
 
-  return { lines: withFooter(lines, dim(bag ? BAG_HINTS : HINTS), rows), overlays }
+  return {
+    lines: withFooter(lines, dim(bag ? BAG_HINTS : HINTS), rows),
+    overlays,
+  }
 }
 
 export function onKey(ctx, key) {
   const bag = bagItems(ctx)
-  // Nothing gets past this into the team's own keys: `d` sends a Pokemon to the box, and
-  // a stray one of those while you were choosing a potion would be somebody's Charizard.
   if (bag) return bagKey(ctx, key, bag)
 
   const total = ctx.save.party.length
@@ -166,7 +142,8 @@ export function onKey(ctx, key) {
   } else if (key.name === 'down' || key.name === 'j') {
     ctx.teamSelection = wrap(ctx.teamSelection + 1, total)
     ctx.clearTeamMessages()
-  } else if (key.name === 'enter' || key.name === 'space') ctx.makeLead(ctx.teamSelection)
+  } else if (key.name === 'enter' || key.name === 'space')
+    ctx.makeLead(ctx.teamSelection)
   else if (key.name === 'i') ctx.openBag()
   else if (key.name === 'b') ctx.openBox()
   else if (key.name === 'd') ctx.depositToBox(ctx.teamSelection)
@@ -176,7 +153,6 @@ export function onKey(ctx, key) {
   }
 }
 
-/** The keys while the bag is open over the team. */
 function bagKey(ctx, key, bag) {
   const index = bagIndex(ctx, bag)
 

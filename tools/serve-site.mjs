@@ -1,14 +1,3 @@
-// Serves docs/ — the landing page — the way GitHub Pages will.
-//
-// The page is plain HTML with no build step, so opening the file in a browser mostly
-// works. This exists for the places where it does not: a directory URL that should
-// resolve to index.html, a path that starts at the site root rather than at your
-// filesystem, and anything wanting a real origin. All three behave here as they will
-// once Pages has it, so what you see is what gets published.
-//
-//   node tools/serve-site.mjs
-//   node tools/serve-site.mjs --port 4000 --open
-
 import { spawn } from 'node:child_process'
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
@@ -19,7 +8,6 @@ import { bold, dim, red } from '../src/ui/ansi.mjs'
 
 const SITE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'docs')
 
-/** How many ports up from the one asked for to try before giving up. */
 const PORT_ATTEMPTS = 10
 
 const TYPES = {
@@ -42,9 +30,13 @@ const args = process.argv.slice(2)
 const wantsBrowser = args.includes('--open')
 
 const portFlag = args.indexOf('--port')
-const port = Number(portFlag >= 0 ? args[portFlag + 1] : (process.env.PORT ?? 8080))
+const port = Number(
+  portFlag >= 0 ? args[portFlag + 1] : (process.env.PORT ?? 8080),
+)
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
-  console.error(`${red('serve-site')} --port wants a number between 1 and 65535`)
+  console.error(
+    `${red('serve-site')} --port wants a number between 1 and 65535`,
+  )
   process.exit(1)
 }
 
@@ -57,8 +49,6 @@ const server = createServer(async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost')
   let target = decodeURIComponent(pathname)
 
-  // normalize() collapses any ../ before it can climb out of docs/; the check after
-  // it is what catches whatever normalize() leaves behind.
   let filePath = join(SITE_DIR, normalize(target))
   if (filePath !== SITE_DIR && !filePath.startsWith(SITE_DIR + '/')) {
     console.log(dim(`  403 ${target}`))
@@ -67,8 +57,6 @@ const server = createServer(async (req, res) => {
 
   let info = await stat(filePath).catch(() => null)
 
-  // A directory is a redirect and then an index, which is what Pages does — so a
-  // link that only works without the trailing slash fails here too.
   if (info?.isDirectory()) {
     if (!target.endsWith('/')) {
       res.writeHead(301, { location: target + '/' })
@@ -86,7 +74,8 @@ const server = createServer(async (req, res) => {
   }
 
   res.writeHead(200, {
-    'content-type': TYPES[extname(filePath).toLowerCase()] ?? 'application/octet-stream',
+    'content-type':
+      TYPES[extname(filePath).toLowerCase()] ?? 'application/octet-stream',
     'content-length': info.size,
     'cache-control': 'no-store',
   })
@@ -96,12 +85,14 @@ const server = createServer(async (req, res) => {
 
 function open(url) {
   const command =
-    process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open'
+    process.platform === 'darwin'
+      ? 'open'
+      : process.platform === 'win32'
+        ? 'explorer'
+        : 'xdg-open'
   spawn(command, [url], { stdio: 'ignore', detached: true }).unref()
 }
 
-// Registered once rather than passed to listen(), which would leave the callback of
-// every failed attempt attached and announce a port nothing is listening on.
 server.on('listening', () => {
   const url = `http://localhost:${server.address().port}/`
   console.log(`${bold('claudemon')} landing at ${bold(url)}`)
@@ -113,7 +104,9 @@ server.on('listening', () => {
 function listen(attempt) {
   server.once('error', (error) => {
     if (error.code === 'EADDRINUSE' && attempt < PORT_ATTEMPTS - 1) {
-      console.log(dim(`  ${port + attempt} is taken, trying ${port + attempt + 1}`))
+      console.log(
+        dim(`  ${port + attempt} is taken, trying ${port + attempt + 1}`),
+      )
       listen(attempt + 1)
       return
     }

@@ -1,9 +1,3 @@
-// The box: whatever you caught with no room left in the team for it.
-//
-// Reached from the team screen rather than from home, because the box only means
-// anything next to the team: it is where a Pokemon waits for a slot, and this is
-// the screen that gives it one.
-
 import { spriteFile } from '../../paths.mjs'
 import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import { PARTY_LIMIT } from '../../state.mjs'
@@ -32,8 +26,13 @@ export function draw(ctx, size) {
 
   if (box.length === 0) {
     lines.push(' ' + gray('The box is empty.'))
-    lines.push(' ' + gray('Anything you catch while your team is full waits in here.'))
-    return { lines: withFooter(lines, dim(' [esc] back to your team'), rows), overlays }
+    lines.push(
+      ' ' + gray('Anything you catch while your team is full waits in here.'),
+    )
+    return {
+      lines: withFooter(lines, dim(' [esc] back to your team'), rows),
+      overlays,
+    }
   }
 
   const selected = box[Math.min(ctx.boxSelection, box.length - 1)]
@@ -57,7 +56,9 @@ export function draw(ctx, size) {
 
   const right = [...monDetail(selected), '', ...spriteBlock]
   for (let row = 0; row < Math.max(list.length, right.length); row++) {
-    lines.push(` ${padRight(list[row] ?? '', listWidth)}  ${dim('│')}  ${right[row] ?? ''}`)
+    lines.push(
+      ` ${padRight(list[row] ?? '', listWidth)}  ${dim('│')}  ${right[row] ?? ''}`,
+    )
   }
 
   if (ctx.boxMessage) {
