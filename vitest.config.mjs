@@ -10,11 +10,15 @@ export default defineConfig({
 
       // A ratchet, not a target: these sit just under what the suite
       // covers today, so a drop fails CI and a gain is free to raise them.
+      //
+      // Measure with no audio player on PATH before raising them. A machine
+      // that has one covers a good deal more of sound.mjs than the runners
+      // do, and numbers taken on a laptop will not hold on Linux.
       thresholds: {
-        statements: 87,
-        branches: 77,
-        functions: 90,
-        lines: 88,
+        statements: 88,
+        branches: 78,
+        functions: 91,
+        lines: 89,
       },
     },
   },
