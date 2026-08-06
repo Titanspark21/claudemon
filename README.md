@@ -175,6 +175,12 @@ about how the code looks. The game still has no runtime dependencies — everyth
 installed is a tool. The odd `.19` is the floor those tools share, and the two are
 one number on purpose.
 
+Installing also points git at `.githooks`, so a commit runs those checks before it is
+written: the linter, Prettier, and one Vitest pass that is the suite and the coverage
+floor at once — five seconds, near enough. It reads the working tree rather than the
+index, so a half-staged change is checked as whatever is on disk, and `git commit
+--no-verify` skips the lot when that is what you want.
+
 ## Controls
 
 Arrow keys move, `enter` confirms, `esc` goes back, `q` quits. Any key advances a

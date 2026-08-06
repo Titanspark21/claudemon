@@ -1,0 +1,26 @@
+#!/bin/sh
+# What CI checks, run before the commit rather than after it.
+#
+# It reads the working tree, not the index, so a partial `git add` is still
+# checked as whatever is on disk. `git commit --no-verify` skips all of it.
+#
+# `npm run coverage` is the test run with the meter on — one Vitest pass that
+# both runs the suite and holds the thresholds in vitest.config.mjs. When it
+# fails, `npm run coverage` on its own prints the per-file table.
+
+set -e
+
+cd "$(git rev-parse --show-toplevel)"
+
+step() {
+	printf '\n\033[1m%s\033[0m\n' "$1"
+}
+
+step 'lint'
+npm run --silent lint
+
+step 'format'
+npm run --silent format:check
+
+step 'tests and coverage'
+npm run --silent coverage -- --coverage.reporter=text-summary
