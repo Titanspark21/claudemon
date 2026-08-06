@@ -1,4 +1,5 @@
-import { ITEMS, SHOP_STOCK, countOf } from '../../shop.mjs'
+import { ITEMS } from '../../constants.mjs'
+import { SHOP_STOCK, countOf } from '../../shop.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import {
   menuList,
@@ -9,14 +10,27 @@ import {
   withFooter,
   wrap,
 } from '../widgets.mjs'
+import {
+  BULK_QUANTITY,
+  LIST_HEIGHT_FLOOR,
+  MAX_SHOP_WIDTH,
+  SHOP_HINTS,
+  SHOP_MONEY_LABEL,
+  SHOP_NAME_WIDTH,
+  SHOP_OWNED_LABEL,
+  SHOP_PRICE_WIDTH,
+  SHOP_PROMPT,
+  SHOP_ROWS_RESERVED,
+  SHOP_TITLE,
+} from './constants.mjs'
 
-export function draw(ctx, size) {
+export const draw = (ctx, size) => {
   const { cols, rows } = size
   const lines = []
-  const width = Math.min(cols - 2, 68)
+  const width = Math.min(cols - 2, MAX_SHOP_WIDTH)
 
   lines.push(
-    ` ${brightYellow('◓')} ${bold('SHOP')}   ${dim('you have')} ${bold(money(ctx.save.money))}`,
+    ` ${brightYellow('◓')} ${bold(SHOP_TITLE)}   ${dim(SHOP_MONEY_LABEL)} ${bold(money(ctx.save.money))}`,
   )
   lines.push('')
 
@@ -26,12 +40,14 @@ export function draw(ctx, size) {
     const affordable = ctx.save.money >= item.price
     const price = money(item.price)
     const name = affordable ? item.name : gray(item.name)
-    return `${padRight(name, 18)} ${padLeft(affordable ? price : gray(price), 8)}  ${
-      owned > 0 ? dim(`have ${owned}`) : ''
+
+    return `${padRight(name, SHOP_NAME_WIDTH)} ${padLeft(affordable ? price : gray(price), SHOP_PRICE_WIDTH)}  ${
+      owned > 0 ? dim(`${SHOP_OWNED_LABEL} ${owned}`) : ''
     }`
   })
 
-  const height = Math.max(6, rows - 12)
+  const height = Math.max(LIST_HEIGHT_FLOOR, rows - SHOP_ROWS_RESERVED)
+
   for (const row of menuList(entries, ctx.shopSelection, {
     height,
     width: width - 2,
@@ -40,22 +56,18 @@ export function draw(ctx, size) {
   }
 
   const chosen = ITEMS[SHOP_STOCK[ctx.shopSelection]]
+  const prompt = ctx.shopMessage ?? dim(SHOP_PROMPT)
+
   lines.push('')
-  for (const row of panel(
-    [
-      chosen.description,
-      ctx.shopMessage ?? dim('[enter] buy one · [5] buy five'),
-    ],
-    width,
-  )) {
+
+  for (const row of panel([chosen.description, prompt], width)) {
     lines.push(` ${row}`)
   }
 
-  const hints = ' ↑ ↓ browse · [enter] buy one · [5] buy five · [esc] back'
-  return { lines: withFooter(lines, dim(hints), rows), overlays: [] }
+  return { lines: withFooter(lines, dim(SHOP_HINTS), rows), overlays: [] }
 }
 
-export function onKey(ctx, key) {
+export const onKey = (ctx, key) => {
   const total = SHOP_STOCK.length
 
   if (key.name === 'up' || key.name === 'k') {
@@ -67,7 +79,7 @@ export function onKey(ctx, key) {
   } else if (key.name === 'enter' || key.name === 'space') {
     ctx.buyItem(SHOP_STOCK[ctx.shopSelection], 1)
   } else if (key.name === '5') {
-    ctx.buyItem(SHOP_STOCK[ctx.shopSelection], 5)
+    ctx.buyItem(SHOP_STOCK[ctx.shopSelection], BULK_QUANTITY)
   } else if (key.name === 'escape' || key.name === 'q') {
     ctx.shopMessage = null
     ctx.setMode('home')

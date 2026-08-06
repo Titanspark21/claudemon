@@ -1,6 +1,6 @@
 import { createApp } from '../src/app.mjs'
 import { createBattle } from '../src/battle.mjs'
-import { DEFAULT_CONFIG } from '../src/config.mjs'
+import { DEFAULT_CONFIG } from '../src/constants.mjs'
 import { createPokemon } from '../src/pokemon.mjs'
 import { makeRng } from '../src/rng.mjs'
 import {
@@ -11,12 +11,17 @@ import {
   markSeen,
 } from '../src/state.mjs'
 import { bold, dim } from '../src/ui/ansi.mjs'
+import {
+  PREVIEW_COLS,
+  PREVIEW_ROWS,
+  PREVIEW_UPDATE_STEPS,
+} from './constants.mjs'
 
 const [requested, colsArg, rowsArg] = process.argv.slice(2)
-const cols = Number(colsArg) || 100
-const rows = Number(rowsArg) || 34
+const cols = Number(colsArg) || PREVIEW_COLS
+const rows = Number(rowsArg) || PREVIEW_ROWS
 
-function sampleSave() {
+const sampleSave = () => {
   const rng = makeRng(31337)
   const save = createSave({ trainer: 'Sergio', starterId: 4, rng })
 
@@ -40,10 +45,11 @@ function sampleSave() {
   ]) {
     for (let met = 0; met < times; met++) markFaced(save, id)
   }
+
   return save
 }
 
-function makeApp(save) {
+const makeApp = (save) => {
   const screen = {
     size: () => ({ cols, rows }),
     render: () => {},
@@ -52,24 +58,8 @@ function makeApp(save) {
     onKey: () => {},
     onResize: () => {},
   }
+
   return createApp({ screen, save, config: { ...DEFAULT_CONFIG } })
-}
-
-function show(title, app) {
-  process.stdout.write(
-    `\n${bold(`── ${title} `)}${dim('─'.repeat(Math.max(0, cols - title.length - 4)))}\n`,
-  )
-  const module = MODULES[app.mode]
-  const { lines, overlays } = module.draw(app, { cols, rows })
-  process.stdout.write(lines.join('\n') + '\n')
-
-  for (const overlay of overlays) {
-    const up = lines.length - overlay.row + 1
-    if (up < 1) continue
-    process.stdout.write(
-      `\x1b7\x1b[${up}A\r\x1b[${overlay.col - 1}C${overlay.sequence}\x1b8`,
-    )
-  }
 }
 
 const MODULES = {
@@ -83,53 +73,70 @@ const MODULES = {
   update: await import('../src/ui/views/update.mjs'),
 }
 
-function updateRun({ state = 'running', at = 1, to = null } = {}) {
-  const labels = [
-    ['refreshing the marketplace', 'refreshed the marketplace'],
-    ['fetching the new version', 'fetched the new version'],
-    [
-      'checking the command, status line and sprites',
-      'the command, status line and sprites are up to date',
-    ],
-  ]
+const show = (title, app) => {
+  process.stdout.write(
+    `\n${bold(`── ${title} `)}${dim('─'.repeat(Math.max(0, cols - title.length - 4)))}\n`,
+  )
+
+  const module = MODULES[app.mode]
+  const { lines, overlays } = module.draw(app, { cols, rows })
+
+  process.stdout.write(lines.join('\n') + '\n')
+
+  for (const overlay of overlays) {
+    const up = lines.length - overlay.row + 1
+
+    if (up < 1) continue
+
+    process.stdout.write(
+      `\x1b7\x1b[${up}A\r\x1b[${overlay.col - 1}C${overlay.sequence}\x1b8`,
+    )
+  }
+}
+
+const stepStatus = (state, index, at) => {
+  if (state === 'done') return 'ok'
+  if (index < at) return 'ok'
+  if (index === at) return 'running'
+
+  return 'pending'
+}
+
+const updateRun = ({ state = 'running', at = 1, to = null }) => {
   return {
     kind: 'plugin',
     state,
     from: '0.5.0',
     to,
-    steps: labels.map(([label, done], index) => ({
+    steps: PREVIEW_UPDATE_STEPS.map(([label, done], index) => ({
       id: String(index),
       label,
       done,
-      status:
-        state === 'done'
-          ? 'ok'
-          : index < at
-            ? 'ok'
-            : index === at
-              ? 'running'
-              : 'pending',
+      status: stepStatus(state, index, at),
       detail: null,
     })),
   }
 }
 
-const scenes = {
+const SCENES = {
   'starter-name': () => {
     const app = makeApp(null)
     app.mode = 'starter'
     app.setup = { step: 'name', name: 'Sergio', selection: 1, blink: true }
+
     return app
   },
   starter: () => {
     const app = makeApp(null)
     app.mode = 'starter'
     app.setup = { step: 'starter', name: 'Sergio', selection: 1, blink: true }
+
     return app
   },
   'home-quiet': () => {
     const app = makeApp(sampleSave())
     app.mode = 'home'
+
     return app
   },
   'home-working': () => {
@@ -142,6 +149,7 @@ const scenes = {
       sessions: 1,
     }
     app.scene.step = Number(process.env.CLAUDEMON_WALK_STEP ?? 14)
+
     return app
   },
   'home-needed': () => {
@@ -153,6 +161,7 @@ const scenes = {
       since: Date.now() - 9_000,
       sessions: 1,
     }
+
     return app
   },
   home: () => {
@@ -171,18 +180,24 @@ const scenes = {
       seed: 1,
       expiresAt: Date.now() + 22_000,
     }
+
     return app
   },
   battle: () => {
     const app = makeApp(sampleSave())
+
     app.mode = 'battle'
+
     const wild = createPokemon(43, 12, makeRng(9))
+
     wild.hp = Math.floor(wild.stats.hp * 0.55)
+
     const state = createBattle({
       playerMon: app.save.party[0],
       wildMon: wild,
       seed: 5,
     })
+
     app.battle = {
       state,
       menu: 'main',
@@ -198,37 +213,42 @@ const scenes = {
       bagItems: [],
       bagItem: null,
     }
+
     return app
   },
   'battle-caught': () => {
-    const app = scenes.battle()
+    const app = SCENES.battle()
     markCaught(app.save, app.battle.state.foe.mon.species)
+
     return app
   },
   'battle-fight': () => {
-    const app = scenes.battle()
+    const app = SCENES.battle()
     app.battle.menu = 'fight'
     app.battle.selection = 2
+
     return app
   },
   'battle-item': () => {
-    const app = scenes.battle()
+    const app = SCENES.battle()
     app.save.bag.revive = 1
     app.save.party[1].hp = 0
     app.battle.bagItems = ['poke-ball', 'great-ball', 'potion', 'revive']
     app.battle.bagItem = 'revive'
     app.battle.menu = 'target'
     app.battle.selection = 1
+
     return app
   },
   'battle-message': () => {
-    const app = scenes.battle()
+    const app = SCENES.battle()
     app.battle.message = "It's super effective!"
     app.battle.events = [{ type: 'message', text: 'The wild ODDISH fainted!' }]
+
     return app
   },
   'battle-hit': () => {
-    const app = scenes.battle()
+    const app = SCENES.battle()
     app.battle.message = 'CHARMANDER used Ember!'
     app.battle.menu = null
     app.battle.effect = {
@@ -237,10 +257,11 @@ const scenes = {
     }
     app.battle.hpTarget.foe = Math.floor(app.battle.hp.foe / 2)
     app.battle.hp.foe = Math.floor(app.battle.hp.foe * 0.8)
+
     return app
   },
   'battle-ball': () => {
-    const app = scenes.battle()
+    const app = SCENES.battle()
     app.battle.message = 'You threw a Poké Ball!'
     app.battle.menu = null
     app.battle.ball = {
@@ -249,29 +270,34 @@ const scenes = {
       frame: Number(process.env.CLAUDEMON_BALL_FRAME ?? 12),
       done: false,
     }
+
     return app
   },
   dex: () => {
     const app = makeApp(sampleSave())
     app.mode = 'dex'
     app.dexSelection = 24
+
     return app
   },
   team: () => {
     const app = makeApp(sampleSave())
     app.mode = 'team'
     app.teamSelection = 1
+
     return app
   },
   shop: () => {
     const app = makeApp(sampleSave())
     app.mode = 'shop'
     app.shopSelection = 2
+
     return app
   },
   options: () => {
     const app = makeApp(sampleSave())
     app.mode = 'options'
+
     return app
   },
   'home-update': () => {
@@ -284,6 +310,7 @@ const scenes = {
       sessions: 1,
     }
     app.updateNotice = { kind: 'available', version: '0.6.0' }
+
     return app
   },
   update: () => {
@@ -293,36 +320,46 @@ const scenes = {
       at: Number(process.env.CLAUDEMON_UPDATE_STEP ?? 1),
     })
     app.updateFrame = Number(process.env.CLAUDEMON_SPIN_FRAME ?? 0)
+
     return app
   },
   'update-done': () => {
     const app = makeApp(sampleSave())
     app.mode = 'update'
     app.update = updateRun({ state: 'done', to: '0.6.0' })
+
     return app
   },
   'update-failed': () => {
     const app = makeApp(sampleSave())
+
     app.mode = 'update'
+
     const run = updateRun({ at: 1 })
+
     run.state = 'failed'
     run.steps[1].status = 'failed'
     run.steps[1].detail =
       'no `claude` command found — is Claude Code on your PATH?'
     app.update = run
+
     return app
   },
 }
 
-const names = requested ? [requested] : Object.keys(scenes)
+const names = requested ? [requested] : Object.keys(SCENES)
+
 for (const name of names) {
-  const build = scenes[name]
+  const build = SCENES[name]
+
   if (!build) {
     process.stderr.write(
-      `unknown screen "${name}". try: ${Object.keys(scenes).join(', ')}\n`,
+      `unknown screen "${name}". try: ${Object.keys(SCENES).join(', ')}\n`,
     )
     process.exit(1)
   }
+
   show(name, build())
 }
+
 process.stdout.write('\n')

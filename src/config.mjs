@@ -5,80 +5,102 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
+import {
+  DEFAULT_CONFIG,
+  SPRITE_SCALE_MAX,
+  SPRITE_SCALE_MIN,
+} from './constants.mjs'
 import { CONFIG_FILE, HOME } from './paths.mjs'
+import {
+  transformRequestWriteConfig,
+  transformResponseConfig,
+} from './transformers.mjs'
 
-export const DEFAULT_CONFIG = {
-  encounterChance: 0.12,
-
-  charsPerStep: 40,
-
-  maxSteps: 4,
-
-  workStepSeconds: 20,
-
-  sound: true,
-
-  bell: true,
-
-  updateCheck: true,
-
-  encounterTtlSeconds: 30,
-
-  spriteScale: 1,
-
-  wrappedStatusLine: null,
-}
-
-export function loadConfig() {
+const readConfigFile = () => {
   try {
-    const parsed = JSON.parse(readFileSync(CONFIG_FILE, 'utf8'))
-    return { ...DEFAULT_CONFIG, ...parsed }
+    return JSON.parse(readFileSync(CONFIG_FILE, 'utf8'))
   } catch {
-    return { ...DEFAULT_CONFIG }
+    return null
   }
 }
 
-export function saveConfig(patch) {
-  let stored = {}
-  try {
-    stored = JSON.parse(readFileSync(CONFIG_FILE, 'utf8'))
-  } catch {}
+const withStored = (stored, patch) => {
+  if (!stored) return patch
 
-  const merged = { ...stored, ...patch }
+  return { ...stored, ...patch }
+}
+
+const withDefaults = (stored) => {
+  return {
+    encounterChance: stored.encounterChance ?? DEFAULT_CONFIG.encounterChance,
+    charsPerStep: stored.charsPerStep ?? DEFAULT_CONFIG.charsPerStep,
+    maxSteps: stored.maxSteps ?? DEFAULT_CONFIG.maxSteps,
+    workStepSeconds: stored.workStepSeconds ?? DEFAULT_CONFIG.workStepSeconds,
+    sound: stored.sound ?? DEFAULT_CONFIG.sound,
+    bell: stored.bell ?? DEFAULT_CONFIG.bell,
+    updateCheck: stored.updateCheck ?? DEFAULT_CONFIG.updateCheck,
+    encounterTtlSeconds:
+      stored.encounterTtlSeconds ?? DEFAULT_CONFIG.encounterTtlSeconds,
+    spriteScale: stored.spriteScale ?? DEFAULT_CONFIG.spriteScale,
+    wrappedStatusLine:
+      stored.wrappedStatusLine ?? DEFAULT_CONFIG.wrappedStatusLine,
+    probeRows: stored.probeRows ?? DEFAULT_CONFIG.probeRows,
+  }
+}
+
+export const loadConfig = () => {
+  const stored = transformResponseConfig(readConfigFile())
+
+  if (!stored) return withDefaults(DEFAULT_CONFIG)
+
+  return withDefaults(stored)
+}
+
+export const saveConfig = (patch) => {
+  const merged = withStored(transformResponseConfig(readConfigFile()), patch)
 
   mkdirSync(HOME, { recursive: true })
+
   const tmp = `${CONFIG_FILE}.${process.pid}.tmp`
+  const payload = JSON.stringify(transformRequestWriteConfig(merged), null, 2)
+
   try {
-    writeFileSync(tmp, `${JSON.stringify(merged, null, 2)}\n`)
+    writeFileSync(tmp, `${payload}\n`)
     renameSync(tmp, CONFIG_FILE)
   } catch (error) {
     try {
       unlinkSync(tmp)
     } catch {}
+
     throw error
   }
 
-  return { ...DEFAULT_CONFIG, ...merged }
+  return withDefaults(merged)
 }
 
-export function spriteScale(config = DEFAULT_CONFIG) {
-  const scale = Number(config?.spriteScale)
+export const spriteScale = (config) => {
+  const scale = Number(config.spriteScale)
+
   if (!Number.isFinite(scale)) return DEFAULT_CONFIG.spriteScale
-  return Math.min(1, Math.max(0.4, scale))
+
+  return Math.min(SPRITE_SCALE_MAX, Math.max(SPRITE_SCALE_MIN, scale))
 }
 
-export function updateCheckMode(config = DEFAULT_CONFIG) {
-  const value = config?.updateCheck
+export const updateCheckMode = (config = DEFAULT_CONFIG) => {
+  const value = config.updateCheck
+
   if (value === false) return 'off'
   if (value === 'launch') return 'launch'
+
   return 'daily'
 }
 
-export function encounterTtlMs(config = DEFAULT_CONFIG) {
-  const seconds = Number(config?.encounterTtlSeconds)
-  return (
-    (Number.isFinite(seconds) && seconds > 0
-      ? seconds
-      : DEFAULT_CONFIG.encounterTtlSeconds) * 1000
-  )
+export const encounterTtlMs = (config) => {
+  const seconds = Number(config.encounterTtlSeconds)
+
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return DEFAULT_CONFIG.encounterTtlSeconds * 1000
+  }
+
+  return seconds * 1000
 }

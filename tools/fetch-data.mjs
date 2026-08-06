@@ -2,38 +2,49 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { BUNDLED_DATA_DIR, bundledDataFile, DATA_DIR } from '../src/paths.mjs'
+import { isDataReady, loadPokedex } from '../src/data.mjs'
 import { bold, brightGreen, dim } from '../src/ui/ansi.mjs'
-import { pass as runPass } from './lib.mjs'
+import { pass as runPass } from './progress.mjs'
+import {
+  transformRequestWriteGrowth,
+  transformRequestWriteMoves,
+  transformRequestWritePokedex,
+  transformRequestWriteTypes,
+  transformResponseEvolutionChain,
+  transformResponseGrowthRate,
+  transformResponseMove,
+  transformResponsePokemon,
+  transformResponseSpecies,
+  transformResponseType,
+} from './transformers.mjs'
+import {
+  CONCURRENCY,
+  DATASET_BUILDING_HEADING,
+  DATASET_READY_HEADING,
+  KANTO,
+  LABEL_WIDTH,
+  MAX_ATTEMPTS,
+  MIN_REQUEST_INTERVAL_MS,
+  OUTPUTS,
+  POKEAPI_URL,
+  RETRY_BACKOFF_MS,
+  STAT_KEYS,
+  THROTTLE_BACKOFF_MS,
+  VERSION_GROUP,
+} from './constants.mjs'
 
-const API = 'https://pokeapi.co/api/v2'
 const CACHE_DIR = join(DATA_DIR, '.cache')
-const CONCURRENCY = 8
-const KANTO = 151
-
-const VERSION_GROUP = 'red-blue'
 
 const useCache = !process.argv.includes('--no-cache')
 const force = process.argv.includes('--force') || !useCache
-
-const OUTPUTS = ['pokedex.json', 'moves.json', 'types.json', 'growth.json']
 
 let requests = 0
 let cacheHits = 0
 let throttled = 0
 
-function datasetPresent() {
-  try {
-    for (const name of OUTPUTS) {
-      const value = JSON.parse(readFileSync(bundledDataFile(name), 'utf8'))
-      if (name === 'pokedex.json' && value.length !== KANTO) return false
-    }
-    return true
-  } catch {
-    return false
-  }
-}
+const datasetPresent = () => isDataReady() && loadPokedex().length === KANTO
 
-function cachePath(url) {
+const cachePath = (url) => {
   return join(CACHE_DIR, `${createHash('sha1').update(url).digest('hex')}.json`)
 }
 
@@ -42,9 +53,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 let nextSlot = 0
 let cooldownUntil = 0
 
-const MIN_REQUEST_INTERVAL_MS = 150
-
-async function waitForSlot() {
+const waitForSlot = async () => {
   const slot = Math.max(Date.now(), nextSlot, cooldownUntil)
   nextSlot = slot + MIN_REQUEST_INTERVAL_MS
 
@@ -57,14 +66,16 @@ async function waitForSlot() {
   }
 }
 
-async function getJson(url) {
+const getJson = async (url, transform) => {
   const cached = cachePath(url)
+
   if (useCache && existsSync(cached)) {
     cacheHits++
-    return JSON.parse(readFileSync(cached, 'utf8'))
+
+    return transform(JSON.parse(readFileSync(cached, 'utf8')))
   }
 
-  for (let attempt = 1; attempt <= 5; attempt++) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       await waitForSlot()
 
@@ -75,7 +86,7 @@ async function getJson(url) {
         const pause =
           Number.isFinite(after) && after > 0
             ? after * 1000
-            : 2000 * attempt ** 2
+            : THROTTLE_BACKOFF_MS * attempt ** 2
         cooldownUntil = Math.max(cooldownUntil, Date.now() + pause)
         throttled++
         throw new Error(
@@ -84,127 +95,176 @@ async function getJson(url) {
       }
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
       const body = await response.json()
+
       requests++
       writeFileSync(cached, JSON.stringify(body))
-      return body
+
+      return transform(body)
     } catch (error) {
-      if (attempt === 5)
+      if (attempt === MAX_ATTEMPTS)
         throw new Error(`${url}: ${error.message}`, { cause: error })
-      await sleep(300 * attempt ** 2)
+
+      await sleep(RETRY_BACKOFF_MS * attempt ** 2)
     }
   }
+
+  throw new Error(`${url}: gave up after ${MAX_ATTEMPTS} attempts`)
 }
 
-const pass = (label, items, worker) =>
-  runPass(label, items, worker, CONCURRENCY)
-
-const STAT_KEYS = {
-  hp: 'hp',
-  attack: 'attack',
-  defense: 'defense',
-  'special-attack': 'spAttack',
-  'special-defense': 'spDefense',
-  speed: 'speed',
+const pass = (label, items, worker) => {
+  return runPass(label, items, worker, CONCURRENCY)
 }
 
-function readStats(entry) {
+const getPokemonOrSpecies = (url, index, pokemonCount) => {
+  if (index < pokemonCount) return getJson(url, transformResponsePokemon)
+
+  return getJson(url, transformResponseSpecies)
+}
+
+const readStats = (entry) => {
   const stats = {}
+
   for (const item of entry.stats) {
     const key = STAT_KEYS[item.stat.name]
+
     if (key) stats[key] = item.base_stat
   }
+
   return stats
 }
 
-function readLearnset(entry) {
+const readLearnset = (entry) => {
   const learnset = []
+
   for (const item of entry.moves) {
     for (const detail of item.version_group_details) {
       if (detail.version_group.name !== VERSION_GROUP) continue
       if (detail.move_learn_method.name !== 'level-up') continue
+
       learnset.push({ level: detail.level_learned_at, move: item.move.name })
     }
   }
+
   learnset.sort((a, b) => a.level - b.level || a.move.localeCompare(b.move))
+
   return learnset
 }
 
-function idFromUrl(url) {
+const idFromUrl = (url) => {
   const match = /\/(\d+)\/?$/.exec(url)
+
   return match ? Number(match[1]) : null
 }
 
-function readEvolutions(chain, out = new Map()) {
+const readEvolutions = (chain, out) => {
   const fromId = idFromUrl(chain.species.url)
 
   for (const next of chain.evolves_to) {
     const toId = idFromUrl(next.species.url)
-    const detail = next.evolution_details[0] ?? {}
+    const [detail] = next.evolution_details
 
     const evolution = {
       to: toId,
-      trigger: detail.trigger?.name ?? 'level-up',
-      level: detail.min_level ?? null,
-      item: detail.item?.name ?? null,
+      trigger: detail?.trigger?.name ?? 'level-up',
+      level: detail?.min_level ?? null,
+      item: detail?.item?.name ?? null,
     }
 
     if (!out.has(fromId)) out.set(fromId, [])
+
     out.get(fromId).push(evolution)
     readEvolutions(next, out)
   }
+
   return out
 }
 
-async function main() {
+const stageOf = (id, evolvesFrom) => {
+  let stage = 0
+  let cursor = id
+
+  while (evolvesFrom.has(cursor) && stage < 2) {
+    cursor = evolvesFrom.get(cursor)
+    stage++
+  }
+
+  return stage
+}
+
+const moveAilment = (move) => {
+  const name = move.meta?.ailment?.name
+
+  if (!name) return null
+  if (name === 'none') return null
+
+  return name
+}
+
+const main = async () => {
   if (!force && datasetPresent()) {
-    console.log(bold('\nThe claudemon dataset is already built\n'))
+    console.log(bold(DATASET_READY_HEADING))
+
     for (const name of OUTPUTS) console.log(`  ${brightGreen('✔')} ${name}`)
+
     console.log(dim(`\n  ${BUNDLED_DATA_DIR}`))
     console.log(
       `\n  Rebuild it with ${bold('--force')}, or refetch from PokeAPI with ${bold('--no-cache')}.\n`,
     )
+
     return
   }
 
   mkdirSync(CACHE_DIR, { recursive: true })
   mkdirSync(BUNDLED_DATA_DIR, { recursive: true })
-  console.log(bold('\nBuilding the claudemon dataset\n'))
+
+  console.log(bold(DATASET_BUILDING_HEADING))
 
   const ids = Array.from({ length: KANTO }, (_, i) => i + 1)
 
   const both = await pass(
     'pokemon',
     [
-      ...ids.map((id) => `${API}/pokemon/${id}`),
-      ...ids.map((id) => `${API}/pokemon-species/${id}`),
+      ...ids.map((id) => `${POKEAPI_URL}/pokemon/${id}`),
+      ...ids.map((id) => `${POKEAPI_URL}/pokemon-species/${id}`),
     ],
-    (url) => getJson(url),
+    (url, index) => getPokemonOrSpecies(url, index, ids.length),
   )
+
   const pokemon = both.slice(0, ids.length)
   const species = both.slice(ids.length)
 
   const chainUrls = [
     ...new Set(species.map((entry) => entry.evolution_chain.url)),
   ]
-  const chains = await pass('evolutions', chainUrls, (url) => getJson(url))
+
+  const chains = await pass('evolutions', chainUrls, (url) =>
+    getJson(url, transformResponseEvolutionChain),
+  )
 
   const fullEvolutions = new Map()
+
   for (const chain of chains) readEvolutions(chain.chain, fullEvolutions)
 
   const evolutions = new Map()
+
   for (const [fromId, list] of fullEvolutions) {
     if (fromId > KANTO) continue
+
     const withinKanto = list.filter((evolution) => evolution.to <= KANTO)
+
     if (withinKanto.length > 0) evolutions.set(fromId, withinKanto)
   }
 
   const learnsets = pokemon.map(readLearnset)
+
   const moveNames = [
     ...new Set(learnsets.flat().map((item) => item.move)),
   ].sort()
+
   const moveData = await pass('moves', moveNames, (name) =>
-    getJson(`${API}/move/${name}`),
+    getJson(`${POKEAPI_URL}/move/${name}`, transformResponseMove),
   )
 
   const typeNames = [
@@ -213,34 +273,28 @@ async function main() {
       ...moveData.map((move) => move.type.name),
     ]),
   ].sort()
+
   const typeData = await pass('types', typeNames, (name) =>
-    getJson(`${API}/type/${name}`),
+    getJson(`${POKEAPI_URL}/type/${name}`, transformResponseType),
   )
 
   const growthNames = [
     ...new Set(species.map((entry) => entry.growth_rate.name)),
   ].sort()
+
   const growthData = await pass('exp curves', growthNames, (name) =>
-    getJson(`${API}/growth-rate/${name}`),
+    getJson(`${POKEAPI_URL}/growth-rate/${name}`, transformResponseGrowthRate),
   )
 
   const evolvesFrom = new Map()
+
   for (const [fromId, list] of evolutions) {
     for (const evolution of list) evolvesFrom.set(evolution.to, fromId)
   }
 
-  function stageOf(id) {
-    let stage = 0
-    let cursor = id
-    while (evolvesFrom.has(cursor) && stage < 2) {
-      cursor = evolvesFrom.get(cursor)
-      stage++
-    }
-    return stage
-  }
-
   const pokedex = pokemon.map((entry, index) => {
     const speciesEntry = species[index]
+
     return {
       id: entry.id,
       name: speciesEntry.name.replace(/^./, (c) => c.toUpperCase()),
@@ -248,11 +302,11 @@ async function main() {
         .sort((a, b) => a.slot - b.slot)
         .map((item) => item.type.name),
       stats: readStats(entry),
-      baseExp: entry.base_experience,
-      captureRate: speciesEntry.capture_rate,
-      growthRate: speciesEntry.growth_rate.name,
-      genderRate: speciesEntry.gender_rate,
-      stage: stageOf(entry.id),
+      base_experience: entry.base_experience,
+      capture_rate: speciesEntry.capture_rate,
+      growth_rate: speciesEntry.growth_rate.name,
+      gender_rate: speciesEntry.gender_rate,
+      stage: stageOf(entry.id, evolvesFrom),
       evolvesFrom: evolvesFrom.get(entry.id) ?? null,
       evolutions: evolutions.get(entry.id) ?? [],
       legendary: speciesEntry.is_legendary || speciesEntry.is_mythical,
@@ -261,6 +315,7 @@ async function main() {
   })
 
   const moves = {}
+
   for (const move of moveData) {
     moves[move.name] = {
       name: move.names.find((n) => n.language.name === 'en')?.name ?? move.name,
@@ -269,56 +324,63 @@ async function main() {
       accuracy: move.accuracy,
       pp: move.pp,
       priority: move.priority,
-      damageClass: move.damage_class.name,
-      ailment:
-        move.meta?.ailment?.name && move.meta.ailment.name !== 'none'
-          ? move.meta.ailment.name
-          : null,
-      ailmentChance: move.meta?.ailment_chance || null,
-      statChance: move.meta?.stat_chance || null,
-      statChanges: move.stat_changes.map((change) => ({
+      damage_class: move.damage_class.name,
+      ailment: moveAilment(move),
+      ailment_chance: move.meta?.ailment_chance || null,
+      stat_chance: move.meta?.stat_chance || null,
+      stat_changes: move.stat_changes.map((change) => ({
         stat: STAT_KEYS[change.stat.name] ?? change.stat.name,
         change: change.change,
       })),
       target: move.target.name,
-      minHits: move.meta?.min_hits ?? null,
-      maxHits: move.meta?.max_hits ?? null,
+      min_hits: move.meta?.min_hits ?? null,
+      max_hits: move.meta?.max_hits ?? null,
       drain: move.meta?.drain || null,
       healing: move.meta?.healing || null,
-      flinchChance: move.meta?.flinch_chance || null,
-      critRate: move.meta?.crit_rate || 0,
+      flinch_chance: move.meta?.flinch_chance || null,
+      crit_rate: move.meta?.crit_rate || 0,
     }
   }
 
   const types = {}
+
   for (const type of typeData) {
     const relations = type.damage_relations
+
     types[type.name] = {
-      double: relations.double_damage_to.map((t) => t.name),
-      half: relations.half_damage_to.map((t) => t.name),
-      zero: relations.no_damage_to.map((t) => t.name),
+      double_damage_to: relations.double_damage_to.map((t) => t.name),
+      half_damage_to: relations.half_damage_to.map((t) => t.name),
+      no_damage_to: relations.no_damage_to.map((t) => t.name),
     }
   }
 
   const growth = {}
+
   for (const curve of growthData) {
     const table = new Array(101).fill(0)
+
     for (const step of curve.levels) table[step.level] = step.experience
+
     growth[curve.name] = table
   }
 
   const outputs = [
-    ['pokedex.json', pokedex],
-    ['moves.json', moves],
-    ['types.json', types],
-    ['growth.json', growth],
+    ['pokedex.json', transformRequestWritePokedex(pokedex)],
+    ['moves.json', transformRequestWriteMoves(moves)],
+    ['types.json', transformRequestWriteTypes(types)],
+    ['growth.json', transformRequestWriteGrowth(growth)],
   ]
 
   console.log()
+
   for (const [name, value] of outputs) {
     writeFileSync(bundledDataFile(name), JSON.stringify(value))
+
     const kb = (Buffer.byteLength(JSON.stringify(value)) / 1024).toFixed(0)
-    console.log(`  ${brightGreen('✔')} ${name.padEnd(14)} ${dim(`${kb} KB`)}`)
+
+    console.log(
+      `  ${brightGreen('✔')} ${name.padEnd(LABEL_WIDTH)} ${dim(`${kb} KB`)}`,
+    )
   }
 
   console.log(

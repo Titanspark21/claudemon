@@ -1,63 +1,71 @@
+import { PARTY_LIMIT } from '../../constants.mjs'
 import { spriteFile } from '../../paths.mjs'
 import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
-import { PARTY_LIMIT } from '../../state.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
 import { genderTag, menuList, padRight, withFooter, wrap } from '../widgets.mjs'
+import {
+  BOX_HINTS,
+  BOX_MESSAGES,
+  BOX_TITLE,
+  COLUMN_DIVIDER,
+  LIST_HEIGHT_FLOOR,
+  LIST_WIDTH,
+  MON_NAME_WIDTH,
+  MON_SPRITE_RESERVED_ROWS,
+} from './constants.mjs'
+import { clampSelection, zipColumns } from './helpers.mjs'
 
-const HINTS = ' ↑ ↓ browse · [enter] take it into your team · [esc] back'
-
-export function draw(ctx, size) {
+export const draw = (ctx, size) => {
   const { rows } = size
   const lines = []
   const overlays = []
 
   const box = ctx.save.box
   const party = ctx.save.party
-  const listWidth = 30
 
   lines.push(
-    ` ${brightYellow('◓')} ${bold('BOX')}   ${dim(
+    ` ${brightYellow('◓')} ${bold(BOX_TITLE)}   ${dim(
       `${box.length} stored · team ${party.length}/${PARTY_LIMIT}`,
     )}`,
   )
   lines.push('')
 
   if (box.length === 0) {
-    lines.push(' ' + gray('The box is empty.'))
-    lines.push(
-      ' ' + gray('Anything you catch while your team is full waits in here.'),
-    )
+    lines.push(' ' + gray(BOX_MESSAGES.empty))
+    lines.push(' ' + gray(BOX_MESSAGES.waitingHere))
+
     return {
-      lines: withFooter(lines, dim(' [esc] back to your team'), rows),
+      lines: withFooter(lines, dim(BOX_MESSAGES.back), rows),
       overlays,
     }
   }
 
-  const selected = box[Math.min(ctx.boxSelection, box.length - 1)]
+  const selected = box[clampSelection(ctx.boxSelection, box.length)]
 
   const entries = box.map((mon) => {
     const name = isFainted(mon)
       ? gray(displayName(mon).toUpperCase())
       : displayName(mon).toUpperCase()
-    return `${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)}`
+
+    return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}`
   })
 
   const list = menuList(entries, ctx.boxSelection, {
-    height: Math.max(6, box.length),
-    width: listWidth,
+    height: Math.max(LIST_HEIGHT_FLOOR, box.length),
+    width: LIST_WIDTH,
   })
 
   const sprite = loadSprite(spriteFile('front', selected.species, 'png'), {
-    cols: fitCanvasCols(size, 24, ctx.spriteScale),
+    cols: fitCanvasCols(size, MON_SPRITE_RESERVED_ROWS, ctx.spriteScale),
   })
   const spriteBlock = sprite ? sprite.rows : []
-
   const right = [...monDetail(selected), '', ...spriteBlock]
-  for (let row = 0; row < Math.max(list.length, right.length); row++) {
+
+  for (const [listRow, detailRow] of zipColumns(list, right)) {
     lines.push(
-      ` ${padRight(list[row] ?? '', listWidth)}  ${dim('│')}  ${right[row] ?? ''}`,
+      ` ${padRight(listRow, LIST_WIDTH)}  ${dim(COLUMN_DIVIDER)}  ${detailRow}`,
     )
   }
 
@@ -66,10 +74,10 @@ export function draw(ctx, size) {
     lines.push(` ${ctx.boxMessage}`)
   }
 
-  return { lines: withFooter(lines, dim(HINTS), rows), overlays }
+  return { lines: withFooter(lines, dim(BOX_HINTS), rows), overlays }
 }
 
-export function onKey(ctx, key) {
+export const onKey = (ctx, key) => {
   const total = ctx.save.box.length
 
   if (key.name === 'up' || key.name === 'k') {

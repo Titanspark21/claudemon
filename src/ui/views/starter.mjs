@@ -1,56 +1,68 @@
+import { STARTERS, STAT_NAMES } from '../../constants.mjs'
 import { species } from '../../data.mjs'
-import { STAT_NAMES, statsAtLevel } from '../../exp.mjs'
+import { statsAtLevel } from '../../stats.mjs'
 import { spriteFile } from '../../paths.mjs'
-import { STARTERS } from '../../state.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { fitCanvasCols, loadSprite, placeSprite } from '../sprite.mjs'
 import { centre, typeBadge, wrap } from '../widgets.mjs'
+import {
+  APP_TITLE,
+  AVERAGE_IV,
+  MAX_NAME,
+  NO_SPRITE_MESSAGE,
+  PREVIEW_LEVEL,
+  STARTER_HINTS,
+  STARTER_PROMPTS,
+  STARTER_SPRITE_RESERVED_ROWS,
+} from './constants.mjs'
 
-const MAX_NAME = 12
-
-const AVERAGE_IV = 15
-
-export function draw(ctx, size) {
+export const draw = (ctx, size) => {
   const { cols, rows } = size
   const lines = []
   const overlays = []
 
   lines.push('')
-  lines.push(centre(`${brightYellow('◓')} ${bold('claudemon')}`, cols))
+  lines.push(centre(`${brightYellow('◓')} ${bold(APP_TITLE)}`, cols))
   lines.push('')
 
   if (ctx.setup.step === 'name') {
     lines.push('')
-    lines.push(centre('First things first.', cols))
+    lines.push(centre(STARTER_PROMPTS.intro, cols))
     lines.push('')
-    lines.push(centre('What should people call you?', cols))
+    lines.push(centre(STARTER_PROMPTS.askName, cols))
     lines.push('')
 
     const cursor = ctx.setup.blink ? '█' : ' '
+
     lines.push(centre(`${bold(ctx.setup.name)}${cursor}`, cols))
     lines.push('')
     lines.push(
-      centre(dim(`[enter] confirm · up to ${MAX_NAME} characters`), cols),
+      centre(
+        dim(`${STARTER_HINTS.confirm} ${MAX_NAME} ${STARTER_HINTS.characters}`),
+        cols,
+      ),
     )
+
     return { lines, overlays }
   }
 
   const chosenId = STARTERS[ctx.setup.selection]
   const chosen = species(chosenId)
 
-  lines.push(centre('Choose your first Pokémon.', cols))
+  lines.push(centre(STARTER_PROMPTS.choose, cols))
   lines.push('')
 
   const sprite = loadSprite(spriteFile('front', chosenId, 'png'), {
-    cols: fitCanvasCols(size, 14, ctx.spriteScale),
+    cols: fitCanvasCols(size, STARTER_SPRITE_RESERVED_ROWS, ctx.spriteScale),
   })
+
   if (sprite)
     placeSprite(
       lines,
       sprite,
       Math.max(1, Math.floor((cols - sprite.cols) / 2)),
     )
-  else lines.push(centre(gray('(sprite unavailable)'), cols))
+  else lines.push(centre(gray(NO_SPRITE_MESSAGE), cols))
 
   lines.push('')
   lines.push(centre(bold(chosen.name.toUpperCase()), cols))
@@ -59,44 +71,54 @@ export function draw(ctx, size) {
 
   const stats = statsAtLevel(
     chosenId,
-    5,
+    PREVIEW_LEVEL,
     Object.fromEntries(STAT_NAMES.map((key) => [key, AVERAGE_IV])),
   )
+
   lines.push(
     centre(
       dim(
-        `at level 5 — HP ${stats.hp} · Atk ${stats.attack} · Def ${stats.defense} · Spd ${stats.speed}`,
+        `at level ${PREVIEW_LEVEL} — HP ${stats.hp} · Atk ${stats.attack} · Def ${stats.defense} · Spd ${stats.speed}`,
       ),
       cols,
     ),
   )
 
   lines.push('')
+
   const picker = STARTERS.map((id, index) => {
     const name = species(id).name.toUpperCase()
+
     return index === ctx.setup.selection
       ? `${brightYellow('▶')} ${bold(name)}`
       : dim(name)
   }).join('    ')
+
   lines.push(centre(picker, cols))
 
   while (lines.length < rows - 2) lines.push('')
-  lines.push(centre(dim('← → choose · [enter] take it with you'), cols))
+
+  lines.push(centre(dim(STARTER_HINTS.pick), cols))
 
   return { lines, overlays }
 }
 
-export function onKey(ctx, key) {
+export const onKey = (ctx, key) => {
   if (ctx.setup.step === 'name') {
     if (key.name === 'enter') {
       const trimmed = ctx.setup.name.trim()
+
       if (trimmed.length > 0) ctx.setup.step = 'starter'
+
       return
     }
+
     if (key.name === 'backspace') {
       ctx.setup.name = ctx.setup.name.slice(0, -1)
+
       return
     }
+
     if (
       key.char &&
       key.char.length === 1 &&

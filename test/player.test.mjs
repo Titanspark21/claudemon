@@ -1,29 +1,27 @@
-import { test, vi, beforeEach, afterEach } from 'vitest'
-import assert from 'node:assert/strict'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 
-// A player has to be found on PATH before any of the spawning code runs, and
-// which one depends on the platform: afplay on a Mac, paplay and friends on
-// Linux. Left to the host, this file would cover a different half of the
-// module on every machine. So the player is planted here, and the spawn it
-// leads to is a fake — no audio, no child, and the same lines covered
-// wherever it runs.
 const { spawned } = vi.hoisted(() => ({ spawned: [] }))
 
 vi.mock('node:child_process', async () => {
   const { EventEmitter } = await import('node:events')
+
   return {
     spawn: (command, args, options) => {
       const child = new EventEmitter()
+
       child.killed = false
       child.unref = () => {}
       child.kill = () => {
         child.killed = true
+
         return true
       }
+
       spawned.push({ command, args, options, child })
+
       return child
     },
   }
@@ -38,9 +36,6 @@ writeFileSync(join(FAKE_BIN, PLAYER), '')
 writeFileSync(join(FAKE_BIN, `${PLAYER}.exe`), '')
 process.env.PATH = `${FAKE_BIN}${delimiter}${process.env.PATH}`
 
-// The module keeps the resolved player, the in-flight count and the time of
-// the last blip to itself, and a test that drops the player would leave every
-// later one without it. Each test gets its own copy.
 let sound
 
 beforeEach(async () => {
@@ -59,60 +54,61 @@ afterEach(() => {
 const last = () => spawned[spawned.length - 1]
 const later = (ms) => vi.setSystemTime(Date.now() + ms)
 
-test('the player that gets found is the one this platform uses', () => {
-  assert.equal(
-    sound.hasPlayer(),
+test('Should find the player this platform uses', () => {
+  expect(sound.hasPlayer(), `no player resolved for ${process.platform}`).toBe(
     true,
-    `no player resolved for ${process.platform}`,
   )
 })
 
-test('a blip reaches the player, with the file as an argument', () => {
-  assert.equal(sound.play('cursor'), true)
+test('Should reach the player with the file as an argument when a blip goes out', () => {
+  expect(sound.play('cursor')).toBe(true)
 
-  assert.equal(spawned.length, 1)
-  assert.ok(
-    last().command.includes(PLAYER),
+  expect(spawned).toHaveLength(1)
+  expect(
+    last().command,
     `${last().command} is not the planted player`,
-  )
-  assert.ok(
+  ).toContain(PLAYER)
+  expect(
     last().args.some((arg) => String(arg).endsWith('.wav')),
     'the player was given no wav to play',
-  )
-  assert.equal(last().options.stdio, 'ignore', 'a blip must not touch the tty')
+  ).toBe(true)
+  expect(last().options.stdio, 'a blip must not touch the tty').toBe('ignore')
 })
 
-test('two blips in the same instant are one blip', () => {
-  assert.equal(sound.play('cursor'), true)
-  assert.equal(sound.play('select'), false, 'the second lands inside the gap')
-  assert.equal(spawned.length, 1)
+test('Should make two blips in the same instant one blip', () => {
+  expect(sound.play('cursor')).toBe(true)
+  expect(sound.play('select'), 'the second lands inside the gap').toBe(false)
+  expect(spawned).toHaveLength(1)
 })
 
-test('once the gap has passed the next one goes out', () => {
+test('Should let the next blip out once the gap has passed', () => {
   sound.play('cursor')
   later(50)
 
-  assert.equal(sound.play('select'), true)
-  assert.equal(spawned.length, 2)
+  expect(sound.play('select')).toBe(true)
+  expect(spawned).toHaveLength(2)
 })
 
-test('only three blips may be in the air at once', () => {
+test('Should keep only three blips in the air at once', () => {
   for (let i = 0; i < 3; i++) {
-    assert.equal(sound.play('cursor'), true, `blip ${i + 1} should go out`)
+    expect(sound.play('cursor'), `blip ${i + 1} should go out`).toBe(true)
     later(50)
   }
 
-  assert.equal(sound.play('cursor'), false, 'the fourth waits for one to land')
-  assert.equal(spawned.length, 3)
+  expect(sound.play('cursor'), 'the fourth waits for one to land').toBe(false)
+  expect(spawned).toHaveLength(3)
 
   spawned[0].child.emit('exit', 0)
   later(50)
-  assert.equal(sound.play('cursor'), true, 'a landing frees a slot')
+
+  expect(sound.play('cursor'), 'a landing frees a slot').toBe(true)
 })
 
-test('a child that exits twice only frees its slot once', () => {
+test('Should free a slot only once for a child that exits twice', () => {
   sound.play('cursor')
+
   const { child } = last()
+
   child.emit('exit', 0)
   child.emit('exit', 0)
 
@@ -122,110 +118,115 @@ test('a child that exits twice only frees its slot once', () => {
   sound.play('cursor')
   later(50)
 
-  assert.equal(sound.play('cursor'), true, 'the double exit must not overcount')
+  expect(sound.play('cursor'), 'the double exit must not overcount').toBe(true)
 })
 
-test('a player that turns out to be broken is not asked again', () => {
+test('Should never ask again for a player that turns out to be broken', () => {
   sound.play('cursor')
   last().child.emit('error', new Error('no such device'))
 
   later(50)
-  assert.equal(
+
+  expect(
     sound.play('cursor'),
-    false,
     'the failure should have dropped the player',
+  ).toBe(false)
+  expect(sound.hasPlayer()).toBe(false)
+})
+
+test('Should spawn nothing when asked for a sound nobody has heard of', () => {
+  expect(sound.play('nonsense')).toBe(false)
+  expect(spawned).toHaveLength(0)
+})
+
+test('Should start a track, say it is playing, and stop it', () => {
+  expect(sound.startMusic('battle')).toBe(true)
+  expect(sound.musicPlaying()).toBe('battle')
+  expect(spawned).toHaveLength(1)
+
+  expect(sound.stopMusic()).toBe(true)
+  expect(sound.musicPlaying()).toBeNull()
+  expect(last().child.killed, 'the child should be killed').toBe(true)
+
+  expect(sound.stopMusic(), 'stopping silence is nothing, not a failure').toBe(
+    false,
   )
-  assert.equal(sound.hasPlayer(), false)
 })
 
-test('asking for a sound nobody has heard of spawns nothing', () => {
-  assert.equal(sound.play('nonsense'), false)
-  assert.equal(spawned.length, 0)
-})
-
-test('a track starts, says it is playing, and stops', () => {
-  assert.equal(sound.startMusic('battle'), true)
-  assert.equal(sound.musicPlaying(), 'battle')
-  assert.equal(spawned.length, 1)
-
-  assert.equal(sound.stopMusic(), true)
-  assert.equal(sound.musicPlaying(), null)
-  assert.equal(last().child.killed, true, 'the child should be killed')
-})
-
-test('starting the track already playing changes nothing', () => {
+test('Should change nothing when starting the track already playing', () => {
   sound.startMusic('battle')
 
-  assert.equal(sound.startMusic('battle'), true)
-  assert.equal(spawned.length, 1, 'it should not have been spawned twice')
+  expect(sound.startMusic('battle')).toBe(true)
+  expect(spawned, 'it should not have been spawned twice').toHaveLength(1)
 })
 
-test('a different track replaces the one playing', () => {
+test('Should replace the track playing with a different one', () => {
   sound.startMusic('battle')
+
   const first = last().child
 
-  assert.equal(sound.startMusic('victory'), true)
-  assert.equal(sound.musicPlaying(), 'victory')
-  assert.equal(first.killed, true, 'the outgoing track should be killed')
-  assert.equal(spawned.length, 2)
+  expect(sound.startMusic('victory')).toBe(true)
+  expect(sound.musicPlaying()).toBe('victory')
+  expect(first.killed, 'the outgoing track should be killed').toBe(true)
+  expect(spawned).toHaveLength(2)
 })
 
-test('a theme that ends is started again, because it loops', () => {
-  assert.ok(sound.MUSIC.battle.loop, 'this test is about a looping track')
+test('Should start a theme again when it ends, because it loops', () => {
+  expect(sound.MUSIC.battle.loop, 'this test is about a looping track').toBe(
+    true,
+  )
   sound.startMusic('battle')
 
   later(2000)
   last().child.emit('exit', 0)
 
-  assert.equal(spawned.length, 2, 'it should have gone round again')
-  assert.equal(sound.musicPlaying(), 'battle')
+  expect(spawned, 'it should have gone round again').toHaveLength(2)
+  expect(sound.musicPlaying()).toBe('battle')
 })
 
-test('a theme that dies at once is let go, not restarted forever', () => {
+test('Should let go of a theme that dies at once rather than hammer the player', () => {
   sound.startMusic('battle')
 
   later(10)
   last().child.emit('exit', 1)
 
-  assert.equal(spawned.length, 1, 'a failing player must not be hammered')
-  assert.equal(sound.musicPlaying(), null)
+  expect(spawned, 'a failing player must not be hammered').toHaveLength(1)
+  expect(sound.musicPlaying()).toBeNull()
 })
 
-test('a fanfare is not restarted, because it does not loop', () => {
-  assert.equal(sound.MUSIC.victory.loop, false)
+test('Should not restart a fanfare, because it does not loop', () => {
+  expect(sound.MUSIC.victory.loop).toBe(false)
   sound.startMusic('victory')
 
   later(2000)
   last().child.emit('exit', 0)
 
-  assert.equal(spawned.length, 1)
-  assert.equal(sound.musicPlaying(), null)
+  expect(spawned).toHaveLength(1)
+  expect(sound.musicPlaying()).toBeNull()
 })
 
-test('a track whose player breaks leaves nothing playing', () => {
+test('Should leave nothing playing when the player of a track breaks', () => {
   sound.startMusic('battle')
   last().child.emit('error', new Error('device busy'))
 
-  assert.equal(sound.musicPlaying(), null)
+  expect(sound.musicPlaying()).toBeNull()
 })
 
-test('the exit of a track nobody is playing any more is ignored', () => {
+test('Should ignore the exit of a track nobody is playing any more', () => {
   sound.startMusic('battle')
+
   const orphan = last().child
+
   sound.stopMusic()
 
   later(2000)
   orphan.emit('exit', 0)
 
-  assert.equal(sound.musicPlaying(), null)
-  assert.equal(spawned.length, 1, 'a stopped track must not come back')
+  expect(sound.musicPlaying()).toBeNull()
+  expect(spawned, 'a stopped track must not come back').toHaveLength(1)
 })
 
-test('asking for a track nobody has heard of spawns nothing', () => {
-  assert.equal(sound.startMusic('nonsense'), false)
-  assert.equal(spawned.length, 0)
-})
-
-test('stopping silence is nothing, not a failure', () => {
-  assert.equal(sound.stopMusic(), false)
+test('Should spawn nothing when asked for a track nobody has heard of', () => {
+  expect(sound.startMusic('nonsense')).toBe(false)
+  expect(spawned).toHaveLength(0)
 })

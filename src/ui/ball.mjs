@@ -1,89 +1,78 @@
-import { bg, clear, colorEnabled, fg, reset } from './ansi.mjs'
+import { bg, CLEAR, COLOR_ENABLED, fg, RESET } from './ansi.mjs'
+import {
+  ARC_ROWS,
+  BALL_ART,
+  BALL_PALETTE,
+  BALL_SCALE_DIVISOR,
+  BURST_OFFSET_DIVISOR,
+  BURST_SPREADS,
+  FALL_FRAMES,
+  FULL_BLOCK,
+  LIT_BUTTON,
+  LOWER_HALF,
+  SHAKE_OFFSET_DIVISOR,
+  SHAKE_TILTS,
+  THROW_FRAMES,
+  UPPER_HALF,
+} from './constants.mjs'
 
-const UPPER_HALF = '▀'
-const LOWER_HALF = '▄'
-
-const BALL_ART = [
-  '...kkkk...',
-  '.krrrrrrk.',
-  'rrhhrrrrdd',
-  'rrrrrrrrdd',
-  'kkkkbbkkkk',
-  'kkkkbbkkkk',
-  'wwwwwwwwgg',
-  'wwwwwwwwgg',
-  '.kwwwwggk.',
-  '...kkkk...',
-]
-
-const PALETTE = {
-  '.': null,
-  k: [26, 26, 32],
-  r: [222, 48, 48],
-  h: [255, 138, 132],
-  d: [150, 26, 32],
-  w: [246, 246, 248],
-  g: [174, 174, 184],
-  b: [230, 230, 236],
+export const ballScale = (canvasCols) => {
+  return Math.max(1, Math.round(canvasCols / BALL_SCALE_DIVISOR))
 }
 
-const LIT_BUTTON = [255, 226, 96]
-
-const ARC_ROWS = 3
-
-const THROW_FRAMES = 8
-const FALL_FRAMES = 3
-
-const SHAKE_TILTS = [-1, 0, 1, 0]
-
-export function ballScale(canvasCols) {
-  return Math.max(1, Math.round(canvasCols / 48))
-}
-
-function scaleArt(art, scale) {
+const scaleArt = (art, scale) => {
   if (scale <= 1) return art
 
   const rows = []
+
   for (const row of art) {
     const wide = [...row].map((pixel) => pixel.repeat(scale)).join('')
+
     for (let i = 0; i < scale; i++) rows.push(wide)
   }
+
   return rows
 }
 
-function cell(top, bottom) {
-  if (!top && !bottom) return null
-  if (!colorEnabled) return top && bottom ? '█' : top ? UPPER_HALF : LOWER_HALF
+const monoCell = (top, bottom) => {
+  if (top && bottom) return FULL_BLOCK
+  if (top) return UPPER_HALF
 
-  if (top && bottom) return `${fg(...top)}${bg(...bottom)}${UPPER_HALF}`
-
-  return `${reset}${fg(...(top ?? bottom))}${top ? UPPER_HALF : LOWER_HALF}`
+  return LOWER_HALF
 }
 
-const cellCache = new Map()
+const cell = (top, bottom) => {
+  if (!top && !bottom) return null
+  if (!COLOR_ENABLED) return monoCell(top, bottom)
 
-export function ballCells(scale = 1, lit = false) {
-  const key = `${scale}|${lit ? 'lit' : 'off'}`
-  const hit = cellCache.get(key)
-  if (hit) return hit
+  if (top && bottom) return `${fg(...top)}${bg(...bottom)}${UPPER_HALF}`
+  if (top) return `${RESET}${fg(...top)}${UPPER_HALF}`
 
-  const palette = lit ? { ...PALETTE, b: LIT_BUTTON } : PALETTE
+  return `${RESET}${fg(...bottom)}${LOWER_HALF}`
+}
+
+const LIT_BALL_PALETTE = { ...BALL_PALETTE, b: LIT_BUTTON }
+
+export const ballCells = (scale = 1, lit = false) => {
+  const palette = lit ? LIT_BALL_PALETTE : BALL_PALETTE
   const art = scaleArt(BALL_ART, scale)
 
   const rows = []
+
   for (let y = 0; y < art.length; y += 2) {
     const row = []
+
     for (let x = 0; x < art[y].length; x++) {
       row.push(cell(palette[art[y][x]], palette[art[y + 1]?.[x]]))
     }
+
     rows.push(row)
   }
 
-  cellCache.set(key, rows)
   return rows
 }
 
-export function ballSteps({ shakes = 0, caught = false } = {}) {
+export const ballSteps = ({ shakes = 0, caught = false }) => {
   const steps = []
 
   for (let i = 0; i < THROW_FRAMES; i++) {
@@ -104,7 +93,7 @@ export function ballSteps({ shakes = 0, caught = false } = {}) {
     steps.push({ kind: 'click', lit: false, hideFoe: true })
     steps.push({ kind: 'click', lit: true, hideFoe: true })
   } else {
-    for (let spread = 1; spread <= 3; spread++) {
+    for (let spread = 1; spread <= BURST_SPREADS; spread++) {
       steps.push({ kind: 'burst', spread, hideFoe: false })
     }
   }
@@ -112,7 +101,7 @@ export function ballSteps({ shakes = 0, caught = false } = {}) {
   return steps
 }
 
-function centreOf(step, geometry, width, height) {
+const centreOf = (step, geometry, width, height) => {
   const { foe, player } = geometry
   const column = foe.indent + Math.floor(foe.cols / 2)
 
@@ -126,6 +115,7 @@ function centreOf(step, geometry, width, height) {
       }
       const to = { row: foe.top + Math.floor(foe.rows / 2), col: column }
       const arc = Math.round(ARC_ROWS * Math.sin(Math.PI * step.t))
+
       return {
         row: Math.round(from.row + (to.row - from.row) * step.t) - arc,
         col: Math.round(from.col + (to.col - from.col) * step.t),
@@ -133,19 +123,22 @@ function centreOf(step, geometry, width, height) {
     }
     case 'fall': {
       const from = foe.top + Math.floor(foe.rows / 2)
+
       return { row: Math.round(from + (rest.row - from) * step.t), col: column }
     }
     case 'shake':
       return {
         row: rest.row,
-        col: rest.col + step.tilt * Math.max(1, Math.round(width / 6)),
+        col:
+          rest.col +
+          step.tilt * Math.max(1, Math.round(width / SHAKE_OFFSET_DIVISOR)),
       }
     default:
       return rest
   }
 }
 
-function pieces(step, geometry, cells) {
+const pieces = (step, geometry, cells) => {
   const height = cells.length
   const width = cells[0].length
   const centre = centreOf(step, geometry, width, height)
@@ -154,8 +147,8 @@ function pieces(step, geometry, cells) {
 
   if (step.kind !== 'burst') return [{ top, left, rows: cells }]
 
-  const dx = Math.round((width / 5) * step.spread)
-  const dy = Math.round((height / 5) * step.spread)
+  const dx = Math.round((width / BURST_OFFSET_DIVISOR) * step.spread)
+  const dy = Math.round((height / BURST_OFFSET_DIVISOR) * step.spread)
   const split = Math.ceil(height / 2)
 
   return [
@@ -164,43 +157,46 @@ function pieces(step, geometry, cells) {
   ]
 }
 
-export function ballOverlays(step, geometry, frame = 0) {
-  if (!step) return []
+const flushRun = (overlays, run, row, key) => {
+  if (!run) return
 
-  const cells = ballCells(geometry.scale ?? 1, step.lit)
+  overlays.push({
+    row: row + 1,
+    col: run.col + 1,
+    sequence: run.text + CLEAR,
+    rows: 1,
+    key,
+  })
+}
+
+export const ballOverlays = (step, geometry, frame = 0) => {
+  const cells = ballCells(geometry.scale, step.lit)
   const key = `ball:${frame}`
   const overlays = []
 
   for (const piece of pieces(step, geometry, cells)) {
     piece.rows.forEach((cellRow, index) => {
       const row = piece.top + index
+
       if (row < 0 || row > geometry.maxRow) return
 
       let run = null
-      const flush = () => {
-        if (run) {
-          overlays.push({
-            row: row + 1,
-            col: run.col + 1,
-            sequence: run.text + clear,
-            rows: 1,
-            key,
-          })
-        }
-        run = null
-      }
 
       cellRow.forEach((solid, offset) => {
         const col = piece.left + offset
+
         if (!solid || col < 0 || col >= geometry.cols) {
-          flush()
+          flushRun(overlays, run, row, key)
+          run = null
           return
         }
+
         if (!run) run = { col, text: '' }
+
         run.text += solid
       })
 
-      flush()
+      flushRun(overlays, run, row, key)
     })
   }
 

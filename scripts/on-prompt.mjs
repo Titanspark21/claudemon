@@ -3,33 +3,10 @@ import { loadConfig } from '../src/config.mjs'
 import { stepsFromPrompt } from '../src/encounter.mjs'
 import { logError, logNote } from '../src/log.mjs'
 import { relinkLaunchers } from '../src/shim.mjs'
+import { readStdin } from './stdin.mjs'
+import { transformResponsePromptEvent } from './transformers.mjs'
 
-const STDIN_TIMEOUT_MS = 2000
-
-function readStdin() {
-  return new Promise((resolve) => {
-    let buffer = ''
-    let settled = false
-
-    const finish = () => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      resolve(buffer)
-    }
-
-    const timer = setTimeout(finish, STDIN_TIMEOUT_MS)
-
-    process.stdin.setEncoding('utf8')
-    process.stdin.on('data', (chunk) => {
-      buffer += chunk
-    })
-    process.stdin.on('end', finish)
-    process.stdin.on('error', finish)
-  })
-}
-
-function catchUpLaunchers() {
+const catchUpLaunchers = () => {
   try {
     for (const path of relinkLaunchers()) {
       logNote('on-prompt', `pointed a launcher at this release: ${path}`)
@@ -39,25 +16,31 @@ function catchUpLaunchers() {
   }
 }
 
-async function main() {
+const promptText = (payload) => {
+  if (typeof payload.prompt === 'string') return payload.prompt
+  if (typeof payload.user_prompt === 'string') return payload.user_prompt
+
+  return ''
+}
+
+const promptSteps = (prompt) => {
+  if (prompt.trim() === '') return 0
+
+  return stepsFromPrompt(prompt.length, loadConfig())
+}
+
+const main = async () => {
   const raw = await readStdin()
 
   catchUpLaunchers()
 
   if (!raw.trim()) return
 
-  const payload = JSON.parse(raw)
-  const prompt =
-    typeof payload.prompt === 'string'
-      ? payload.prompt
-      : typeof payload.user_prompt === 'string'
-        ? payload.user_prompt
-        : ''
+  const payload = transformResponsePromptEvent(JSON.parse(raw))
 
-  if (!payload.session_id) return
+  if (!payload?.session_id) return
 
-  const steps =
-    prompt.trim() === '' ? 0 : stepsFromPrompt(prompt.length, loadConfig())
+  const steps = promptSteps(promptText(payload))
 
   beginTurn(payload.session_id, payload.cwd, { pendingSteps: steps })
 }

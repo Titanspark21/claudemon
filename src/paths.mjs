@@ -45,20 +45,19 @@ export const PLUGIN_CACHE = join(
   'claudemon',
 )
 
-export function dataFile(name) {
+export const dataFile = (name) => {
   const local = join(DATA_DIR, name)
-  return existsSync(local) ? local : join(BUNDLED_DATA_DIR, name)
-}
 
-export function bundledDataFile(name) {
+  if (existsSync(local)) return local
+
   return join(BUNDLED_DATA_DIR, name)
 }
 
-export function assetFile(name) {
-  return join(BUNDLED_ASSETS_DIR, name)
-}
+export const bundledDataFile = (name) => join(BUNDLED_DATA_DIR, name)
 
-export function sessionFile(id) {
+export const assetFile = (name) => join(BUNDLED_ASSETS_DIR, name)
+
+export const sessionFile = (id) => {
   return join(
     SESSIONS_DIR,
     `${String(id)
@@ -67,6 +66,6 @@ export function sessionFile(id) {
   )
 }
 
-export function spriteFile(side, id, ext) {
+export const spriteFile = (side, id, ext) => {
   return join(SPRITES_DIR, side, `${id}.${ext}`)
 }

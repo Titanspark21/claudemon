@@ -2,7 +2,21 @@ import { execFile } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { updateCheckMode } from './config.mjs'
+import {
+  CHECK_INTERVAL_MS,
+  DEFAULT_MANIFEST_URL,
+  FETCH_TIMEOUT_MS,
+  UPDATE_DETAIL_LIMIT,
+  UPDATE_FAILURE_MESSAGES,
+  UPDATE_STEP_TEXT,
+  UPDATE_STEP_TIMEOUTS,
+} from './constants.mjs'
 import { HOME, PLUGIN_CACHE, UPDATE_FILE } from './paths.mjs'
+import {
+  transformRequestWriteUpdateState,
+  transformResponseManifest,
+  transformResponseUpdateState,
+} from './transformers.mjs'
 import {
   APP_ROOT,
   VERSION,
@@ -13,98 +27,122 @@ import {
 } from './version.mjs'
 
 export const MANIFEST_URL =
-  process.env.CLAUDEMON_MANIFEST_URL ||
-  'https://raw.githubusercontent.com/zamarrowski/claudemon/main/.claude-plugin/plugin.json'
+  process.env.CLAUDEMON_MANIFEST_URL || DEFAULT_MANIFEST_URL
 
-export const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
-
-const FETCH_TIMEOUT_MS = 5000
-
-export function readUpdateState(file = UPDATE_FILE) {
+const readUpdateFile = (file) => {
   try {
     const parsed = JSON.parse(readFileSync(file, 'utf8'))
-    return parsed && typeof parsed === 'object' ? parsed : {}
+
+    return parsed && typeof parsed === 'object' ? parsed : null
   } catch {
-    return {}
+    return null
   }
 }
 
-function writeUpdateState(state, file = UPDATE_FILE) {
+export const readUpdateState = (file = UPDATE_FILE) => {
+  return transformResponseUpdateState(readUpdateFile(file))
+}
+
+const writeUpdateState = (state, file = UPDATE_FILE) => {
   try {
     mkdirSync(HOME, { recursive: true })
-    writeFileSync(file, `${JSON.stringify(state, null, 2)}\n`)
+
+    const payload = JSON.stringify(
+      transformRequestWriteUpdateState(state),
+      null,
+      2,
+    )
+
+    writeFileSync(file, `${payload}\n`)
   } catch {}
 }
 
-export function dueForCheck(
+export const dueForCheck = (
   state,
   now = Date.now(),
   interval = CHECK_INTERVAL_MS,
-) {
-  const last = Date.parse(state?.checkedAt ?? '')
+) => {
+  const last = Date.parse(state?.checkedAt)
+
   if (!Number.isFinite(last)) return true
   if (last > now) return true
+
   return now - last >= interval
 }
 
-export async function fetchLatestVersion({
+export const fetchLatestVersion = async ({
   url = MANIFEST_URL,
   timeoutMs = FETCH_TIMEOUT_MS,
   fetchImpl = globalThis.fetch,
-} = {}) {
+}) => {
   if (typeof fetchImpl !== 'function') throw new Error('no fetch available')
 
   const response = await fetchImpl(url, {
     signal: AbortSignal.timeout(timeoutMs),
     headers: { accept: 'application/json' },
   })
+
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
-  const version = JSON.parse(await response.text())?.version
-  if (typeof version !== 'string' || !version)
+  const manifest = transformResponseManifest(JSON.parse(await response.text()))
+
+  if (typeof manifest?.version !== 'string' || !manifest.version)
     throw new Error('no version in the manifest')
-  return version
+
+  return manifest.version
 }
 
-export async function checkForUpdate({
+export const checkForUpdate = async ({
   config,
   now = Date.now(),
   file = UPDATE_FILE,
   force = false,
-  ...options
-} = {}) {
+  url,
+  timeoutMs,
+  fetchImpl,
+}) => {
   const state = readUpdateState(file)
 
   if (updateCheckMode(config) === 'off') return state
   if (!force && !dueForCheck(state, now)) return state
 
   const checkedAt = new Date(now).toISOString()
+
   try {
-    const latest = await fetchLatestVersion(options)
-    const next = { checkedAt, latest }
+    const latest = await fetchLatestVersion({ url, timeoutMs, fetchImpl })
+    const next = { checkedAt, latest, error: null }
+
     writeUpdateState(next, file)
+
     return next
   } catch (error) {
-    const next = { ...state, checkedAt, error: error?.message ?? String(error) }
+    const next = {
+      checkedAt,
+      latest: state?.latest ?? null,
+      error: error?.message ?? String(error),
+    }
+
     writeUpdateState(next, file)
+
     return next
   }
 }
 
-export function updateNotice({
+export const updateNotice = ({
   current = VERSION,
   installed = null,
   latest = null,
-} = {}) {
+}) => {
   if (isNewer(installed, current)) return { kind: 'stale', version: installed }
   if (isNewer(latest, current)) return { kind: 'available', version: latest }
+
   return null
 }
 
-export function currentNotice({
+export const currentNotice = ({
   state = readUpdateState(),
   current = VERSION,
-} = {}) {
+} = {}) => {
   return updateNotice({
     current,
     installed: newestInstalled(),
@@ -112,30 +150,34 @@ export function currentNotice({
   })
 }
 
-export function updatePlan({ root = APP_ROOT, cache = PLUGIN_CACHE } = {}) {
+const pluginInstallScript = (cache) => {
+  const installed = newestInstalled(cache)
+
+  if (!installed) return join(cache, 'tools', 'install.mjs')
+
+  return join(cache, installed, 'tools', 'install.mjs')
+}
+
+export const updatePlan = ({ root = APP_ROOT, cache = PLUGIN_CACHE } = {}) => {
   if (!isPluginCopy(root, cache)) {
     return {
       kind: 'clone',
       resolveVersion: () => versionAt(root),
       steps: [
         {
-          id: 'pull',
-          label: 'pulling the latest commit',
-          done: 'pulled the latest commit',
+          ...UPDATE_STEP_TEXT.clonePull,
           plan: () => ({
             command: 'git',
             args: ['-C', root, 'pull', '--ff-only'],
-            timeoutMs: 60_000,
+            timeoutMs: UPDATE_STEP_TIMEOUTS.pull,
           }),
         },
         {
-          id: 'install',
-          label: 'reinstalling from the clone',
-          done: 'the command, status line and sprites are up to date',
+          ...UPDATE_STEP_TEXT.cloneInstall,
           plan: () => ({
             command: process.execPath,
             args: [join(root, 'tools', 'install.mjs')],
-            timeoutMs: 180_000,
+            timeoutMs: UPDATE_STEP_TIMEOUTS.install,
           }),
         },
       ],
@@ -147,53 +189,49 @@ export function updatePlan({ root = APP_ROOT, cache = PLUGIN_CACHE } = {}) {
     resolveVersion: () => newestInstalled(cache),
     steps: [
       {
-        id: 'marketplace',
-        label: 'refreshing the marketplace',
-        done: 'refreshed the marketplace',
+        ...UPDATE_STEP_TEXT.marketplace,
         plan: () => ({
           command: 'claude',
           args: ['plugin', 'marketplace', 'update', 'claudemon'],
-          timeoutMs: 60_000,
+          timeoutMs: UPDATE_STEP_TIMEOUTS.marketplace,
         }),
       },
       {
-        id: 'plugin',
-        label: 'fetching the new version',
-        done: 'fetched the new version',
+        ...UPDATE_STEP_TEXT.plugin,
         plan: () => ({
           command: 'claude',
           args: ['plugin', 'update', 'claudemon@claudemon'],
-          timeoutMs: 120_000,
+          timeoutMs: UPDATE_STEP_TIMEOUTS.plugin,
         }),
       },
       {
-        id: 'install',
-        label: 'checking the command, status line and sprites',
-        done: 'the command, status line and sprites are up to date',
+        ...UPDATE_STEP_TEXT.pluginInstall,
         plan: () => ({
           command: process.execPath,
-          args: [
-            join(cache, newestInstalled(cache) ?? '', 'tools', 'install.mjs'),
-          ],
-          timeoutMs: 180_000,
+          args: [pluginInstallScript(cache)],
+          timeoutMs: UPDATE_STEP_TIMEOUTS.install,
         }),
       },
     ],
   }
 }
 
-function execCommand({ command, args, timeoutMs }) {
+const execCommand = ({ command, args, timeoutMs }) => {
   return new Promise((resolve) => {
     execFile(
       command,
       args,
       { timeout: timeoutMs, encoding: 'utf8' },
       (error, stdout, stderr) => {
-        const output = `${stdout ?? ''}${stderr ?? ''}`.trim()
+        const out = stdout ?? ''
+        const err = stderr ?? ''
+        const output = `${out}${err}`.trim()
+
         if (!error) {
           resolve({ ok: true, output })
           return
         }
+
         resolve({
           ok: false,
           output,
@@ -205,23 +243,64 @@ function execCommand({ command, args, timeoutMs }) {
   })
 }
 
-function explain(step, result) {
+const explain = (step, result) => {
   if (result.missing) {
     return step.id === 'pull'
-      ? 'no `git` command found'
-      : 'no `claude` command found — is Claude Code on your PATH?'
+      ? UPDATE_FAILURE_MESSAGES.noGit
+      : UPDATE_FAILURE_MESSAGES.noClaude
   }
-  if (result.timedOut) return 'it took too long and was given up on'
+
+  if (result.timedOut) return UPDATE_FAILURE_MESSAGES.timedOut
 
   const last = result.output.split('\n').filter(Boolean).pop()
-  return last ? last.slice(0, 120) : 'it failed without saying why'
+
+  return last
+    ? last.slice(0, UPDATE_DETAIL_LIMIT)
+    : UPDATE_FAILURE_MESSAGES.unknown
 }
 
-export function createUpdateRun({
+const runUpdateSteps = async (run, steps, exec, onChange, resolveVersion) => {
+  for (let index = 0; index < steps.length; index++) {
+    const shown = run.steps[index]
+
+    shown.status = 'running'
+    onChange(run)
+
+    let result
+
+    try {
+      result = await exec(steps[index].plan())
+    } catch (error) {
+      result = { ok: false, output: error?.message ?? String(error) }
+    }
+
+    if (!result.ok) {
+      shown.status = 'failed'
+      shown.detail = explain(steps[index], result)
+      run.state = 'failed'
+      onChange(run)
+
+      return run
+    }
+
+    shown.status = 'ok'
+    onChange(run)
+  }
+
+  const resolved = resolveVersion()
+
+  run.state = 'done'
+  run.to = resolved ?? VERSION
+  onChange(run)
+
+  return run
+}
+
+export const createUpdateRun = ({
   plan = updatePlan(),
   exec = execCommand,
   onChange = () => {},
-} = {}) {
+}) => {
   const { steps, resolveVersion, kind } = plan
 
   const run = {
@@ -238,36 +317,7 @@ export function createUpdateRun({
     })),
   }
 
-  run.promise = (async () => {
-    for (let index = 0; index < steps.length; index++) {
-      const shown = run.steps[index]
-      shown.status = 'running'
-      onChange(run)
-
-      let result
-      try {
-        result = await exec(steps[index].plan())
-      } catch (error) {
-        result = { ok: false, output: error?.message ?? String(error) }
-      }
-
-      if (!result.ok) {
-        shown.status = 'failed'
-        shown.detail = explain(steps[index], result)
-        run.state = 'failed'
-        onChange(run)
-        return run
-      }
-
-      shown.status = 'ok'
-      onChange(run)
-    }
-
-    run.state = 'done'
-    run.to = resolveVersion() ?? VERSION
-    onChange(run)
-    return run
-  })()
+  run.promise = runUpdateSteps(run, steps, exec, onChange, resolveVersion)
 
   return run
 }

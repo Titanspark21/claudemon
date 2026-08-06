@@ -1,21 +1,24 @@
 import { existsSync } from 'node:fs'
 import { spriteFile } from '../src/paths.mjs'
-import { bold, dim, bg, reset } from '../src/ui/ansi.mjs'
+import { bg, bold, dim, RESET } from '../src/ui/ansi.mjs'
+import { NATIVE_CANVAS_COLS } from '../src/ui/constants.mjs'
+import { fitCanvasCols, renderSprite } from '../src/ui/sprite.mjs'
 import {
-  NATIVE_CANVAS_COLS,
-  fitCanvasCols,
-  renderSprite,
-} from '../src/ui/sprite.mjs'
+  GRADIENT_STEPS,
+  PROBE_LABEL_WIDTH,
+  PROBE_MESSAGES,
+  PROBE_RULE_WIDTH,
+  PROBE_SPRITE_ID,
+  QUADRANT_SAMPLE,
+} from './constants.mjs'
 
-const SPRITE_ID = 25
-const spritePath = spriteFile('front', SPRITE_ID, 'png')
+const spritePath = spriteFile('front', PROBE_SPRITE_ID, 'png')
 
-function heading(text) {
-  console.log(`\n${bold(text)}`)
-}
+const heading = (text) => console.log(`\n${bold(text)}`)
 
-console.log(bold('claudemon terminal probe'))
-console.log(dim('─'.repeat(52)))
+console.log(bold(PROBE_MESSAGES.title))
+console.log(dim('─'.repeat(PROBE_RULE_WIDTH)))
+
 for (const [label, value] of [
   ['TERM_PROGRAM', process.env.TERM_PROGRAM],
   ['TERM', process.env.TERM],
@@ -23,57 +26,70 @@ for (const [label, value] of [
   ['TMUX', process.env.TMUX ? 'yes' : 'no'],
   ['size', `${process.stdout.columns}x${process.stdout.rows}`],
 ]) {
-  console.log(`  ${label.padEnd(16)} ${value ?? dim('(unset)')}`)
+  console.log(
+    `  ${label.padEnd(PROBE_LABEL_WIDTH)} ${value ?? dim(PROBE_MESSAGES.unset)}`,
+  )
 }
 
-heading('1. Truecolor — should be one smooth gradient, no banding')
+heading(PROBE_MESSAGES.truecolor)
+
+const lastStep = GRADIENT_STEPS - 1
+
 let gradient = '  '
-for (let i = 0; i < 48; i++) {
-  gradient +=
-    bg(Math.round((255 * i) / 47), 90, 200 - Math.round((120 * i) / 47)) + ' '
-}
-console.log(gradient + reset)
 
-heading('2. Quadrant glyphs — should be ten solid corner shapes, not boxes')
-console.log(`  ▘ ▝ ▖ ▗ ▚ ▞ ▛ ▜ ▙ ▟`)
-console.log(
-  dim('  These are Block Elements, so every monospace font has them.'),
-)
-console.log(
-  dim('  If any came out as a box, your font is older than Unicode 1.1.'),
-)
+for (let i = 0; i < GRADIENT_STEPS; i++) {
+  gradient +=
+    bg(
+      Math.round((255 * i) / lastStep),
+      90,
+      200 - Math.round((120 * i) / lastStep),
+    ) + ' '
+}
+
+console.log(gradient + RESET)
+
+heading(PROBE_MESSAGES.quadrants)
+console.log(QUADRANT_SAMPLE)
+console.log(dim(PROBE_MESSAGES.blockElements))
+console.log(dim(PROBE_MESSAGES.oldFont))
 
 if (!existsSync(spritePath)) {
-  heading('Sprites missing')
-  console.log(`  Run: ${bold(`node tools/fetch-sprites.mjs ${SPRITE_ID}`)}`)
+  heading(PROBE_MESSAGES.spritesMissing)
+  console.log(
+    `  Run: ${bold(`node tools/fetch-sprites.mjs ${PROBE_SPRITE_ID}`)}`,
+  )
   process.exit(0)
 }
 
-heading('3. A sprite at native resolution — as good as it gets')
+heading(PROBE_MESSAGES.native)
+
 const native = renderSprite(spritePath, { cols: NATIVE_CANVAS_COLS })
+
 for (const row of native.rows) console.log(`  ${row}`)
+
 console.log(
   dim(
     `  ${native.cols} columns x ${native.rows.length} rows, one pixel per pixel`,
   ),
 )
 
-heading('4. The same sprite at the size this window actually allows')
+heading(PROBE_MESSAGES.fitted)
+
 const fitted = renderSprite(spritePath, {
   cols: fitCanvasCols({
     cols: process.stdout.columns ?? 80,
     rows: process.stdout.rows ?? 24,
   }),
 })
+
 for (const row of fitted.rows) console.log(`  ${row}`)
+
 console.log(dim(`  ${fitted.cols} columns x ${fitted.rows.length} rows`))
 
 if (fitted.cols < native.cols) {
-  console.log(dim('  A taller window gets you closer to test 3.'))
+  console.log(dim(PROBE_MESSAGES.tallerWindow))
 }
 
-console.log(dim('─'.repeat(52)))
-console.log(
-  'Height is what binds, not width: a canvas costs half as many rows as',
-)
-console.log(`columns, so a taller tab is what buys a sharper Pokemon.`)
+console.log(dim('─'.repeat(PROBE_RULE_WIDTH)))
+console.log(PROBE_MESSAGES.heightBinds)
+console.log(PROBE_MESSAGES.tallerTab)

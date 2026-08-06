@@ -1,16 +1,9 @@
-import { test } from 'vitest'
-import assert from 'node:assert/strict'
+import { expect, test } from 'vitest'
 
 import { isDataReady, move as moveOf, species } from '../src/data.mjs'
 import { effectiveness } from '../src/typechart.mjs'
-import {
-  expForLevel,
-  expFromDefeating,
-  expProgress,
-  levelFromExp,
-  movesAtLevel,
-  statsAtLevel,
-} from '../src/exp.mjs'
+import { expForLevel } from '../src/exp.mjs'
+import { statsAtLevel } from '../src/stats.mjs'
 import { attemptCatch, catchValue } from '../src/capture.mjs'
 import {
   createPokemon,
@@ -30,433 +23,396 @@ if (!isDataReady()) {
   throw new Error('dataset missing — run: node tools/fetch-data.mjs')
 }
 
-function mon(speciesId, level, ivValue = 15) {
+const aPokemon = (speciesId, level) => {
   const created = createPokemon(speciesId, level, makeRng(1))
-  for (const key of Object.keys(created.ivs)) created.ivs[key] = ivValue
+
+  for (const key of Object.keys(created.ivs)) created.ivs[key] = 15
+
   created.stats = statsAtLevel(speciesId, level, created.ivs)
   created.hp = created.stats.hp
+
   return created
 }
 
-test('type effectiveness multiplies across both defending types', () => {
-  assert.equal(effectiveness('water', ['fire']), 2)
-  assert.equal(effectiveness('fire', ['water']), 0.5)
-  assert.equal(effectiveness('electric', ['ground']), 0)
-  assert.equal(effectiveness('normal', ['ghost']), 0)
+const playSixTurns = (battle) => {
+  const log = []
 
-  assert.equal(effectiveness('rock', species(6).types), 4)
-  assert.equal(effectiveness('grass', species(1).types), 0.25)
-})
-
-test('an immunity in either slot beats a weakness in the other', () => {
-  assert.equal(effectiveness('normal', species(94).types), 0)
-})
-
-test('stats grow with level and HP carries its flat bonus', () => {
-  const low = statsAtLevel(
-    4,
-    5,
-    Object.fromEntries(
-      ['hp', 'attack', 'defense', 'spAttack', 'spDefense', 'speed'].map((k) => [
-        k,
-        15,
-      ]),
-    ),
-  )
-  const high = statsAtLevel(
-    4,
-    50,
-    Object.fromEntries(
-      ['hp', 'attack', 'defense', 'spAttack', 'spDefense', 'speed'].map((k) => [
-        k,
-        15,
-      ]),
-    ),
-  )
-
-  for (const stat of Object.keys(low)) {
-    assert.ok(high[stat] > low[stat], `${stat} should grow`)
+  for (let turn = 0; turn < 6 && !battle.over; turn++) {
+    log.push(...submitAction(battle, { type: 'move', index: 0 }))
   }
-  assert.ok(low.hp >= 17 && low.hp <= 22, `level 5 HP was ${low.hp}`)
+
+  return { log, outcome: battle.outcome, hp: battle.foe.mon.hp }
+}
+
+test('Should multiply the effectiveness across both defending types, and zero it on an immunity in either slot', () => {
+  expect(effectiveness('water', ['fire'])).toBe(2)
+  expect(effectiveness('fire', ['water'])).toBe(0.5)
+  expect(effectiveness('electric', ['ground'])).toBe(0)
+  expect(effectiveness('normal', ['ghost'])).toBe(0)
+
+  expect(effectiveness('rock', species(6).types)).toBe(4)
+  expect(effectiveness('grass', species(1).types)).toBe(0.25)
+  expect(effectiveness('normal', species(94).types)).toBe(0)
 })
 
-test('experience curves and levels agree in both directions', () => {
-  for (const speciesId of [1, 25, 143, 150]) {
-    for (const level of [1, 2, 10, 37, 99, 100]) {
-      const exp = expForLevel(speciesId, level)
-      assert.equal(
-        levelFromExp(speciesId, exp),
-        level,
-        `#${speciesId} at level ${level}`,
-      )
-    }
-  }
-})
-
-test('one experience point short of a level is still the level below', () => {
-  const exp = expForLevel(4, 20)
-  assert.equal(levelFromExp(4, exp), 20)
-  assert.equal(levelFromExp(4, exp - 1), 19)
-})
-
-test('experience progress reports a sane fraction', () => {
-  const start = expForLevel(4, 10)
-  const next = expForLevel(4, 11)
-  const halfway = start + Math.floor((next - start) / 2)
-
-  const progress = expProgress(4, halfway)
-  assert.equal(progress.level, 10)
-  assert.ok(
-    progress.fraction > 0.4 && progress.fraction < 0.6,
-    `fraction ${progress.fraction}`,
-  )
-})
-
-test('beating something bigger is worth more experience', () => {
-  assert.ok(expFromDefeating(16, 20) > expFromDefeating(16, 5))
-  assert.ok(expFromDefeating(143, 10) > expFromDefeating(10, 10))
-})
-
-test('a natural moveset is the last four moves learned', () => {
-  const early = movesAtLevel(4, 1)
-  assert.ok(early.length >= 1)
-  assert.ok(
-    early.includes('scratch'),
-    `level 1 Charmander knows ${early.join(', ')}`,
-  )
-
-  const late = movesAtLevel(4, 100)
-  assert.equal(late.length, 4)
-  assert.equal(new Set(late).size, 4, 'no duplicate move slots')
-})
-
-test('a starter leads with a move that attacks', () => {
-  for (const speciesId of [1, 4, 7, 25]) {
-    const first = moveOf(movesAtLevel(speciesId, 1)[0])
-    assert.notEqual(
-      first.damageClass,
-      'status',
-      `#${speciesId} leads with a status move`,
-    )
-  }
-})
-
-test('every Pokemon has something to attack with', () => {
-  for (const mon of [1, 4, 7, 16, 19, 25, 74, 143, 150]) {
-    for (const level of [1, 5, 20, 50, 100]) {
-      const moves = movesAtLevel(mon, level)
-      assert.ok(
-        moves.some((name) => moveOf(name).damageClass !== 'status'),
-        `#${mon} at level ${level} only knows status moves: ${moves.join(', ')}`,
-      )
-    }
-  }
-})
-
-test('a created Pokemon is ready to battle', () => {
+test('Should hand back a created Pokemon ready to battle, at full health with full PP', () => {
   const charmander = createPokemon(4, 5, makeRng(42))
-  assert.equal(levelOf(charmander), 5)
-  assert.equal(charmander.hp, charmander.stats.hp)
-  assert.ok(charmander.moves.length >= 1)
-  assert.ok(charmander.moves.every((slot) => slot.pp === slot.maxPp))
+
+  expect(levelOf(charmander)).toBe(5)
+  expect(charmander.hp).toBe(charmander.stats.hp)
+  expect(charmander.moves.length).toBeGreaterThanOrEqual(1)
+  expect(charmander.moves.every((slot) => slot.pp === slot.maxPp)).toBe(true)
 })
 
-test('levelling up adds the HP gained rather than healing', () => {
-  const charmander = mon(4, 10)
+test('Should add the HP gained on levelling up rather than healing the damage', () => {
+  const charmander = aPokemon(4, 10)
+
   charmander.hp = 5
+
   const beforeMax = charmander.stats.hp
 
   charmander.exp = expForLevel(4, 11)
   refreshStats(charmander)
 
   const gained = charmander.stats.hp - beforeMax
-  assert.ok(gained > 0, 'max HP should rise')
-  assert.equal(charmander.hp, 5 + gained)
-  assert.ok(
-    charmander.hp < charmander.stats.hp,
-    'a level up is not a full heal',
+
+  expect(gained, 'max HP should rise').toBeGreaterThan(0)
+  expect(charmander.hp).toBe(5 + gained)
+  expect(charmander.hp, 'a level up is not a full heal').toBeLessThan(
+    charmander.stats.hp,
   )
 })
 
-test('evolution keeps level and HP proportion', () => {
-  const charmander = mon(4, 16)
+test('Should keep the level, the share of health and the gender when a Pokemon evolves', () => {
+  const charmander = aPokemon(4, 16)
+
   charmander.hp = Math.floor(charmander.stats.hp / 2)
 
-  assert.equal(pendingEvolution(charmander), 5, 'Charmander evolves at 16')
+  const gender = genderOf(charmander)
+
+  expect(
+    gender,
+    'the Pokemon needs a gender for this to mean much',
+  ).toBeTruthy()
+  expect(pendingEvolution(charmander), 'Charmander evolves at 16').toBe(5)
+
   evolveInto(charmander, 5)
 
-  assert.equal(charmander.species, 5)
-  assert.equal(levelOf(charmander), 16)
+  expect(charmander.species).toBe(5)
+  expect(levelOf(charmander)).toBe(16)
+  expect(genderOf(charmander)).toBe(gender)
+
   const fraction = charmander.hp / charmander.stats.hp
-  assert.ok(fraction > 0.4 && fraction < 0.6, `kept ${fraction} of its health`)
+
+  expect(fraction, `kept ${fraction} of its health`).toBeGreaterThan(0.4)
+  expect(fraction, `kept ${fraction} of its health`).toBeLessThan(0.6)
 })
 
-test('a Pokemon below its evolution level does not evolve', () => {
-  assert.equal(pendingEvolution(mon(4, 15)), null)
-  assert.equal(pendingEvolution(mon(25, 50)), null)
+test('Should leave a Pokemon below its evolution level, or one that needs a stone, unevolved', () => {
+  expect(pendingEvolution(aPokemon(4, 15))).toBe(null)
+  expect(pendingEvolution(aPokemon(25, 50))).toBe(null)
 })
 
-test('gender comes from the Attack IV against the species ratio', () => {
-  const female = mon(25, 10)
+test('Should read the gender off the Attack IV against the species ratio', () => {
+  const female = aPokemon(25, 10)
+
   female.ivs.attack = 15
-  assert.equal(genderOf(female), 'female')
 
-  const male = mon(25, 10)
+  expect(genderOf(female)).toBe('female')
+
+  const male = aPokemon(25, 10)
+
   male.ivs.attack = 16
-  assert.equal(genderOf(male), 'male')
 
-  const lowest = mon(25, 10)
+  expect(genderOf(male)).toBe('male')
+
+  const lowest = aPokemon(25, 10)
+
   lowest.ivs.attack = 0
-  assert.equal(genderOf(lowest), 'female')
-  const highest = mon(25, 10)
+
+  expect(genderOf(lowest)).toBe('female')
+
+  const highest = aPokemon(25, 10)
+
   highest.ivs.attack = 31
-  assert.equal(genderOf(highest), 'male')
+
+  expect(genderOf(highest)).toBe('male')
 })
 
-test('the species with only one gender ignore the IV entirely', () => {
+test('Should ignore the IV entirely for the species that come in only one gender', () => {
   for (const iv of [0, 15, 16, 31]) {
-    const nidoranF = mon(29, 10)
-    nidoranF.ivs.attack = iv
-    assert.equal(genderOf(nidoranF), 'female', `Nidoran♀ at IV ${iv}`)
+    const nidoranF = aPokemon(29, 10)
 
-    const nidoranM = mon(32, 10)
+    nidoranF.ivs.attack = iv
+
+    expect(genderOf(nidoranF), `Nidoran♀ at IV ${iv}`).toBe('female')
+
+    const nidoranM = aPokemon(32, 10)
+
     nidoranM.ivs.attack = iv
-    assert.equal(genderOf(nidoranM), 'male', `Nidoran♂ at IV ${iv}`)
+
+    expect(genderOf(nidoranM), `Nidoran♂ at IV ${iv}`).toBe('male')
   }
 })
 
-test('the ones with no gender have none at any IV', () => {
+test('Should give the ones with no gender none at any IV', () => {
   for (const id of [81, 132, 137, 150]) {
     for (const iv of [0, 31]) {
-      const genderless = mon(id, 10)
+      const genderless = aPokemon(id, 10)
+
       genderless.ivs.attack = iv
-      assert.equal(
-        genderOf(genderless),
-        null,
-        `${species(id).name} at IV ${iv}`,
-      )
+
+      expect(genderOf(genderless), `${species(id).name} at IV ${iv}`).toBe(null)
     }
   }
 })
 
-test('gender survives an evolution, which keeps the IVs', () => {
-  const bulbasaur = mon(1, 16)
-  const before = genderOf(bulbasaur)
-  assert.ok(before)
-
-  evolveInto(bulbasaur, 2)
-  assert.equal(genderOf(bulbasaur), before)
-})
-
-test('a dataset too old to know shows no gender, rather than all male', () => {
-  const pikachu = mon(25, 10)
-  pikachu.ivs.attack = 31
-  assert.equal(genderOf(pikachu), 'male')
-
+test('Should show no gender, rather than all male, on a dataset too old to know', () => {
+  const pikachu = aPokemon(25, 10)
   const entry = species(25)
   const { genderRate } = entry
+
   try {
     delete entry.genderRate
-    assert.equal(genderOf(pikachu), null)
+
+    expect(genderOf(pikachu)).toBe(null)
   } finally {
     entry.genderRate = genderRate
   }
 })
 
-test('the two Nidoran lose their suffix and are told apart by gender instead', () => {
-  assert.equal(speciesName(29), 'Nidoran')
-  assert.equal(speciesName(32), 'Nidoran')
-  assert.equal(speciesGender(29), 'female')
-  assert.equal(speciesGender(32), 'male')
+test('Should strip the suffix from the two Nidoran and tell them apart by gender instead', () => {
+  expect(speciesName(29)).toBe('Nidoran')
+  expect(speciesName(32)).toBe('Nidoran')
+  expect(speciesGender(29)).toBe('female')
+  expect(speciesGender(32)).toBe('male')
 
-  assert.equal(speciesGender(25), null)
-  assert.equal(speciesGender(132), null)
+  expect(speciesGender(25)).toBe(null)
+  expect(speciesGender(132)).toBe(null)
 
-  assert.equal(displayName(mon(29, 5)), 'Nidoran')
-  const nicknamed = mon(29, 5)
+  expect(displayName(aPokemon(29, 5))).toBe('Nidoran')
+
+  const nicknamed = aPokemon(29, 5)
+
   nicknamed.nickname = 'Spike'
-  assert.equal(displayName(nicknamed), 'Spike')
+
+  expect(displayName(nicknamed)).toBe('Spike')
 })
 
-test('a weakened Pokemon is easier to catch than a healthy one', () => {
-  const pidgey = mon(16, 10)
+test('Should make a weakened Pokemon easier to catch than a healthy one', () => {
+  const pidgey = aPokemon(16, 10)
   const healthy = catchValue(pidgey, 'poke-ball')
 
   pidgey.hp = 1
+
   const weakened = catchValue(pidgey, 'poke-ball')
 
-  assert.ok(weakened > healthy, `${weakened} should beat ${healthy}`)
-})
-
-test('better balls and status conditions both help', () => {
-  const pidgey = mon(16, 10)
-  assert.ok(catchValue(pidgey, 'ultra-ball') > catchValue(pidgey, 'poke-ball'))
-
-  const plain = catchValue(pidgey, 'poke-ball')
-  pidgey.status = 'sleep'
-  assert.equal(catchValue(pidgey, 'poke-ball'), plain * 2)
-})
-
-test('a Master Ball never fails, even on Mewtwo at full health', () => {
-  const mewtwo = mon(150, 70)
-  for (let seed = 1; seed <= 50; seed++) {
-    assert.equal(
-      attemptCatch(mewtwo, 'master-ball', makeRng(seed)).caught,
-      true,
-    )
-  }
-})
-
-test('Mewtwo at full health resists a Poke Ball', () => {
-  const mewtwo = mon(150, 70)
-  let caught = 0
-  for (let seed = 1; seed <= 200; seed++) {
-    if (attemptCatch(mewtwo, 'poke-ball', makeRng(seed)).caught) caught++
-  }
-  assert.ok(
-    caught <= 4,
-    `caught ${caught} times out of 200, which is too generous`,
+  expect(weakened, `${weakened} should beat ${healthy}`).toBeGreaterThan(
+    healthy,
   )
 })
 
-test('an untouched Caterpie takes a few balls, a weakened one goes straight down', () => {
-  const healthy = mon(10, 5)
+test('Should catch better with a better ball, and twice as well against a sleeping target', () => {
+  const pidgey = aPokemon(16, 10)
+  const plain = catchValue(pidgey, 'poke-ball')
+
+  expect(catchValue(pidgey, 'ultra-ball')).toBeGreaterThan(plain)
+
+  pidgey.status = 'sleep'
+
+  expect(catchValue(pidgey, 'poke-ball')).toBe(plain * 2)
+})
+
+test('Should never fail a Master Ball, even on Mewtwo at full health', () => {
+  const mewtwo = aPokemon(150, 70)
+
+  for (let seed = 1; seed <= 50; seed++) {
+    expect(
+      attemptCatch(mewtwo, 'master-ball', makeRng(seed)).caught,
+      `seed ${seed}`,
+    ).toBe(true)
+  }
+})
+
+test('Should let Mewtwo at full health resist a Poke Ball', () => {
+  const mewtwo = aPokemon(150, 70)
+
+  let caught = 0
+
+  for (let seed = 1; seed <= 200; seed++) {
+    if (attemptCatch(mewtwo, 'poke-ball', makeRng(seed)).caught) caught++
+  }
+
+  expect(
+    caught,
+    `caught ${caught} times out of 200, which is too generous`,
+  ).toBeLessThanOrEqual(4)
+})
+
+test('Should take a few balls on an untouched Caterpie and go straight down on a weakened one', () => {
+  const healthy = aPokemon(10, 5)
+
   let caughtHealthy = 0
+
   for (let seed = 1; seed <= 400; seed++) {
     if (attemptCatch(healthy, 'poke-ball', makeRng(seed)).caught)
       caughtHealthy++
   }
-  const healthyRate = caughtHealthy / 400
-  assert.ok(
-    healthyRate > 0.2 && healthyRate < 0.5,
-    `full health rate was ${healthyRate}`,
-  )
 
-  const weakened = mon(10, 5)
+  const healthyRate = caughtHealthy / 400
+
+  expect(healthyRate, `full health rate was ${healthyRate}`).toBeGreaterThan(
+    0.2,
+  )
+  expect(healthyRate, `full health rate was ${healthyRate}`).toBeLessThan(0.5)
+
+  const weakened = aPokemon(10, 5)
+
   weakened.hp = 1
+
   let caughtWeak = 0
+
   for (let seed = 1; seed <= 400; seed++) {
     if (attemptCatch(weakened, 'poke-ball', makeRng(seed)).caught) caughtWeak++
   }
-  assert.ok(
-    caughtWeak / 400 > 0.95,
-    `weakened rate was only ${caughtWeak / 400}`,
-  )
+
+  const weakenedRate = caughtWeak / 400
+
+  expect(
+    weakenedRate,
+    `weakened rate was only ${weakenedRate}`,
+  ).toBeGreaterThan(0.95)
 })
 
-function freshBattle(seed = 7, playerLevel = 20, foeLevel = 10) {
-  return createBattle({
-    playerMon: mon(4, playerLevel),
-    wildMon: mon(16, foeLevel),
-    seed,
+test('Should replay a battle identically from the same seed and the same actions', () => {
+  const first = playSixTurns(
+    createBattle({
+      playerMon: aPokemon(4, 20),
+      wildMon: aPokemon(16, 10),
+      seed: 1234,
+    }),
+  )
+  const second = playSixTurns(
+    createBattle({
+      playerMon: aPokemon(4, 20),
+      wildMon: aPokemon(16, 10),
+      seed: 1234,
+    }),
+  )
+
+  expect(first).toEqual(second)
+})
+
+test('Should damage the foe and spend a PP when attacking', () => {
+  const battle = createBattle({
+    playerMon: aPokemon(4, 20),
+    wildMon: aPokemon(16, 10),
+    seed: 7,
   })
-}
-
-function attackSlot(battleMon) {
-  const index = battleMon.moves.findIndex(
-    (slot) => moveOf(slot.move).damageClass !== 'status',
+  const slot = battle.player.mon.moves.findIndex(
+    (entry) => moveOf(entry.move).damageClass !== 'status',
   )
-  assert.notEqual(index, -1, 'test Pokemon has no damaging move')
-  return index
-}
-
-test('the same seed and actions replay identically', () => {
-  const runOnce = () => {
-    const battle = freshBattle(1234)
-    const log = []
-    for (let turn = 0; turn < 6 && !battle.over; turn++) {
-      log.push(...submitAction(battle, { type: 'move', index: 0 }))
-    }
-    return { log, outcome: battle.outcome, hp: battle.foe.mon.hp }
-  }
-
-  assert.deepEqual(runOnce(), runOnce())
-})
-
-test('attacking damages the foe and spends PP', () => {
-  const battle = freshBattle()
-  const slot = attackSlot(battle.player.mon)
   const before = battle.foe.mon.hp
   const ppBefore = battle.player.mon.moves[slot].pp
 
   const events = submitAction(battle, { type: 'move', index: slot })
 
-  assert.ok(battle.foe.mon.hp < before, 'the foe should have taken damage')
-  assert.equal(battle.player.mon.moves[slot].pp, ppBefore - 1)
-  assert.ok(events.some((event) => event.type === 'damage'))
+  expect(battle.foe.mon.hp, 'the foe should have taken damage').toBeLessThan(
+    before,
+  )
+  expect(battle.player.mon.moves[slot].pp).toBe(ppBefore - 1)
+  expect(events.some((event) => event.type === 'damage')).toBe(true)
 })
 
-test('beating the foe ends the battle and pays out', () => {
-  const battle = freshBattle(99, 40, 5)
-  const slot = attackSlot(battle.player.mon)
+test('Should end the battle in a win that pays out when the foe is beaten', () => {
+  const battle = createBattle({
+    playerMon: aPokemon(4, 40),
+    wildMon: aPokemon(16, 5),
+    seed: 99,
+  })
+  const slot = battle.player.mon.moves.findIndex(
+    (entry) => moveOf(entry.move).damageClass !== 'status',
+  )
 
   let guard = 0
+
   while (!battle.over && guard++ < 30)
     submitAction(battle, { type: 'move', index: slot })
 
-  assert.equal(battle.over, true)
-  assert.equal(battle.outcome, 'win')
-  assert.ok(battle.rewards.exp > 0, 'should award experience')
-  assert.ok(battle.rewards.money > 0, 'should award money')
-  assert.ok(battle.foe.mon.hp <= 0)
+  expect(battle.over).toBe(true)
+  expect(battle.outcome).toBe('win')
+  expect(battle.rewards.exp, 'should award experience').toBeGreaterThan(0)
+  expect(battle.rewards.money, 'should award money').toBeGreaterThan(0)
+  expect(battle.foe.mon.hp).toBeLessThanOrEqual(0)
 })
 
-test('losing is reported as a loss, not a win', () => {
+test('Should report a lost battle as a loss that pays nothing', () => {
   const battle = createBattle({
-    playerMon: mon(129, 5),
-    wildMon: mon(150, 70),
+    playerMon: aPokemon(129, 5),
+    wildMon: aPokemon(150, 70),
     seed: 3,
   })
 
   let guard = 0
+
   while (!battle.over && guard++ < 60)
     submitAction(battle, { type: 'move', index: 0 })
 
-  assert.equal(battle.outcome, 'loss')
-  assert.ok(battle.player.mon.hp <= 0)
-  assert.equal(battle.rewards, null, 'a loss pays nothing')
+  expect(battle.outcome).toBe('loss')
+  expect(battle.player.mon.hp).toBeLessThanOrEqual(0)
+  expect(battle.rewards, 'a loss pays nothing').toBe(null)
 })
 
-test('a faster Pokemon always escapes', () => {
+test('Should always get away with a faster Pokemon', () => {
   for (let seed = 1; seed <= 20; seed++) {
     const battle = createBattle({
-      playerMon: mon(6, 50),
-      wildMon: mon(10, 5),
+      playerMon: aPokemon(6, 50),
+      wildMon: aPokemon(10, 5),
       seed,
     })
+
     const events = submitAction(battle, { type: 'run' })
-    assert.equal(battle.outcome, 'fled', `seed ${seed}`)
-    assert.ok(events.some((event) => event.text === 'Got away safely!'))
+
+    expect(battle.outcome, `seed ${seed}`).toBe('fled')
+    expect(events.some((event) => event.text === 'Got away safely!')).toBe(true)
   }
 })
 
-test('catching in battle ends it as caught', () => {
-  const battle = freshBattle()
+test('Should end the battle as caught when the ball holds', () => {
+  const battle = createBattle({
+    playerMon: aPokemon(4, 20),
+    wildMon: aPokemon(16, 10),
+    seed: 7,
+  })
+
   const events = submitAction(battle, { type: 'ball', key: 'master-ball' })
 
-  assert.equal(battle.outcome, 'caught')
-  assert.ok(events.some((event) => event.type === 'catch' && event.caught))
+  expect(battle.outcome).toBe('caught')
+  expect(events.some((event) => event.type === 'catch' && event.caught)).toBe(
+    true,
+  )
 })
 
-test('a failed ball still gives the foe its turn', () => {
+test('Should still give the foe its turn when the ball fails', () => {
   const battle = createBattle({
-    playerMon: mon(143, 70),
-    wildMon: mon(150, 70),
+    playerMon: aPokemon(143, 70),
+    wildMon: aPokemon(150, 70),
     seed: 5,
   })
   const before = battle.player.mon.hp
 
   submitAction(battle, { type: 'ball', key: 'poke-ball' })
 
-  assert.equal(
-    battle.outcome,
+  expect(battle.outcome, 'Mewtwo should not be caught by one Poke Ball').toBe(
     null,
-    'Mewtwo should not be caught by one Poke Ball',
   )
-  assert.ok(battle.player.mon.hp < before, 'the foe should have attacked back')
+  expect(
+    battle.player.mon.hp,
+    'the foe should have attacked back',
+  ).toBeLessThan(before)
 })
 
-test('super effective hits harder than resisted ones', () => {
+test('Should hit harder with a super effective move than with a resisted one', () => {
   const total = { strong: 0, weak: 0 }
 
   for (let seed = 1; seed <= 40; seed++) {
@@ -464,118 +420,174 @@ test('super effective hits harder than resisted ones', () => {
       ['strong', 1],
       ['weak', 7],
     ]) {
-      const charmander = mon(4, 30)
+      const charmander = aPokemon(4, 30)
+
       charmander.moves = [{ move: 'ember', pp: 25, maxPp: 25 }]
+
       const battle = createBattle({
         playerMon: charmander,
-        wildMon: mon(foeId, 30),
+        wildMon: aPokemon(foeId, 30),
         seed,
       })
       const before = battle.foe.mon.hp
+
       submitAction(battle, { type: 'move', index: 0 })
+
       total[key] += before - battle.foe.mon.hp
     }
   }
 
-  assert.ok(
-    total.strong > total.weak * 2,
-    `${total.strong} versus ${total.weak}`,
+  expect(total.strong, `${total.strong} versus ${total.weak}`).toBeGreaterThan(
+    total.weak * 2,
   )
 })
 
-test('a burn halves physical damage', () => {
+test('Should halve the physical damage a burned attacker deals', () => {
   const dealt = { healthy: 0, burned: 0 }
 
   for (let seed = 1; seed <= 40; seed++) {
     for (const state of ['healthy', 'burned']) {
-      const attacker = mon(4, 30)
+      const attacker = aPokemon(4, 30)
+
       attacker.moves = [{ move: 'scratch', pp: 35, maxPp: 35 }]
+
       if (state === 'burned') attacker.status = 'burn'
 
       const battle = createBattle({
         playerMon: attacker,
-        wildMon: mon(16, 40),
+        wildMon: aPokemon(16, 40),
         seed,
       })
       const before = battle.foe.mon.hp
+
       submitAction(battle, { type: 'move', index: 0 })
+
       dealt[state] += before - battle.foe.mon.hp
     }
   }
 
   const ratio = dealt.burned / dealt.healthy
-  assert.ok(
-    ratio > 0.4 && ratio < 0.62,
-    `burned dealt ${ratio} of healthy output`,
-  )
+
+  expect(ratio, `burned dealt ${ratio} of healthy output`).toBeGreaterThan(0.4)
+  expect(ratio, `burned dealt ${ratio} of healthy output`).toBeLessThan(0.62)
 })
 
-test('running out of PP falls back to Struggle, which hurts the user', () => {
-  const attacker = mon(4, 30)
+test('Should fall back to Struggle when the PP runs out, and hurt the user with it', () => {
+  const attacker = aPokemon(4, 30)
+
   attacker.moves = [{ move: 'scratch', pp: 0, maxPp: 35 }]
 
   const battle = createBattle({
     playerMon: attacker,
-    wildMon: mon(16, 30),
+    wildMon: aPokemon(16, 30),
     seed: 11,
   })
   const before = battle.player.mon.hp
+
   const events = submitAction(battle, { type: 'move', index: 0 })
 
-  assert.ok(
-    events.some((event) => event.text?.includes('Struggle')),
-    'should use Struggle',
-  )
-  assert.ok(battle.player.mon.hp < before, 'recoil should hurt')
+  expect(events.some((event) => event.text?.includes('Struggle'))).toBe(true)
+  expect(battle.player.mon.hp, 'recoil should hurt').toBeLessThan(before)
 })
 
-test('a status move applies its condition without dealing damage', () => {
-  const attacker = mon(25, 30)
+test('Should apply the condition of a status move without dealing damage', () => {
+  const attacker = aPokemon(25, 30)
+
   attacker.moves = [{ move: 'thunder-wave', pp: 20, maxPp: 20 }]
 
   const battle = createBattle({
     playerMon: attacker,
-    wildMon: mon(16, 30),
+    wildMon: aPokemon(16, 30),
     seed: 2,
   })
   const before = battle.foe.mon.hp
+
   submitAction(battle, { type: 'move', index: 0 })
 
-  assert.equal(battle.foe.mon.status, 'paralysis')
-  assert.equal(battle.foe.mon.hp, before, 'Thunder Wave deals no damage')
+  expect(battle.foe.mon.status).toBe('paralysis')
+  expect(battle.foe.mon.hp, 'Thunder Wave deals no damage').toBe(before)
 })
 
-test('an immune target takes nothing at all', () => {
-  const attacker = mon(25, 40)
+test('Should burn away a fraction of HP at the end of the turn only for poison and burn', () => {
+  const damageByStatus = {}
+
+  for (const status of ['poison', 'burn', 'paralysis', 'sleep', null]) {
+    const poisoned = aPokemon(1, 20)
+
+    poisoned.status = status
+    poisoned.statusTurns = 3
+
+    const foe = aPokemon(25, 20)
+
+    foe.moves = [{ move: 'thunder-wave', pp: 20, maxPp: 20 }]
+
+    const battle = createBattle({ playerMon: poisoned, wildMon: foe, seed: 3 })
+    const before = poisoned.hp
+
+    submitAction(battle, { type: 'move', index: 0 })
+
+    damageByStatus[status] = before - poisoned.hp
+  }
+
+  const maxHp = aPokemon(1, 20).stats.hp
+
+  expect(damageByStatus.poison).toBe(Math.floor(maxHp / 8))
+  expect(damageByStatus.burn).toBe(Math.floor(maxHp / 16))
+  expect(damageByStatus.paralysis).toBe(0)
+  expect(damageByStatus.sleep).toBe(0)
+  expect(damageByStatus.null).toBe(0)
+})
+
+test('Should leave an immune target with nothing at all', () => {
+  const attacker = aPokemon(25, 40)
+
   attacker.moves = [{ move: 'thunder-shock', pp: 30, maxPp: 30 }]
 
   const battle = createBattle({
     playerMon: attacker,
-    wildMon: mon(74, 20),
+    wildMon: aPokemon(74, 20),
     seed: 4,
   })
   const before = battle.foe.mon.hp
+
   const events = submitAction(battle, { type: 'move', index: 0 })
 
-  assert.equal(battle.foe.mon.hp, before)
-  assert.ok(events.some((event) => event.text?.includes("doesn't affect")))
+  expect(battle.foe.mon.hp).toBe(before)
+  expect(events.some((event) => event.text?.includes("doesn't affect"))).toBe(
+    true,
+  )
 })
 
-test('actions after the battle is over do nothing', () => {
-  const battle = freshBattle()
+test('Should ignore an action once the battle is over', () => {
+  const battle = createBattle({
+    playerMon: aPokemon(4, 20),
+    wildMon: aPokemon(16, 10),
+    seed: 7,
+  })
+
   submitAction(battle, { type: 'ball', key: 'master-ball' })
-  assert.equal(battle.over, true)
+
+  expect(battle.over).toBe(true)
 
   const events = submitAction(battle, { type: 'move', index: 0 })
-  assert.deepEqual(events, [])
+
+  expect(events).toEqual([])
 })
 
-test('a battle survives a round trip through JSON', () => {
-  const battle = freshBattle(77)
+test('Should keep playing after a round trip through JSON', () => {
+  const battle = createBattle({
+    playerMon: aPokemon(4, 20),
+    wildMon: aPokemon(16, 10),
+    seed: 77,
+  })
+
   submitAction(battle, { type: 'move', index: 0 })
 
   const revived = JSON.parse(JSON.stringify(battle))
   const events = submitAction(revived, { type: 'move', index: 0 })
 
-  assert.ok(events.length > 0, 'should keep playing after being rehydrated')
+  expect(
+    events.length,
+    'should keep playing after being rehydrated',
+  ).toBeGreaterThan(0)
 })

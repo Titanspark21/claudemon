@@ -8,16 +8,10 @@ import {
   totalBalls,
 } from '../../state.mjs'
 import { VERSION } from '../../version.mjs'
-import {
-  bold,
-  brightGreen,
-  brightYellow,
-  dim,
-  gray,
-  visibleLength,
-} from '../ansi.mjs'
+import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
 import { bandRows, bandScale, grassLines } from '../grass.mjs'
 import { fitCanvasCols, loadSprite, placeSprite } from '../sprite.mjs'
+import { visibleLength } from '../text.mjs'
 import {
   centre,
   elapsed,
@@ -29,43 +23,52 @@ import {
   panel,
   wrap,
 } from '../widgets.mjs'
+import {
+  ACTIVITY_MESSAGES,
+  APP_TITLE,
+  BASE_MENU,
+  ENCOUNTER_MESSAGES,
+  FIGHT_MENU_LABEL,
+  GRASS_MESSAGES,
+  HOME_HINTS,
+  HOME_SPRITE_RESERVED_ROWS,
+  HOME_TEAM_PANEL_TITLE,
+  KANTO_TOTAL,
+  MAX_HOME_WIDTH,
+  MENU_CELL,
+  MON_NAME_WIDTH,
+  REST_MESSAGES,
+  TITLE_COLUMN_SPLIT,
+  UPDATE_NOTICES,
+  WALK_HINTS,
+} from './constants.mjs'
+import { clampSelection } from './helpers.mjs'
 
-const BASE_MENU = [
-  { id: 'dex', label: 'POKÉDEX' },
-  { id: 'team', label: 'TEAM' },
-  { id: 'shop', label: 'SHOP' },
-  { id: 'heal', label: 'HEAL' },
-  { id: 'options', label: 'OPTION' },
-  { id: 'quit', label: 'QUIT' },
-]
-
-const MENU_CELL = 10
-
-export function menuItems(ctx) {
+export const menuItems = (ctx) => {
   const base = isWorking(ctx.activity)
     ? BASE_MENU.map((item) =>
         item.id === 'heal' ? { ...item, disabled: true } : item,
       )
     : BASE_MENU
+
   if (!ctx.encounter) return base
 
   const fight = {
     id: 'fight',
-    label: 'FIGHT',
+    label: FIGHT_MENU_LABEL,
     disabled: !activePokemon(ctx.save),
   }
+
   return [fight, ...base]
 }
 
-export function countdownRow(encounter, now = Date.now()) {
-  const left = Math.max(
-    0,
-    Math.ceil(((encounter.expiresAt ?? now) - now) / 1000),
-  )
-  return dim(`it slips back into the grass in ${left}s`)
+export const countdownRow = (encounter, now = Date.now()) => {
+  const left = Math.max(0, Math.ceil((encounter.expiresAt - now) / 1000))
+
+  return dim(`${ENCOUNTER_MESSAGES.slipsBackIn} ${left}s`)
 }
 
-export function activityRow(activity, now = Date.now()) {
+export const activityRow = (activity, now = Date.now()) => {
   if (!activity || activity.state === 'unknown') return ''
 
   const age =
@@ -76,134 +79,147 @@ export function activityRow(activity, now = Date.now()) {
     activity.sessions > 1 ? dim(` (+${activity.sessions - 1})`) : ''
 
   if (activity.state === 'waiting') {
-    return `${brightYellow('◆')} ${bold('Claude needs you')}${others}${age}`
+    return `${brightYellow('◆')} ${bold(ACTIVITY_MESSAGES.waiting)}${others}${age}`
   }
 
   if (activity.state === 'working') {
     const tool = activity.tool ? ` ${dim('·')} ${activity.tool}` : ''
-    return `${brightGreen('●')} Claude is working${others}${tool}${age}`
+
+    return `${brightGreen('●')} ${ACTIVITY_MESSAGES.working}${others}${tool}${age}`
   }
 
-  return `${dim('○')} ${dim('Claude is idle')}${others}${age}`
+  return `${dim('○')} ${dim(ACTIVITY_MESSAGES.idle)}${others}${age}`
 }
 
-export function restRow(ctx) {
+export const restRow = (ctx) => {
   if (!isWorking(ctx.activity)) return ''
 
-  if (partyIsWipedOut(ctx.save)) {
-    return dim('Your team is down — HEAL comes back when Claude stops working.')
-  }
+  if (partyIsWipedOut(ctx.save)) return dim(REST_MESSAGES.wipedOut)
+
   if (!partyNeedsHealing(ctx.save)) return ''
 
-  return dim('HEAL is a rest — it comes back when Claude stops working.')
+  return dim(REST_MESSAGES.needsHealing)
 }
 
-export function updateRow(notice) {
+export const updateRow = (notice) => {
   if (!notice) return ''
 
   if (notice.kind === 'stale') {
-    return `${brightYellow('◆')} ${bold(`v${notice.version}`)} is installed ${dim('·')} ${dim('quit and run claudemon again')}`
+    return `${brightYellow('◆')} ${bold(`v${notice.version}`)} ${UPDATE_NOTICES.installed} ${dim('·')} ${dim(UPDATE_NOTICES.quitAndRun)}`
   }
-  return `${brightYellow('◆')} ${bold(`v${notice.version}`)} is out ${dim('·')} ${brightGreen('[u]')} ${dim('update')}`
+
+  return `${brightYellow('◆')} ${bold(`v${notice.version}`)} ${UPDATE_NOTICES.available} ${dim('·')} ${brightGreen('[u]')} ${dim(UPDATE_NOTICES.update)}`
 }
 
-export function footerRow(cols, version = VERSION) {
-  const hints = ' ← → choose · [enter] open · [q] quit'
-  if (!version) return dim(hints)
+export const footerRow = (cols, version = VERSION) => {
+  if (!version) return dim(HOME_HINTS)
 
   const tag = `v${version} `
-  const gap = cols - visibleLength(hints) - visibleLength(tag)
-  if (gap < 1) return dim(hints)
+  const gap = cols - visibleLength(HOME_HINTS) - visibleLength(tag)
 
-  return dim(hints + ' '.repeat(gap) + tag)
+  if (gap < 1) return dim(HOME_HINTS)
+
+  return dim(HOME_HINTS + ' '.repeat(gap) + tag)
 }
 
-export function draw(ctx, size) {
+const pushEncounterField = (lines, ctx, encounter, size) => {
+  const { cols } = size
+
+  lines.push(
+    centre(
+      `${brightYellow('✦')} ${bold(`${ENCOUNTER_MESSAGES.wild} ${encounter.name.toUpperCase()}`)} ${ENCOUNTER_MESSAGES.appeared}`,
+      cols,
+    ),
+  )
+  lines.push(centre(countdownRow(encounter), cols))
+  lines.push('')
+
+  const sprite = loadSprite(spriteFile('front', encounter.species, 'png'), {
+    cols: fitCanvasCols(size, HOME_SPRITE_RESERVED_ROWS, ctx.spriteScale),
+  })
+
+  if (sprite)
+    placeSprite(
+      lines,
+      sprite,
+      Math.max(1, Math.floor((cols - sprite.cols) / 2)),
+    )
+
+  const grassAt = lines.length
+
+  lines.push('')
+  lines.push(
+    centre(`${brightGreen('[enter]')} ${ENCOUNTER_MESSAGES.face}`, cols),
+  )
+
+  return grassAt
+}
+
+const pushQuietField = (lines, working, cols) => {
+  lines.push('')
+  lines.push(
+    centre(dim(working ? GRASS_MESSAGES.rustling : GRASS_MESSAGES.quiet), cols),
+  )
+  lines.push('')
+
+  const grassAt = lines.length
+
+  lines.push('')
+  lines.push(centre(dim(working ? WALK_HINTS.working : WALK_HINTS.idle), cols))
+
+  return grassAt
+}
+
+export const draw = (ctx, size) => {
   const { cols, rows } = size
   const lines = []
   const overlays = []
-  const width = Math.min(cols - 2, 72)
+  const width = Math.min(cols - 2, MAX_HOME_WIDTH)
 
   const encounter = ctx.encounter
   const lead = ctx.save.party[0]
+  const working = ctx.activity.state === 'working'
 
-  let grassAt
-
-  const title = `${brightYellow('◓')} ${bold('claudemon')}`
+  const title = `${brightYellow('◓')} ${bold(APP_TITLE)}`
   const summary = dim(
-    `${ctx.save.dex.caught.length}/151 caught · ${totalBalls(ctx.save)} balls · ${money(ctx.save.money)}`,
+    `${ctx.save.dex.caught.length}/${KANTO_TOTAL} caught · ${totalBalls(ctx.save)} balls · ${money(ctx.save.money)}`,
   )
-  lines.push(` ${padRight(title, width - 40)}${summary}`)
+
+  lines.push(` ${padRight(title, width - TITLE_COLUMN_SPLIT)}${summary}`)
 
   const activity = activityRow(ctx.activity)
+
   lines.push(activity ? ` ${activity}` : '')
 
   const update = updateRow(ctx.updateNotice)
+
   if (update) lines.push(` ${update}`)
 
-  if (encounter) {
-    lines.push(
-      centre(
-        `${brightYellow('✦')} ${bold(`A wild ${encounter.name.toUpperCase()}`)} appeared!`,
-        cols,
-      ),
-    )
-    lines.push(centre(countdownRow(encounter), cols))
-    lines.push('')
-
-    const sprite = loadSprite(spriteFile('front', encounter.species, 'png'), {
-      cols: fitCanvasCols(size, 16, ctx.spriteScale),
-    })
-    if (sprite)
-      placeSprite(
-        lines,
-        sprite,
-        Math.max(1, Math.floor((cols - sprite.cols) / 2)),
-      )
-    grassAt = lines.length
-    lines.push('')
-    lines.push(centre(`${brightGreen('[enter]')} face it`, cols))
-  } else {
-    lines.push('')
-    const working = ctx.activity?.state === 'working'
-    lines.push(
-      centre(
-        dim(working ? 'Rustling in the grass...' : 'The grass is quiet.'),
-        cols,
-      ),
-    )
-    lines.push('')
-    grassAt = lines.length
-    lines.push('')
-    lines.push(
-      centre(
-        dim(
-          working
-            ? 'Every moment Claude works is a step further in.'
-            : 'Keep working in Claude Code — longer prompts walk further.',
-        ),
-        cols,
-      ),
-    )
-  }
+  const grassAt = encounter
+    ? pushEncounterField(lines, ctx, encounter, size)
+    : pushQuietField(lines, working, cols)
 
   lines.push('')
+
   if (lead) {
     const party = ctx.save.party.map((mon) => {
       const name = isFainted(mon)
         ? gray(displayName(mon).toUpperCase())
         : displayName(mon).toUpperCase()
-      return `${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)} ${hpBar(
+
+      return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)} ${hpBar(
         mon.hp,
         mon.stats.hp,
         10,
       )}`
     })
-    for (const line of panel(party, width, { title: 'Team' }))
+
+    for (const line of panel(party, width, { title: HOME_TEAM_PANEL_TITLE }))
       lines.push(` ${line}`)
   }
 
   const rest = restRow(ctx)
+
   if (rest) lines.push(` ${rest}`)
 
   const items = menuItems(ctx)
@@ -216,48 +232,50 @@ export function draw(ctx, size) {
   })
 
   const scale = bandScale(size)
-  if (
-    grassAt >= 0 &&
-    rows - 3 - menuRows.length - lines.length >= bandRows(scale)
-  ) {
+
+  if (rows - 3 - menuRows.length - lines.length >= bandRows(scale)) {
     const band = grassLines({
       cols: width,
-      step: ctx.scene?.step ?? 0,
-      walking: !encounter && ctx.activity?.state === 'working',
+      step: ctx.scene.step,
+      walking: !encounter && working,
       scale,
     })
     lines.splice(grassAt, 0, ...band.map((row) => ` ${row}`))
   }
 
   while (lines.length < rows - 3 - menuRows.length) lines.push('')
+
   for (const row of menuRows) lines.push(` ${row}`)
+
   lines.push(footerRow(cols))
 
   return { lines, overlays }
 }
 
-export function onKey(ctx, key) {
+export const onKey = (ctx, key) => {
   if (key.name === 'u' && ctx.updateNotice?.kind === 'available') {
     ctx.startUpdate()
     return
   }
 
   const items = menuItems(ctx)
-  ctx.homeSelection = Math.min(Math.max(0, ctx.homeSelection), items.length - 1)
+  ctx.homeSelection = clampSelection(ctx.homeSelection, items.length)
 
   if (key.name === 'left' || key.name === 'right') {
     ctx.homeSelection = wrap(
       ctx.homeSelection + (key.name === 'left' ? -1 : 1),
       items.length,
     )
-    ctx.playSound?.('cursor')
+    ctx.playSound('cursor')
   } else if (key.name === 'enter' || key.name === 'space') {
     const item = items[ctx.homeSelection]
+
     if (item.disabled) {
-      ctx.playSound?.('back')
+      ctx.playSound('back')
       return
     }
-    ctx.playSound?.('select')
+
+    ctx.playSound('select')
     ctx.openHomeSelection(item.id)
   } else if (key.name === 'q') {
     ctx.quit()

@@ -5,7 +5,16 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { BALLS } from './capture.mjs'
+import {
+  BALLS,
+  EMPTY_STATS,
+  PARTY_LIMIT,
+  SAVE_VERSION,
+  STARTER_CAUGHT_COUNT,
+  STARTER_LEVEL,
+  STARTING_BAG,
+  STARTING_MONEY,
+} from './constants.mjs'
 import { HOME, SAVE_FILE } from './paths.mjs'
 import {
   createPokemon,
@@ -17,87 +26,93 @@ import {
 } from './pokemon.mjs'
 import { writeStatus } from './status.mjs'
 import { countOf } from './shop.mjs'
+import {
+  transformRequestSaveGame,
+  transformResponseSave,
+} from './transformers.mjs'
 
-export const SAVE_VERSION = 1
-export const PARTY_LIMIT = 6
-export const STARTERS = [1, 4, 7]
-
-export function createSave({ trainer, starterId, rng }) {
-  const starter = createPokemon(starterId, 5, rng)
+export const createSave = ({ trainer, starterId, rng }) => {
+  const starter = createPokemon(starterId, STARTER_LEVEL, rng)
 
   return {
     version: SAVE_VERSION,
     trainer: { name: trainer, startedAt: new Date().toISOString() },
     party: [starter],
     box: [],
-    bag: { 'poke-ball': 5, potion: 3 },
-    money: 3000,
+    bag: { ...STARTING_BAG },
+    money: STARTING_MONEY,
     dex: { seen: [starterId], caught: [starterId], faced: {} },
-    stats: { battles: 0, wins: 0, losses: 0, caught: 1, runs: 0 },
+    stats: { ...EMPTY_STATS, caught: STARTER_CAUGHT_COUNT },
   }
 }
 
-export function loadSave() {
-  try {
-    const save = JSON.parse(readFileSync(SAVE_FILE, 'utf8'))
-    return migrate(save)
-  } catch {
-    return null
-  }
+export const markSeen = (save, speciesId) => {
+  if (!save.dex.seen.includes(speciesId)) save.dex.seen.push(speciesId)
+
+  return save
 }
 
-function migrate(save) {
-  save.version ??= SAVE_VERSION
-  save.party ??= []
-  save.box ??= []
-  save.bag ??= {}
-  save.money ??= 0
-  save.dex ??= { seen: [], caught: [] }
-  save.dex.seen ??= []
-  save.dex.caught ??= []
-  save.dex.faced ??= {}
-  save.stats ??= { battles: 0, wins: 0, losses: 0, caught: 0, runs: 0 }
+export const timesFaced = (save, speciesId) => {
+  return save.dex.faced[speciesId] ?? 0
+}
 
+export const markFaced = (save, speciesId) => {
+  markSeen(save, speciesId)
+
+  save.dex.faced[speciesId] = timesFaced(save, speciesId) + 1
+
+  return save
+}
+
+export const markCaught = (save, speciesId) => {
+  markSeen(save, speciesId)
+
+  if (!save.dex.caught.includes(speciesId)) save.dex.caught.push(speciesId)
+
+  return save
+}
+
+const migrate = (save) => {
   for (const mon of [...save.party, ...save.box]) markCaught(save, mon.species)
 
   for (const mon of [...save.party, ...save.box]) refreshStats(mon)
 
   save.version = SAVE_VERSION
+
   return save
 }
 
-export function saveGame(save) {
-  mkdirSync(HOME, { recursive: true })
-  const tmp = `${SAVE_FILE}.${process.pid}.tmp`
+const readSaveFile = () => {
   try {
-    writeFileSync(tmp, JSON.stringify(save))
-    renameSync(tmp, SAVE_FILE)
-  } catch (error) {
-    try {
-      unlinkSync(tmp)
-    } catch {}
-    throw error
+    return JSON.parse(readFileSync(SAVE_FILE, 'utf8'))
+  } catch {
+    return null
   }
-  try {
-    publishStatus(save)
-  } catch {}
-  return save
 }
 
-export function activePokemon(save) {
+export const loadSave = () => {
+  const save = transformResponseSave(readSaveFile())
+
+  if (!save) return null
+
+  return migrate(save)
+}
+
+export const activePokemon = (save) => {
   return save.party.find((mon) => !isFainted(mon)) ?? null
 }
 
-export function partyIsWipedOut(save) {
+export const partyIsWipedOut = (save) => {
   return save.party.length > 0 && save.party.every(isFainted)
 }
 
-export function healParty(save) {
+export const healParty = (save) => {
   for (const mon of save.party) healFully(mon)
+
   return save
 }
 
-export function partyNeedsHealing(save) {
+export const partyNeedsHealing = (save) => {
   return save.party.some(
     (mon) =>
       mon.hp < mon.stats.hp ||
@@ -106,80 +121,100 @@ export function partyNeedsHealing(save) {
   )
 }
 
-export function markSeen(save, speciesId) {
-  if (!save.dex.seen.includes(speciesId)) save.dex.seen.push(speciesId)
-  return save
-}
-
-export function markFaced(save, speciesId) {
-  markSeen(save, speciesId)
-  save.dex.faced ??= {}
-  save.dex.faced[speciesId] = timesFaced(save, speciesId) + 1
-  return save
-}
-
-export function timesFaced(save, speciesId) {
-  return save.dex?.faced?.[speciesId] ?? 0
-}
-
-export function markCaught(save, speciesId) {
-  markSeen(save, speciesId)
-  if (!save.dex.caught.includes(speciesId)) save.dex.caught.push(speciesId)
-  return save
-}
-
-export function addPokemon(save, mon) {
-  markCaught(save, mon.species)
-  save.stats.caught++
-
-  if (save.party.length < PARTY_LIMIT) {
-    save.party.push(mon)
-    return 'party'
-  }
-  save.box.push(mon)
-  return 'box'
-}
-
-export function withdrawPokemon(save, index) {
-  if (index < 0 || index >= save.box.length) return false
-  if (save.party.length >= PARTY_LIMIT) return false
-
-  const [mon] = save.box.splice(index, 1)
-  save.party.push(mon)
-  return true
-}
-
-export function depositPokemon(save, index) {
-  if (index < 0 || index >= save.party.length) return false
-  if (save.party.length <= 1) return false
-
-  const [mon] = save.party.splice(index, 1)
-  save.box.push(mon)
-  return true
-}
-
-export function setLead(save, index) {
-  if (index <= 0 || index >= save.party.length) return save
-  const [mon] = save.party.splice(index, 1)
-  save.party.unshift(mon)
-  return save
-}
-
-export function totalBalls(save) {
+export const totalBalls = (save) => {
   return Object.keys(BALLS).reduce(
     (total, key) => total + countOf(save, key),
     0,
   )
 }
 
-export function publishStatus(save, extra = {}) {
-  const lead = activePokemon(save) ?? save.party[0] ?? null
+const getLead = (save) => {
+  if (!save.party.length) return null
 
+  return activePokemon(save) ?? save.party[0]
+}
+
+const describeLead = (lead) => {
+  if (!lead) return null
+
+  return { name: displayName(lead), level: levelOf(lead) }
+}
+
+export const publishStatus = (save) => {
   writeStatus({
-    lead: lead ? { name: displayName(lead), level: levelOf(lead) } : null,
+    lead: describeLead(getLead(save)),
     balls: totalBalls(save),
     money: save.money,
     caught: save.dex.caught.length,
-    ...extra,
   })
+}
+
+export const saveGame = (save) => {
+  mkdirSync(HOME, { recursive: true })
+
+  const tmp = `${SAVE_FILE}.${process.pid}.tmp`
+
+  try {
+    writeFileSync(tmp, JSON.stringify(transformRequestSaveGame(save)))
+    renameSync(tmp, SAVE_FILE)
+  } catch (error) {
+    try {
+      unlinkSync(tmp)
+    } catch {}
+
+    throw error
+  }
+
+  try {
+    publishStatus(save)
+  } catch {}
+
+  return save
+}
+
+export const addPokemon = (save, mon) => {
+  markCaught(save, mon.species)
+  save.stats.caught++
+
+  if (save.party.length < PARTY_LIMIT) {
+    save.party.push(mon)
+
+    return 'party'
+  }
+
+  save.box.push(mon)
+
+  return 'box'
+}
+
+export const withdrawPokemon = (save, index) => {
+  if (index < 0 || index >= save.box.length) return false
+  if (save.party.length >= PARTY_LIMIT) return false
+
+  const [mon] = save.box.splice(index, 1)
+
+  save.party.push(mon)
+
+  return true
+}
+
+export const depositPokemon = (save, index) => {
+  if (index < 0 || index >= save.party.length) return false
+  if (save.party.length <= 1) return false
+
+  const [mon] = save.party.splice(index, 1)
+
+  save.box.push(mon)
+
+  return true
+}
+
+export const setLead = (save, index) => {
+  if (index <= 0 || index >= save.party.length) return save
+
+  const [mon] = save.party.splice(index, 1)
+
+  save.party.unshift(mon)
+
+  return save
 }

@@ -1,27 +1,27 @@
-import { test } from 'vitest'
-import assert from 'node:assert/strict'
+import { expect, test, vi } from 'vitest'
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
-  symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const sandbox = mkdtempSync(join(tmpdir(), 'claudemon-update-'))
-const realData = join(
-  process.env.CLAUDEMON_HOME || join(homedir(), '.claudemon'),
-  'data',
-)
-if (existsSync(realData)) symlinkSync(realData, join(sandbox, 'data'))
-process.env.CLAUDEMON_HOME = sandbox
+import { useSandboxHome } from './sandboxHome.mjs'
+
+const sandbox = useSandboxHome('claudemon-update-')
 
 const {
   CHECK_INTERVAL_MS,
+  DEFAULT_CONFIG,
+  SHIM_MARKER,
+  UPDATE_FAILURE_MESSAGES,
+} = await import('../src/constants.mjs')
+const {
+  MANIFEST_URL,
   checkForUpdate,
   createUpdateRun,
   dueForCheck,
@@ -39,132 +39,163 @@ const {
   newestInstalled,
   versionAt,
 } = await import('../src/version.mjs')
-const { DEFAULT_CONFIG, updateCheckMode } = await import('../src/config.mjs')
+const { updateCheckMode } = await import('../src/config.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
 const updateView = await import('../src/ui/views/update.mjs')
-const { visibleLength } = await import('../src/ui/ansi.mjs')
+const { visibleLength } = await import('../src/ui/text.mjs')
 const { pointsElsewhere, relinkLaunchers, shimSource } =
   await import('../src/shim.mjs')
 
-function fakeCache(...versions) {
+const servingVersion = (version) => {
+  return vi.fn(async () => {
+    return {
+      ok: true,
+      text: async () => JSON.stringify({ name: 'claudemon', version }),
+    }
+  })
+}
+
+const refusing = () => {
+  return vi.fn(async () => {
+    throw new Error('ECONNREFUSED')
+  })
+}
+
+const askedTheManifest = () => {
+  return [
+    MANIFEST_URL,
+    expect.objectContaining({ headers: { accept: 'application/json' } }),
+  ]
+}
+
+const fakeCache = (...versions) => {
   const cache = mkdtempSync(join(tmpdir(), 'claudemon-cache-'))
+
   for (const version of versions)
     mkdirSync(join(cache, version), { recursive: true })
+
   return cache
 }
 
 const updateFile = (name) => join(sandbox, `${name}.json`)
 
-const servingVersion = (version) => async () => ({
-  ok: true,
-  text: async () => JSON.stringify({ name: 'claudemon', version }),
-})
-
-const refusing = () => async () => {
-  throw new Error('ECONNREFUSED')
+const stepNamed = (id, index) => {
+  return {
+    id,
+    label: `doing ${id}`,
+    done: `did ${id}`,
+    plan: () => ({ command: 'true', args: [id], timeoutMs: 1000, index }),
+  }
 }
 
-test('versions compare by number, not by string', () => {
-  assert.ok(compareVersions('0.10.0', '0.9.0') > 0, '10 is past 9')
-  assert.ok(compareVersions('1.0.0', '0.99.99') > 0)
-  assert.equal(compareVersions('0.5.0', '0.5.0'), 0)
-  assert.ok(compareVersions('0.5.0', '0.6.0') < 0)
+const ranSteps = (exec) => exec.mock.calls.map(([step]) => step.args[0])
+
+const CACHE = '/home/someone/.claude/plugins/cache/claudemon/claudemon'
+
+const launcherInstalledFrom = (root) => {
+  return `#!/bin/sh\n# ${SHIM_MARKER} — rerun it rather than editing this.\napp="${root}"\n`
+}
+
+test('Should compare versions by number and not as strings', () => {
+  expect(compareVersions('0.10.0', '0.9.0'), '10 is past 9').toBeGreaterThan(0)
+  expect(compareVersions('1.0.0', '0.99.99')).toBeGreaterThan(0)
+  expect(compareVersions('0.5.0', '0.5.0')).toBe(0)
+  expect(compareVersions('0.5.0', '0.6.0')).toBeLessThan(0)
 })
 
-test('a shorter version is the same as one padded with zeroes', () => {
-  assert.equal(compareVersions('1', '1.0.0'), 0)
-  assert.equal(compareVersions('1.2', '1.2.0'), 0)
-  assert.ok(compareVersions('1.2.1', '1.2') > 0)
+test('Should read a shorter version as the same as one padded with zeroes', () => {
+  expect(compareVersions('1', '1.0.0')).toBe(0)
+  expect(compareVersions('1.2', '1.2.0')).toBe(0)
+  expect(compareVersions('1.2.1', '1.2')).toBeGreaterThan(0)
 })
 
-test('nonsense in a version compares as zero rather than throwing', () => {
-  assert.equal(compareVersions('', ''), 0)
-  assert.equal(compareVersions(undefined, null), 0)
-  assert.equal(compareVersions('0.x.0', '0.0.0'), 0)
+test('Should compare nonsense in a version as zero rather than throwing', () => {
+  expect(compareVersions('', '')).toBe(0)
+  expect(compareVersions(undefined, null)).toBe(0)
+  expect(compareVersions('0.x.0', '0.0.0')).toBe(0)
 })
 
-test('nothing is newer than an unknown version, in either direction', () => {
-  assert.equal(isNewer(null, '0.5.0'), false)
-  assert.equal(isNewer('0.6.0', null), false)
-  assert.equal(isNewer('0.6.0', '0.5.0'), true)
-  assert.equal(isNewer('0.5.0', '0.5.0'), false)
+test('Should call nothing newer than an unknown version, in either direction', () => {
+  expect(isNewer(null, '0.5.0')).toBe(false)
+  expect(isNewer('0.6.0', null)).toBe(false)
+  expect(isNewer('0.6.0', '0.5.0')).toBe(true)
+  expect(isNewer('0.5.0', '0.5.0')).toBe(false)
 })
 
-test('this copy knows its own version, and it is the manifest that says so', () => {
+test('Should know its own version, and it is the manifest that says so', () => {
   const path = fileURLToPath(
     new URL('../.claude-plugin/plugin.json', import.meta.url),
   )
-  assert.equal(VERSION, JSON.parse(readFileSync(path, 'utf8')).version)
-  assert.match(VERSION, /^\d+\.\d+\.\d+$/)
+
+  expect(VERSION).toBe(JSON.parse(readFileSync(path, 'utf8')).version)
+  expect(VERSION).toMatch(/^\d+\.\d+\.\d+$/)
 })
 
-test('a directory with no manifest has no version, rather than a made-up one', () => {
-  assert.equal(versionAt(sandbox), null)
+test('Should give a directory with no manifest no version, rather than a made-up one', () => {
+  expect(versionAt(sandbox)).toBeNull()
 })
 
-test('installed copies come back newest first', () => {
+test('Should list the installed copies newest first', () => {
   const cache = fakeCache('0.5.0', '0.10.0', '0.9.0')
-  assert.deepEqual(installedVersions(cache), ['0.10.0', '0.9.0', '0.5.0'])
-  assert.equal(newestInstalled(cache), '0.10.0')
+
+  expect(installedVersions(cache)).toEqual(['0.10.0', '0.9.0', '0.5.0'])
+  expect(newestInstalled(cache)).toBe('0.10.0')
 })
 
-test('anything in the cache that is not a version is ignored', () => {
-  const cache = fakeCache('0.5.0', 'scratch', '.tmp')
-  assert.deepEqual(installedVersions(cache), ['0.5.0'])
+test('Should ignore anything in the cache that is not a version', () => {
+  expect(installedVersions(fakeCache('0.5.0', 'scratch', '.tmp'))).toEqual([
+    '0.5.0',
+  ])
 })
 
-test('a missing cache is no copies rather than an error', () => {
-  assert.deepEqual(installedVersions(join(sandbox, 'nothing-here')), [])
-  assert.equal(newestInstalled(join(sandbox, 'nothing-here')), null)
+test('Should read a missing cache as no copies rather than an error', () => {
+  expect(installedVersions(join(sandbox, 'nothing-here'))).toEqual([])
+  expect(newestInstalled(join(sandbox, 'nothing-here'))).toBeNull()
 })
 
-test('a copy inside the plugin cache is a plugin, and anything else is a clone', () => {
-  const cache = '/home/someone/.claude/plugins/cache/claudemon/claudemon'
-  assert.equal(isPluginCopy(`${cache}/0.5.0`, cache), true)
-  assert.equal(isPluginCopy(cache, cache), true)
-  assert.equal(isPluginCopy('/home/someone/code/claudemon', cache), false)
-  assert.equal(isPluginCopy(`${cache}-old/0.5.0`, cache), false)
+test('Should call a copy inside the plugin cache a plugin, and anything else a clone', () => {
+  expect(isPluginCopy(`${CACHE}/0.5.0`, CACHE)).toBe(true)
+  expect(isPluginCopy(CACHE, CACHE)).toBe(true)
+  expect(isPluginCopy('/home/someone/code/claudemon', CACHE)).toBe(false)
+  expect(isPluginCopy(`${CACHE}-old/0.5.0`, CACHE)).toBe(false)
 })
 
-test('a plugin copy is recognised whatever the path separator', () => {
+test('Should recognise a plugin copy whatever the path separator', () => {
   const cache =
     'C:\\Users\\someone\\.claude\\plugins\\cache\\claudemon\\claudemon'
-  assert.equal(isPluginCopy(`${cache}\\0.5.0`, cache), true)
-  assert.equal(isPluginCopy(`${cache}/0.5.0`, cache), true)
-  assert.equal(isPluginCopy(`${cache}-old\\0.5.0`, cache), false)
+
+  expect(isPluginCopy(`${cache}\\0.5.0`, cache)).toBe(true)
+  expect(isPluginCopy(`${cache}/0.5.0`, cache)).toBe(true)
+  expect(isPluginCopy(`${cache}-old\\0.5.0`, cache)).toBe(false)
 })
 
-test('a check is due when there has never been one', () => {
-  assert.equal(dueForCheck({}), true)
-  assert.equal(dueForCheck({ checkedAt: 'not a date' }), true)
+test('Should call a check due when there has never been one', () => {
+  expect(dueForCheck({})).toBe(true)
+  expect(dueForCheck({ checkedAt: 'not a date' })).toBe(true)
 })
 
-test('a check is not due again for a day', () => {
+test('Should not call a check due again for a day', () => {
   const now = Date.parse('2026-03-01T12:00:00.000Z')
   const state = { checkedAt: new Date(now).toISOString() }
 
-  assert.equal(dueForCheck(state, now + 60_000), false)
-  assert.equal(dueForCheck(state, now + CHECK_INTERVAL_MS - 1000), false)
-  assert.equal(dueForCheck(state, now + CHECK_INTERVAL_MS), true)
+  expect(dueForCheck(state, now + 60_000)).toBe(false)
+  expect(dueForCheck(state, now + CHECK_INTERVAL_MS - 1000)).toBe(false)
+  expect(dueForCheck(state, now + CHECK_INTERVAL_MS)).toBe(true)
 })
 
-test('a stamp from the future counts as due', () => {
+test('Should count a stamp from the future as due', () => {
   const now = Date.parse('2026-03-01T12:00:00.000Z')
   const state = {
     checkedAt: new Date(now + CHECK_INTERVAL_MS * 10).toISOString(),
   }
-  assert.equal(dueForCheck(state, now), true)
+
+  expect(dueForCheck(state, now)).toBe(true)
 })
 
-test('a check records what it found, and does not ask again the same day', async () => {
+test('Should record what a check found, and not ask again the same day', async () => {
   const file = updateFile('found')
   const now = Date.parse('2026-03-01T12:00:00.000Z')
-  let calls = 0
-  const serve = servingVersion('9.9.9')
-  const fetchImpl = (...args) => {
-    calls++
-    return serve(...args)
-  }
+  const fetchImpl = servingVersion('9.9.9')
 
   const first = await checkForUpdate({
     config: DEFAULT_CONFIG,
@@ -172,9 +203,11 @@ test('a check records what it found, and does not ask again the same day', async
     file,
     fetchImpl,
   })
-  assert.equal(first.latest, '9.9.9')
-  assert.equal(calls, 1)
-  assert.equal(readUpdateState(file).latest, '9.9.9')
+
+  expect(first.latest).toBe('9.9.9')
+  expect(fetchImpl).toHaveBeenCalledTimes(1)
+  expect(fetchImpl).toHaveBeenCalledWith(...askedTheManifest())
+  expect(readUpdateState(file).latest).toBe('9.9.9')
 
   const second = await checkForUpdate({
     config: DEFAULT_CONFIG,
@@ -182,8 +215,9 @@ test('a check records what it found, and does not ask again the same day', async
     file,
     fetchImpl,
   })
-  assert.equal(second.latest, '9.9.9')
-  assert.equal(calls, 1, 'the cached answer was reused')
+
+  expect(second.latest).toBe('9.9.9')
+  expect(fetchImpl, 'the cached answer was reused').toHaveBeenCalledTimes(1)
 
   await checkForUpdate({
     config: DEFAULT_CONFIG,
@@ -191,31 +225,29 @@ test('a check records what it found, and does not ask again the same day', async
     file,
     fetchImpl,
   })
-  assert.equal(calls, 2, 'a day later it asked again')
+
+  expect(fetchImpl, 'a day later it asked again').toHaveBeenCalledTimes(2)
 })
 
-test('the three modes are what is on disk, and anything else is the default', () => {
-  assert.equal(updateCheckMode(DEFAULT_CONFIG), 'daily')
-  assert.equal(updateCheckMode({ updateCheck: true }), 'daily')
-  assert.equal(updateCheckMode({ updateCheck: 'launch' }), 'launch')
-  assert.equal(updateCheckMode({ updateCheck: false }), 'off')
-  assert.equal(updateCheckMode({ updateCheck: 'yes' }), 'daily')
-  assert.equal(updateCheckMode({}), 'daily')
-  assert.equal(updateCheckMode(), 'daily')
+test('Should read the three modes off the disk, and treat anything else as the default', () => {
+  expect(updateCheckMode(DEFAULT_CONFIG)).toBe('daily')
+  expect(updateCheckMode({ updateCheck: true })).toBe('daily')
+  expect(updateCheckMode({ updateCheck: 'launch' })).toBe('launch')
+  expect(updateCheckMode({ updateCheck: false })).toBe('off')
+  expect(updateCheckMode({ updateCheck: 'yes' })).toBe('daily')
+  expect(updateCheckMode({})).toBe('daily')
+  expect(updateCheckMode()).toBe('daily')
 })
 
-test('a forced check asks even though the last one was minutes ago', async () => {
+test('Should ask again on a forced check even though the last one was minutes ago', async () => {
   const file = updateFile('forced')
   const now = Date.parse('2026-03-01T12:00:00.000Z')
-  let calls = 0
-  const fetchImpl = (...args) => {
-    calls++
-    return servingVersion('9.9.9')(...args)
-  }
+  const fetchImpl = servingVersion('9.9.9')
   const config = { ...DEFAULT_CONFIG, updateCheck: 'launch' }
 
   await checkForUpdate({ config, now, file, fetchImpl })
-  assert.equal(calls, 1)
+
+  expect(fetchImpl).toHaveBeenCalledTimes(1)
 
   const again = await checkForUpdate({
     config,
@@ -224,67 +256,62 @@ test('a forced check asks even though the last one was minutes ago', async () =>
     fetchImpl,
     force: true,
   })
-  assert.equal(calls, 2, 'it asked again rather than reading the cache')
-  assert.equal(again.latest, '9.9.9')
-  assert.equal(again.checkedAt, new Date(now + 60_000).toISOString())
 
-  await checkForUpdate({ config, now: now + 120_000, file, fetchImpl })
-  assert.equal(calls, 2)
-})
-
-test('forcing a check does not override the check being switched off', async () => {
-  const file = updateFile('forced-off')
-  let calls = 0
-  const fetchImpl = (...args) => {
-    calls++
-    return servingVersion('9.9.9')(...args)
-  }
-
-  const state = await checkForUpdate({
-    config: { ...DEFAULT_CONFIG, updateCheck: false },
-    file,
+  expect(
     fetchImpl,
-    force: true,
-  })
-  assert.equal(calls, 0)
-  assert.deepEqual(state, {})
-  assert.equal(existsSync(file), false)
+    'it asked again rather than reading the cache',
+  ).toHaveBeenCalledTimes(2)
+  expect(again.latest).toBe('9.9.9')
+  expect(again.checkedAt, 'and the stamp moved with it').toBe(
+    new Date(now + 60_000).toISOString(),
+  )
 })
 
-test('the check switched off never asks, whatever the cache says', async () => {
+test('Should never ask when the check is switched off, not even when it is forced', async () => {
   const file = updateFile('off')
-  let calls = 0
-  const fetchImpl = (...args) => {
-    calls++
-    return servingVersion('9.9.9')(...args)
-  }
+  const fetchImpl = servingVersion('9.9.9')
+  const config = { ...DEFAULT_CONFIG, updateCheck: false }
 
-  const state = await checkForUpdate({
-    config: { ...DEFAULT_CONFIG, updateCheck: false },
+  const nothing = await checkForUpdate({ config, file, fetchImpl })
+
+  expect(nothing, 'nothing was learned').toBeNull()
+  expect(existsSync(file), 'and nothing was written').toBe(false)
+
+  writeFileSync(
     file,
-    fetchImpl,
-  })
-  assert.equal(calls, 0)
-  assert.deepEqual(state, {}, 'nothing was learned')
-  assert.equal(existsSync(file), false, 'and nothing was written')
+    JSON.stringify({
+      checkedAt: '2026-03-01T12:00:00.000Z',
+      latest: '9.9.9',
+      error: null,
+    }),
+  )
+
+  const cached = await checkForUpdate({ config, file, fetchImpl, force: true })
+
+  expect(cached.latest, 'the cache still answers').toBe('9.9.9')
+  expect(fetchImpl).not.toHaveBeenCalled()
 })
 
-test('a failed check is remembered so it is not retried every launch', async () => {
+test('Should remember a failed check so it is not retried every launch', async () => {
   const file = updateFile('refused')
   const now = Date.parse('2026-03-01T12:00:00.000Z')
+  const fetchImpl = refusing()
 
   const state = await checkForUpdate({
     config: DEFAULT_CONFIG,
     now,
     file,
-    fetchImpl: refusing(),
+    fetchImpl,
   })
-  assert.match(state.error, /ECONNREFUSED/)
-  assert.equal(state.checkedAt, new Date(now).toISOString())
-  assert.equal(dueForCheck(readUpdateState(file), now + 60_000), false)
+
+  expect(fetchImpl).toHaveBeenCalledTimes(1)
+  expect(fetchImpl).toHaveBeenCalledWith(...askedTheManifest())
+  expect(state.error).toMatch(/ECONNREFUSED/)
+  expect(state.checkedAt).toBe(new Date(now).toISOString())
+  expect(dueForCheck(readUpdateState(file), now + 60_000)).toBe(false)
 })
 
-test('a failed check does not unlearn what the last one found', async () => {
+test('Should not unlearn what the last check found when a check fails', async () => {
   const file = updateFile('keeps')
   const now = Date.parse('2026-03-01T12:00:00.000Z')
 
@@ -294,6 +321,7 @@ test('a failed check does not unlearn what the last one found', async () => {
     file,
     fetchImpl: servingVersion('9.9.9'),
   })
+
   const after = await checkForUpdate({
     config: DEFAULT_CONFIG,
     now: now + CHECK_INTERVAL_MS,
@@ -301,132 +329,128 @@ test('a failed check does not unlearn what the last one found', async () => {
     fetchImpl: refusing(),
   })
 
-  assert.equal(
+  expect(
     after.latest,
-    '9.9.9',
     'still the newest version anyone here has heard of',
-  )
-  assert.ok(after.error)
+  ).toBe('9.9.9')
+  expect(after.error).toMatch(/ECONNREFUSED/)
 })
 
-test('a manifest that is not one is a failure, not a version', async () => {
-  await assert.rejects(
-    () =>
-      fetchLatestVersion({
-        fetchImpl: async () => ({
-          ok: true,
-          text: async () => '{"name":"claudemon"}',
-        }),
-      }),
-    /no version/,
-  )
-  await assert.rejects(
-    () =>
-      fetchLatestVersion({
-        fetchImpl: async () => ({ ok: false, status: 404 }),
-      }),
+test('Should fail rather than name a version when the manifest is not one', async () => {
+  const withoutVersion = vi.fn(async () => {
+    return { ok: true, text: async () => '{"name":"claudemon"}' }
+  })
+  const notFound = vi.fn(async () => {
+    return { ok: false, status: 404 }
+  })
+  const notJson = vi.fn(async () => {
+    return { ok: true, text: async () => 'not json' }
+  })
+
+  await expect(
+    fetchLatestVersion({ fetchImpl: withoutVersion }),
+  ).rejects.toThrow(/no version/)
+  await expect(fetchLatestVersion({ fetchImpl: notFound })).rejects.toThrow(
     /404/,
   )
-  await assert.rejects(() =>
-    fetchLatestVersion({
-      fetchImpl: async () => ({ ok: true, text: async () => 'not json' }),
-    }),
-  )
+  await expect(fetchLatestVersion({ fetchImpl: notJson })).rejects.toThrow()
+
+  expect(withoutVersion).toHaveBeenCalledWith(...askedTheManifest())
+  expect(notFound).toHaveBeenCalledTimes(1)
+  expect(notJson).toHaveBeenCalledTimes(1)
 })
 
-test('a corrupt cache file is treated as never having checked', () => {
+test('Should treat a corrupt cache file as never having checked', () => {
   const file = updateFile('corrupt')
+
   writeFileSync(file, '{ this is not json')
-  assert.deepEqual(readUpdateState(file), {})
-  assert.equal(dueForCheck(readUpdateState(file)), true)
+
+  expect(readUpdateState(file), 'an unreadable file is no state').toBeNull()
+  expect(dueForCheck(readUpdateState(file))).toBe(true)
 })
 
-test('a check that blows up does not take the tab down with it', async () => {
+test('Should not take the tab down with a check that blows up', async () => {
+  const exploding = vi.fn(() => {
+    throw new TypeError('fetch is not a function')
+  })
+
   const state = await checkForUpdate({
     config: DEFAULT_CONFIG,
     file: updateFile('exploding'),
-    fetchImpl: () => {
-      throw new TypeError('fetch is not a function')
-    },
+    fetchImpl: exploding,
   })
-  assert.match(state.error, /not a function/)
+
+  expect(exploding).toHaveBeenCalledTimes(1)
+  expect(state.error).toMatch(/not a function/)
 })
 
-test('nothing is said when this is the newest claudemon there is', () => {
-  assert.equal(
+test('Should say nothing when this is the newest claudemon there is', () => {
+  expect(
     updateNotice({ current: '0.6.0', installed: '0.6.0', latest: '0.6.0' }),
-    null,
-  )
-  assert.equal(
+  ).toBeNull()
+  expect(
     updateNotice({ current: '0.6.0', installed: '0.5.0', latest: '0.5.0' }),
-    null,
-  )
-  assert.equal(updateNotice({ current: '0.6.0' }), null)
+  ).toBeNull()
+  expect(updateNotice({ current: '0.6.0' })).toBeNull()
 })
 
-test('a newer copy already on the disk asks for a relaunch, not an update', () => {
-  const notice = updateNotice({
-    current: '0.5.0',
-    installed: '0.6.0',
-    latest: '0.6.0',
-  })
-  assert.deepEqual(notice, { kind: 'stale', version: '0.6.0' })
+test('Should ask for a relaunch, not an update, when a newer copy is already on the disk', () => {
+  expect(
+    updateNotice({ current: '0.5.0', installed: '0.6.0', latest: '0.6.0' }),
+  ).toEqual({ kind: 'stale', version: '0.6.0' })
 })
 
-test('a version nobody here has is the one worth offering', () => {
-  const notice = updateNotice({
-    current: '0.5.0',
-    installed: '0.5.0',
-    latest: '0.6.0',
-  })
-  assert.deepEqual(notice, { kind: 'available', version: '0.6.0' })
+test('Should offer the version nobody here has', () => {
+  expect(
+    updateNotice({ current: '0.5.0', installed: '0.5.0', latest: '0.6.0' }),
+  ).toEqual({ kind: 'available', version: '0.6.0' })
 })
 
-test('a copy on the disk beats a version on the internet', () => {
-  const notice = updateNotice({
-    current: '0.5.0',
-    installed: '0.6.0',
-    latest: '0.7.0',
-  })
-  assert.deepEqual(notice, { kind: 'stale', version: '0.6.0' })
+test('Should let a copy on the disk beat a version on the internet', () => {
+  expect(
+    updateNotice({ current: '0.5.0', installed: '0.6.0', latest: '0.7.0' }),
+  ).toEqual({ kind: 'stale', version: '0.6.0' })
 })
 
-test('an installed plugin is updated through Claude Code', () => {
+test('Should update an installed plugin through Claude Code', () => {
   const cache = fakeCache('0.5.0')
   const plan = updatePlan({ root: join(cache, '0.5.0'), cache })
 
-  assert.equal(plan.kind, 'plugin')
-  assert.deepEqual(
-    plan.steps.map((step) => step.id),
-    ['marketplace', 'plugin', 'install'],
-  )
+  expect(plan.kind).toBe('plugin')
+  expect(plan.steps.map((step) => step.id)).toEqual([
+    'marketplace',
+    'plugin',
+    'install',
+  ])
 
   const [marketplace, plugin] = plan.steps.map((step) => step.plan())
-  assert.equal(marketplace.command, 'claude')
-  assert.deepEqual(marketplace.args, [
+
+  expect(marketplace.command).toBe('claude')
+  expect(marketplace.args).toEqual([
     'plugin',
     'marketplace',
     'update',
     'claudemon',
   ])
-  assert.deepEqual(plugin.args, ['plugin', 'update', 'claudemon@claudemon'])
+  expect(plugin.args).toEqual(['plugin', 'update', 'claudemon@claudemon'])
 })
 
-test('the installer that runs is the one in the copy just fetched', () => {
+test('Should run the installer that came with the copy just fetched', () => {
   const cache = fakeCache('0.5.0')
   const plan = updatePlan({ root: join(cache, '0.5.0'), cache })
   const install = plan.steps.find((step) => step.id === 'install')
 
   mkdirSync(join(cache, '0.6.0'), { recursive: true })
-  assert.equal(
-    install.plan().args[0],
+
+  expect(install.plan().args[0]).toBe(
     join(cache, '0.6.0', 'tools', 'install.mjs'),
   )
-  assert.equal(plan.resolveVersion(), '0.6.0')
+  expect(plan.resolveVersion()).toBe('0.6.0')
 })
 
-test('a clone is updated with git, and reports its own manifest', () => {
+test('Should update a clone with git, and report its own manifest', () => {
   const clone = mkdtempSync(join(tmpdir(), 'claudemon-clone-'))
+
   mkdirSync(join(clone, '.claude-plugin'), { recursive: true })
   writeFileSync(
     join(clone, '.claude-plugin', 'plugin.json'),
@@ -435,224 +459,238 @@ test('a clone is updated with git, and reports its own manifest', () => {
 
   const plan = updatePlan({ root: clone, cache: fakeCache('0.5.0') })
 
-  assert.equal(plan.kind, 'clone')
-  assert.deepEqual(
-    plan.steps.map((step) => step.id),
-    ['pull', 'install'],
-  )
-  assert.deepEqual(plan.steps[0].plan().args, [
-    '-C',
-    clone,
-    'pull',
-    '--ff-only',
-  ])
-  assert.equal(
-    plan.steps[1].plan().args[0],
-    join(clone, 'tools', 'install.mjs'),
-  )
-  assert.equal(plan.resolveVersion(), '1.2.3')
+  expect(plan.kind).toBe('clone')
+  expect(plan.steps.map((step) => step.id)).toEqual(['pull', 'install'])
+  expect(plan.steps[0].plan().args).toEqual(['-C', clone, 'pull', '--ff-only'])
+  expect(plan.steps[1].plan().args[0]).toBe(join(clone, 'tools', 'install.mjs'))
+  expect(plan.resolveVersion()).toBe('1.2.3')
 })
 
-function fakePlan({ results = [], version = '0.6.0' } = {}) {
-  const ran = []
-  const steps = ['one', 'two', 'three'].map((id, index) => ({
-    id,
-    label: `doing ${id}`,
-    done: `did ${id}`,
-    plan: () => ({ command: 'true', args: [id], timeoutMs: 1000, index }),
-  }))
-  return {
-    ran,
-    plan: { kind: 'plugin', steps, resolveVersion: () => version },
-    exec: async (step) => {
-      ran.push(step.args[0])
-      return results[step.index] ?? { ok: true, output: '' }
-    },
-  }
-}
-
-const onePlan = (id) => ({
-  kind: id === 'pull' ? 'clone' : 'plugin',
-  steps: [{ id, label: 'x', done: 'x', plan: () => ({}) }],
-  resolveVersion: () => null,
-})
-
-test('every step runs in order, and the version it left behind is read from the disk', async () => {
-  const { plan, exec, ran } = fakePlan()
-  const run = createUpdateRun({ plan, exec })
-  await run.promise
-
-  assert.deepEqual(ran, ['one', 'two', 'three'])
-  assert.deepEqual(
-    run.steps.map((step) => step.status),
-    ['ok', 'ok', 'ok'],
-  )
-  assert.equal(run.state, 'done')
-  assert.equal(run.from, VERSION)
-  assert.equal(run.to, '0.6.0')
-})
-
-test('a failure stops the steps after it', async () => {
-  const { plan, exec, ran } = fakePlan({
-    results: [
-      { ok: true, output: '' },
-      { ok: false, output: 'boom\nno such marketplace' },
-    ],
+test('Should run every step in order, and read the version it left behind off the disk', async () => {
+  const exec = vi.fn(async () => {
+    return { ok: true, output: '' }
   })
-  const run = createUpdateRun({ plan, exec })
-  await run.promise
-
-  assert.deepEqual(ran, ['one', 'two'], 'the third was never attempted')
-  assert.deepEqual(
-    run.steps.map((step) => step.status),
-    ['ok', 'failed', 'pending'],
-  )
-  assert.equal(run.state, 'failed')
-  assert.equal(run.steps[1].detail, 'no such marketplace')
-  assert.equal(run.to, null, 'nothing claims a new version')
-})
-
-test('a missing command says which one, and a timeout says so', async () => {
-  const missing = createUpdateRun({
-    plan: onePlan('plugin'),
-    exec: async () => ({ ok: false, missing: true, output: '' }),
-  })
-  await missing.promise
-  assert.match(missing.steps[0].detail, /no `claude` command/)
-
-  const late = createUpdateRun({
-    plan: onePlan('pull'),
-    exec: async () => ({ ok: false, timedOut: true, output: '' }),
-  })
-  await late.promise
-  assert.match(late.steps[0].detail, /too long/)
-})
-
-test('an exec that throws is a failed step rather than a crash', async () => {
   const run = createUpdateRun({
-    plan: onePlan('one'),
+    plan: {
+      kind: 'plugin',
+      steps: ['one', 'two', 'three'].map(stepNamed),
+      resolveVersion: () => '0.6.0',
+    },
+    exec,
+  })
+
+  await run.promise
+
+  expect(ranSteps(exec)).toEqual(['one', 'two', 'three'])
+  expect(run.steps.map((step) => step.status)).toEqual(['ok', 'ok', 'ok'])
+  expect(run.state).toBe('done')
+  expect(run.from).toBe(VERSION)
+  expect(run.to).toBe('0.6.0')
+})
+
+test('Should stop the steps that come after a failure', async () => {
+  const exec = vi.fn(async (step) => {
+    if (step.args[0] === 'two')
+      return { ok: false, output: 'boom\nno such marketplace' }
+
+    return { ok: true, output: '' }
+  })
+  const run = createUpdateRun({
+    plan: {
+      kind: 'plugin',
+      steps: ['one', 'two', 'three'].map(stepNamed),
+      resolveVersion: () => '0.6.0',
+    },
+    exec,
+  })
+
+  await run.promise
+
+  expect(ranSteps(exec), 'the third was never attempted').toEqual([
+    'one',
+    'two',
+  ])
+  expect(run.steps.map((step) => step.status)).toEqual([
+    'ok',
+    'failed',
+    'pending',
+  ])
+  expect(run.state).toBe('failed')
+  expect(run.steps[1].detail).toBe('no such marketplace')
+  expect(run.to, 'nothing claims a new version').toBeNull()
+})
+
+test('Should say which command is missing rather than that a step failed', async () => {
+  const missingClaude = createUpdateRun({
+    plan: {
+      kind: 'plugin',
+      steps: [{ id: 'plugin', label: 'x', done: 'x', plan: () => ({}) }],
+      resolveVersion: () => null,
+    },
+    exec: async () => {
+      return { ok: false, missing: true, output: '' }
+    },
+  })
+  const missingGit = createUpdateRun({
+    plan: {
+      kind: 'clone',
+      steps: [{ id: 'pull', label: 'x', done: 'x', plan: () => ({}) }],
+      resolveVersion: () => null,
+    },
+    exec: async () => {
+      return { ok: false, missing: true, output: '' }
+    },
+  })
+
+  await missingClaude.promise
+  await missingGit.promise
+
+  expect(missingClaude.steps[0].detail).toBe(UPDATE_FAILURE_MESSAGES.noClaude)
+  expect(missingGit.steps[0].detail).toBe(UPDATE_FAILURE_MESSAGES.noGit)
+})
+
+test('Should say a step was given up on when it took too long', async () => {
+  const late = createUpdateRun({
+    plan: {
+      kind: 'clone',
+      steps: [{ id: 'pull', label: 'x', done: 'x', plan: () => ({}) }],
+      resolveVersion: () => null,
+    },
+    exec: async () => {
+      return { ok: false, timedOut: true, output: '' }
+    },
+  })
+
+  await late.promise
+
+  expect(late.steps[0].detail).toBe(UPDATE_FAILURE_MESSAGES.timedOut)
+  expect(late.state).toBe('failed')
+})
+
+test('Should make an exec that throws a failed step rather than a crash', async () => {
+  const run = createUpdateRun({
+    plan: {
+      kind: 'plugin',
+      steps: [{ id: 'one', label: 'x', done: 'x', plan: () => ({}) }],
+      resolveVersion: () => null,
+    },
     exec: async () => {
       throw new Error('spawn EACCES')
     },
   })
+
   await run.promise
 
-  assert.equal(run.state, 'failed')
-  assert.match(run.steps[0].detail, /EACCES/)
+  expect(run.state).toBe('failed')
+  expect(run.steps[0].detail).toMatch(/EACCES/)
 })
 
-test('progress is reported as it happens, not only at the end', async () => {
-  const { plan, exec } = fakePlan()
-  const seen = []
-  const run = createUpdateRun({
-    plan,
-    exec,
-    onChange: (current) =>
-      seen.push(current.steps.map((step) => step.status).join(',')),
+test('Should report progress as it happens, not only at the end', async () => {
+  const exec = vi.fn(async () => {
+    return { ok: true, output: '' }
   })
+  const seen = []
+  const handleChange = (current) => {
+    seen.push(current.steps.map((step) => step.status).join(','))
+  }
+  const run = createUpdateRun({
+    plan: {
+      kind: 'plugin',
+      steps: ['one', 'two', 'three'].map(stepNamed),
+      resolveVersion: () => '0.6.0',
+    },
+    exec,
+    onChange: handleChange,
+  })
+
   await run.promise
 
-  assert.ok(
-    seen.includes('running,pending,pending'),
-    'the first step announced itself',
+  expect(seen, 'the first step announced itself').toContain(
+    'running,pending,pending',
   )
-  assert.ok(seen.includes('ok,ok,ok'), 'and the last one did too')
+  expect(seen, 'and the last one did too').toContain('ok,ok,ok')
 })
 
-test('the version sits at the right-hand end of the home footer', () => {
+test('Should sit the version at the right-hand end of the home footer', () => {
   const footer = homeView.footerRow(80, '0.6.0')
-  assert.match(footer, /v0\.6\.0/)
-  assert.equal(visibleLength(footer), 80, 'the version reaches the edge')
-  assert.ok(footer.indexOf('quit') < footer.indexOf('v0.6.0'))
+
+  expect(footer).toMatch(/v0\.6\.0/)
+  expect(visibleLength(footer), 'the version reaches the edge').toBe(80)
+  expect(footer.indexOf('quit')).toBeLessThan(footer.indexOf('v0.6.0'))
 })
 
-test('a window too narrow for both keeps the hints and drops the version', () => {
+test('Should keep the hints and drop the version when the window is too narrow for both', () => {
   const footer = homeView.footerRow(30, '0.6.0')
-  assert.doesNotMatch(footer, /v0\.6\.0/)
-  assert.match(footer, /quit/)
-  assert.equal(
-    visibleLength(footer),
+
+  expect(footer).not.toMatch(/v0\.6\.0/)
+  expect(footer).toMatch(/quit/)
+  expect(visibleLength(footer)).toBe(
     visibleLength(homeView.footerRow(30, null)),
   )
 })
 
-test('a copy that cannot name its version shows no version at all', () => {
-  assert.doesNotMatch(homeView.footerRow(80, null), /v/)
+test('Should show no version at all for a copy that cannot name its own', () => {
+  expect(homeView.footerRow(80, null)).not.toMatch(/v/)
 })
 
-test('the update row says which key does it, and only when there is one', () => {
-  assert.equal(homeView.updateRow(null), '')
-  assert.match(
-    homeView.updateRow({ kind: 'available', version: '0.6.0' }),
+test('Should say which key does the update, and only when there is one to do', () => {
+  expect(homeView.updateRow(null)).toBe('')
+  expect(homeView.updateRow({ kind: 'available', version: '0.6.0' })).toMatch(
     /v0\.6\.0.*\[u\]/,
   )
+
   const stale = homeView.updateRow({ kind: 'stale', version: '0.6.0' })
-  assert.match(stale, /installed/)
-  assert.doesNotMatch(stale, /\[u\]/, 'there is nothing to fetch')
+
+  expect(stale).toMatch(/installed/)
+  expect(stale, 'there is nothing to fetch').not.toMatch(/\[u\]/)
 })
 
-test('the update screen says what is left to do by hand', () => {
+test('Should say on the update screen what is left to do by hand', () => {
   const done = updateView.closingLines({
     state: 'done',
     from: '0.5.0',
     to: '0.6.0',
   })
-  assert.match(done.join('\n'), /Restart Claude Code/)
-  assert.match(done.join('\n'), /claudemon/)
+
+  expect(done.join('\n')).toMatch(/Restart Claude Code/)
+  expect(done.join('\n')).toMatch(/claudemon/)
 
   const nothing = updateView.closingLines({
     state: 'done',
     from: '0.5.0',
     to: '0.5.0',
   })
-  assert.match(nothing.join('\n'), /newest/)
+
+  expect(nothing.join('\n')).toMatch(/newest/)
 
   const failed = updateView.closingLines({
     state: 'failed',
     from: '0.5.0',
     to: null,
   })
-  assert.match(failed.join('\n'), /still works/)
 
-  assert.deepEqual(
+  expect(failed.join('\n')).toMatch(/still works/)
+  expect(
     updateView.closingLines({ state: 'running', from: '0.5.0', to: null }),
-    [],
-  )
+  ).toEqual([])
 })
 
-const CACHE = '/home/someone/.claude/plugins/cache/claudemon/claudemon'
-
-function launcherAt(name, root, cache) {
-  const path = join(sandbox, name)
-  writeFileSync(path, shimSource({ target: 'bin/claudemon', root, cache }))
-  return { path, target: 'bin/claudemon' }
-}
-
-const asInstalledFrom = (root) =>
-  `#!/bin/sh\n# Generated by claudemon's installer — rerun it rather than editing this.\napp="${root}"\n`
-
-test('a launcher names the copy that wrote it, and falls back if it is gone', () => {
+test('Should name the copy that wrote a launcher, and fall back when it is gone', () => {
   const shim = shimSource({
     target: 'bin/claudemon',
     root: `${CACHE}/0.6.0`,
     cache: CACHE,
   })
 
-  assert.match(shim, /^#!\/bin\/sh/)
-  assert.match(
-    shim,
-    new RegExp(`app="${CACHE}/0\\.6\\.0"`),
-    'the exact copy, not a guess',
-  )
-  assert.match(
-    shim,
+  expect(shim).toMatch(/^#!\/bin\/sh/)
+  expect(shim, 'the exact copy, not a guess').toContain(`app="${CACHE}/0.6.0"`)
+  expect(shim, 'and a last resort behind it').toMatch(
     /\[ -d "\$app" \] \|\| app=\$\(ls -td/,
-    'and a last resort behind it',
   )
-  assert.match(shim, /exec "\$app\/bin\/claudemon" "\$@"/)
+  expect(shim).toContain('exec "$app/bin/claudemon" "$@"')
 })
 
-test('every launcher refuses to run rather than guessing, and says how to fix it', () => {
+test('Should make every launcher refuse to run rather than guess, and say how to fix it', () => {
   for (const root of [`${CACHE}/0.6.0`, '/home/someone/code/claudemon']) {
     const shim = shimSource({
       target: 'scripts/run.sh',
@@ -660,106 +698,112 @@ test('every launcher refuses to run rather than guessing, and says how to fix it
       root,
       cache: CACHE,
     })
-    assert.match(shim, /cannot find its files/)
-    assert.match(shim, /claudemon-setup/)
-    assert.match(shim, /exec "\$app\/scripts\/run\.sh" statusline\.mjs "\$@"/)
+
+    expect(shim).toContain('cannot find its files')
+    expect(shim).toContain('claudemon-setup')
+    expect(shim).toContain('exec "$app/scripts/run.sh" statusline.mjs "$@"')
   }
 })
 
-test('a launcher on an older release is one to bring up to date', () => {
+test('Should count a launcher on an older release as one to bring up to date', () => {
   const here = `${CACHE}/0.6.0`
-  assert.equal(
-    pointsElsewhere(asInstalledFrom(`${CACHE}/0.5.0`), here, CACHE),
-    true,
-  )
-  assert.equal(
-    pointsElsewhere(asInstalledFrom(here), here, CACHE),
-    false,
+
+  expect(
+    pointsElsewhere(launcherInstalledFrom(`${CACHE}/0.5.0`), here, CACHE),
+  ).toBe(true)
+  expect(
+    pointsElsewhere(launcherInstalledFrom(here), here, CACHE),
     'already here',
-  )
+  ).toBe(false)
 })
 
-test('a launcher we did not write is never touched, whatever it says', () => {
+test('Should never touch a launcher we did not write, whatever it says', () => {
   const theirs = `#!/bin/sh\napp="${CACHE}/0.5.0"\nexec "$app/bin/claudemon" "$@"\n`
-  assert.equal(
+
+  expect(
     pointsElsewhere(theirs, `${CACHE}/0.6.0`, CACHE),
-    false,
     'no marker, not ours',
-  )
+  ).toBe(false)
 })
 
-test('a launcher that only guesses is given an exact path', () => {
-  const guessing = `#!/bin/sh\n# Generated by claudemon's installer — rerun it\napp=$(ls -td "${CACHE}"/*/ | head -1)\n`
-  assert.equal(pointsElsewhere(guessing, `${CACHE}/0.6.0`, CACHE), true)
+test('Should give an exact path to a launcher that only guesses', () => {
+  const guessing = `#!/bin/sh\n# ${SHIM_MARKER}\napp=$(ls -td "${CACHE}"/*/ | head -1)\n`
+
+  expect(pointsElsewhere(guessing, `${CACHE}/0.6.0`, CACHE)).toBe(true)
 })
 
-test('a hook points a launcher stuck on an older release at this one', () => {
+test('Should point a launcher stuck on an older release at this one', () => {
   const cache = fakeCache('0.5.0', '0.6.0')
   const path = join(sandbox, 'stuck-launcher')
-  writeFileSync(path, asInstalledFrom(join(cache, '0.5.0')))
-
   const here = join(cache, '0.6.0')
+
+  writeFileSync(path, launcherInstalledFrom(join(cache, '0.5.0')))
+
   const rewritten = relinkLaunchers({
     root: here,
     cache,
     launchers: [{ path, target: 'bin/claudemon' }],
   })
 
-  assert.deepEqual(rewritten, [path])
+  expect(rewritten).toEqual([path])
+
   const after = readFileSync(path, 'utf8')
-  assert.ok(after.includes(`app="${here}"`), 'it names the copy that fixed it')
-  assert.doesNotMatch(
-    after,
+
+  expect(after, 'it names the copy that fixed it').toContain(`app="${here}"`)
+  expect(after, 'and no longer the one that installed it').not.toMatch(
     /0\.5\.0"/,
-    'and no longer the one that installed it',
   )
 })
 
-test('relinking twice does nothing the second time', () => {
+test('Should do nothing the second time the same launcher is relinked', () => {
   const cache = fakeCache('0.5.0', '0.6.0')
   const path = join(sandbox, 'twice-launcher')
-  writeFileSync(path, asInstalledFrom(join(cache, '0.5.0')))
   const launchers = [{ path, target: 'bin/claudemon' }]
 
-  assert.equal(
-    relinkLaunchers({ root: join(cache, '0.6.0'), cache, launchers }).length,
-    1,
-  )
-  assert.equal(
-    relinkLaunchers({ root: join(cache, '0.6.0'), cache, launchers }).length,
-    0,
-  )
+  writeFileSync(path, launcherInstalledFrom(join(cache, '0.5.0')))
+
+  expect(
+    relinkLaunchers({ root: join(cache, '0.6.0'), cache, launchers }),
+  ).toEqual([path])
+  expect(
+    relinkLaunchers({ root: join(cache, '0.6.0'), cache, launchers }),
+  ).toEqual([])
 })
 
-test("a clone's launcher is left alone, because it is meant to win", () => {
+test("Should leave a clone's launcher alone, because it is meant to win", () => {
   const cache = fakeCache('0.6.0')
-  const launcher = launcherAt(
-    'clone-launcher',
-    '/home/someone/code/claudemon',
-    cache,
-  )
-  const before = readFileSync(launcher.path, 'utf8')
+  const path = join(sandbox, 'clone-launcher')
 
-  assert.deepEqual(
+  writeFileSync(
+    path,
+    shimSource({
+      target: 'bin/claudemon',
+      root: '/home/someone/code/claudemon',
+      cache,
+    }),
+  )
+
+  const before = readFileSync(path, 'utf8')
+
+  expect(
     relinkLaunchers({
       root: join(cache, '0.6.0'),
       cache,
-      launchers: [launcher],
+      launchers: [{ path, target: 'bin/claudemon' }],
     }),
-    [],
-  )
-  assert.equal(readFileSync(launcher.path, 'utf8'), before, 'untouched')
+  ).toEqual([])
+  expect(readFileSync(path, 'utf8'), 'untouched').toBe(before)
 })
 
-test('a launcher that was never installed is not created by relinking', () => {
+test('Should not create a launcher that was never installed', () => {
   const missing = join(sandbox, 'no-such-launcher')
-  assert.deepEqual(
+
+  expect(
     relinkLaunchers({
       root: join(CACHE, '0.6.0'),
       cache: CACHE,
       launchers: [{ path: missing, target: 'bin/claudemon' }],
     }),
-    [],
-  )
-  assert.equal(existsSync(missing), false)
+  ).toEqual([])
+  expect(existsSync(missing)).toBe(false)
 })

@@ -1,18 +1,15 @@
 import { move as moveData, species } from './data.mjs'
-import {
-  expForLevel,
-  levelFromExp,
-  movesAtLevel,
-  rollIvs,
-  statsAtLevel,
-} from './exp.mjs'
+import { expForLevel, levelFromExp } from './exp.mjs'
+import { movesAtLevel } from './learnset.mjs'
+import { rollIvs, statsAtLevel } from './stats.mjs'
 
-export function makeMoveSlot(name) {
+export const makeMoveSlot = (name) => {
   const data = moveData(name)
+
   return { move: name, pp: data.pp, maxPp: data.pp }
 }
 
-export function createPokemon(speciesId, level, rng, { nickname = null } = {}) {
+export const createPokemon = (speciesId, level, rng, nickname = null) => {
   const ivs = rollIvs(rng)
   const stats = statsAtLevel(speciesId, level, ivs)
 
@@ -29,73 +26,79 @@ export function createPokemon(speciesId, level, rng, { nickname = null } = {}) {
   }
 }
 
-export function speciesName(id) {
-  return species(id).name.replace(/-[fm]$/, '')
-}
+export const speciesName = (id) => species(id).name.replace(/-[fm]$/, '')
 
-export function displayName(mon) {
-  return mon.nickname ?? speciesName(mon.species)
-}
+export const displayName = (mon) => mon.nickname ?? speciesName(mon.species)
 
-export function genderOf(mon) {
+export const genderOf = (mon) => {
   const rate = species(mon.species).genderRate
+
   if (!Number.isInteger(rate) || rate < 0) return null
   if (!Number.isInteger(mon.ivs?.attack)) return null
+
   return mon.ivs.attack < rate * 4 ? 'female' : 'male'
 }
 
-export function speciesGender(id) {
+export const speciesGender = (id) => {
   const rate = species(id).genderRate
+
   if (rate === 0) return 'male'
   if (rate === 8) return 'female'
+
   return null
 }
 
-export function levelOf(mon) {
-  return levelFromExp(mon.species, mon.exp)
-}
+export const levelOf = (mon) => levelFromExp(mon.species, mon.exp)
 
-export function isFainted(mon) {
-  return mon.hp <= 0
-}
+export const isFainted = (mon) => mon.hp <= 0
 
-export function refreshStats(mon) {
+export const refreshStats = (mon) => {
   const previousMax = mon.stats.hp
+
   mon.stats = statsAtLevel(mon.species, levelOf(mon), mon.ivs)
+
   const gained = mon.stats.hp - previousMax
+
   if (gained > 0 && mon.hp > 0) mon.hp = Math.min(mon.stats.hp, mon.hp + gained)
+
   return mon
 }
 
-export function healFully(mon) {
+export const healFully = (mon) => {
   mon.hp = mon.stats.hp
   mon.status = null
   mon.statusTurns = 0
+
   for (const slot of mon.moves) slot.pp = slot.maxPp
+
   return mon
 }
 
-export function pendingEvolution(mon, level = levelOf(mon)) {
+export const pendingEvolution = (mon, level = levelOf(mon)) => {
   for (const evolution of species(mon.species).evolutions) {
     if (evolution.trigger !== 'level-up') continue
     if (evolution.level !== null && level >= evolution.level)
       return evolution.to
   }
+
   return null
 }
 
-export function stoneEvolution(mon, item) {
+export const stoneEvolution = (mon, item) => {
   for (const evolution of species(mon.species).evolutions) {
     if (evolution.trigger === 'use-item' && evolution.item === item)
       return evolution.to
   }
+
   return null
 }
 
-export function evolveInto(mon, speciesId) {
+export const evolveInto = (mon, speciesId) => {
   const fraction = mon.stats.hp > 0 ? mon.hp / mon.stats.hp : 1
+
   mon.species = speciesId
   mon.stats = statsAtLevel(speciesId, levelOf(mon), mon.ivs)
   mon.hp = Math.max(1, Math.round(mon.stats.hp * fraction))
+
   return mon
 }

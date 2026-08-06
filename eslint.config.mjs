@@ -1,5 +1,6 @@
 import js from '@eslint/js'
 import globals from 'globals'
+import importX, { createNodeResolver } from 'eslint-plugin-import-x'
 
 export default [
   {
@@ -14,6 +15,12 @@ export default [
       ecmaVersion: 2023,
       sourceType: 'module',
       globals: globals.node,
+    },
+    plugins: {
+      'import-x': importX,
+    },
+    settings: {
+      'import-x/resolver-next': [createNodeResolver()],
     },
     rules: {
       'no-unused-vars': [
@@ -43,6 +50,16 @@ export default [
       radix: 'error',
       'no-implied-eval': 'error',
       'no-new-func': 'error',
+
+      'import-x/named': 'error',
+      'import-x/default': 'error',
+      'import-x/namespace': 'error',
+      'import-x/export': 'error',
+      'import-x/no-unresolved': 'error',
+      'import-x/no-self-import': 'error',
+      'import-x/no-cycle': ['error', { maxDepth: Infinity }],
+      'import-x/no-useless-path-segments': 'error',
+      'import-x/no-duplicates': 'error',
     },
   },
 ]

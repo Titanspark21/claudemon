@@ -1,9 +1,9 @@
+import { STAT_NAMES } from '../../constants.mjs'
 import { loadData, species } from '../../data.mjs'
-import { STAT_NAMES } from '../../exp.mjs'
 import { spriteFile } from '../../paths.mjs'
 import { speciesGender, speciesName } from '../../pokemon.mjs'
 import { timesFaced } from '../../state.mjs'
-import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
+import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
 import {
   genderTag,
@@ -14,17 +14,25 @@ import {
   withFooter,
   wrap,
 } from '../widgets.mjs'
+import {
+  BASE_STAT_MAX,
+  COLUMN_DIVIDER,
+  DEX_DETAIL_GAP,
+  DEX_HINTS,
+  DEX_LIST_WIDTH,
+  DEX_MESSAGES,
+  DEX_PAGE_STEP,
+  DEX_ROWS_RESERVED,
+  DEX_SPRITE_RESERVED_ROWS,
+  DEX_TITLE,
+  DEX_UNKNOWN_NAME,
+  KANTO_TOTAL,
+  LIST_HEIGHT_FLOOR,
+  STAT_GLYPHS,
+} from './constants.mjs'
+import { dexMark, evolutionWording, zipColumns } from './helpers.mjs'
 
-const STAT_GLYPHS = {
-  hp: 'HP ',
-  attack: 'Atk',
-  defense: 'Def',
-  spAttack: 'SpA',
-  spDefense: 'SpD',
-  speed: 'Spd',
-}
-
-export function draw(ctx, size) {
+export const draw = (ctx, size) => {
   const { cols, rows } = size
   const lines = []
   const overlays = []
@@ -34,12 +42,11 @@ export function draw(ctx, size) {
   const caught = ctx.save.dex.caught.includes(selected.id)
   const seen = caught || ctx.save.dex.seen.includes(selected.id)
 
-  const listWidth = 28
-  const detailLeft = listWidth + 4
+  const detailLeft = DEX_LIST_WIDTH + DEX_DETAIL_GAP
 
   lines.push(
-    ` ${brightYellow('◓')} ${bold('POKÉDEX')}   ${dim(
-      `${ctx.save.dex.caught.length} caught · ${ctx.save.dex.seen.length} seen · of 151`,
+    ` ${brightYellow('◓')} ${bold(DEX_TITLE)}   ${dim(
+      `${ctx.save.dex.caught.length} caught · ${ctx.save.dex.seen.length} seen · of ${KANTO_TOTAL}`,
     )}`,
   )
   lines.push('')
@@ -48,20 +55,23 @@ export function draw(ctx, size) {
     const number = dim(String(mon.id).padStart(3, '0'))
     const isCaught = ctx.save.dex.caught.includes(mon.id)
     const isSeen = isCaught || ctx.save.dex.seen.includes(mon.id)
-    const mark = isCaught ? brightGreen('●') : isSeen ? dim('◐') : gray('·')
+    const mark = dexMark(isCaught, isSeen)
     const name = isSeen
       ? `${speciesName(mon.id)}${genderTag(speciesGender(mon.id))}`
-      : gray('-----')
+      : gray(DEX_UNKNOWN_NAME)
+
     return `${number} ${mark} ${name}`
   })
 
-  const listHeight = Math.max(6, rows - 6)
+  const listHeight = Math.max(LIST_HEIGHT_FLOOR, rows - DEX_ROWS_RESERVED)
+
   const list = menuList(entries, ctx.dexSelection, {
     height: listHeight,
-    width: listWidth,
+    width: DEX_LIST_WIDTH,
   })
 
   const detail = []
+
   if (seen) {
     detail.push(
       `${bold(speciesName(selected.id).toUpperCase())}${genderTag(
@@ -69,16 +79,22 @@ export function draw(ctx, size) {
       )}  ${dim(`#${String(selected.id).padStart(3, '0')}`)}`,
     )
     detail.push(selected.types.map(typeBadge).join(' '))
+
     const faced = timesFaced(ctx.save, selected.id)
+
     if (faced > 0)
       detail.push(dim(`Faced ${faced === 1 ? 'once' : `${faced} times`}`))
+
     detail.push('')
+
     if (caught) {
       const stats = selected.stats
-      detail.push(dim('Base stats'))
+
+      detail.push(dim(DEX_MESSAGES.baseStats))
+
       for (const key of STAT_NAMES) {
         detail.push(
-          `${STAT_GLYPHS[key]} ${hpBar(stats[key], 160, 18)} ${String(stats[key]).padStart(3)}`,
+          `${STAT_GLYPHS[key]} ${hpBar(stats[key], BASE_STAT_MAX, 18)} ${String(stats[key]).padStart(3)}`,
         )
       }
       detail.push('')
@@ -88,55 +104,47 @@ export function draw(ctx, size) {
         ),
       )
       const evolves = selected.evolutions.map((evolution) => {
-        const how =
-          evolution.trigger === 'level-up'
-            ? `at level ${evolution.level}`
-            : evolution.trigger === 'use-item'
-              ? `with a ${evolution.item.replace(/-/g, ' ')}`
-              : 'by trading'
-        return `${species(evolution.to).name} ${how}`
+        return `${species(evolution.to).name} ${evolutionWording(evolution)}`
       })
+
       if (evolves.length > 0)
-        detail.push(dim(`Evolves into ${evolves.join(', ')}`))
+        detail.push(dim(`${DEX_MESSAGES.evolvesInto} ${evolves.join(', ')}`))
     } else {
-      detail.push(dim('Seen, but not yet caught.'))
-      detail.push(dim('Catch one to fill in its entry.'))
+      detail.push(dim(DEX_MESSAGES.notCaught))
+      detail.push(dim(DEX_MESSAGES.fillItIn))
     }
   } else {
-    detail.push(gray('No data.'))
+    detail.push(gray(DEX_MESSAGES.noData))
   }
 
   const sprite = seen
     ? loadSprite(spriteFile('front', selected.id, 'png'), {
         cols: Math.min(
-          fitCanvasCols(size, 18, ctx.spriteScale),
+          fitCanvasCols(size, DEX_SPRITE_RESERVED_ROWS, ctx.spriteScale),
           (cols - detailLeft - 4) * 2,
         ),
       })
     : null
-  const spriteBlock = sprite ? sprite.rows : []
 
+  const spriteBlock = sprite ? sprite.rows : []
   const rightColumn = [...detail, '', ...spriteBlock]
 
-  for (let row = 0; row < Math.max(list.length, rightColumn.length); row++) {
-    const left = padRight(list[row] ?? '', listWidth)
-    const right = rightColumn[row] ?? ''
-    lines.push(` ${left}  ${dim('│')}  ${right}`)
+  for (const [listRow, detailRow] of zipColumns(list, rightColumn)) {
+    const left = padRight(listRow, DEX_LIST_WIDTH)
+
+    lines.push(` ${left}  ${dim(COLUMN_DIVIDER)}  ${detailRow}`)
   }
 
   return {
-    lines: withFooter(
-      lines,
-      dim(' ↑ ↓ browse · PgUp/PgDn jump · [esc] back'),
-      rows,
-    ),
+    lines: withFooter(lines, dim(DEX_HINTS), rows),
     overlays,
   }
 }
 
-export function onKey(ctx, key) {
+export const onKey = (ctx, key) => {
   const total = loadData().pokedex.length
-  const step = key.name === 'pageup' || key.name === 'pagedown' ? 10 : 1
+  const step =
+    key.name === 'pageup' || key.name === 'pagedown' ? DEX_PAGE_STEP : 1
 
   if (key.name === 'up' || key.name === 'k')
     ctx.dexSelection = wrap(ctx.dexSelection - 1, total)
