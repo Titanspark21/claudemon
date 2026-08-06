@@ -169,10 +169,11 @@ clone — so it needs no slash commands and only one restart, at the end. Keep t
 directory where it is: the launcher prefers it while it exists.
 
 Two checks, one floor — the 20.19 above, which is what `engines` says and what the
-oldest leg of CI runs. `node --test test/*.test.mjs` installs nothing, because the game
-has no runtime dependencies. `npm ci && npm run lint` brings in the only ones there
-are: a linter, which has opinions about correctness and none about how the code looks.
-The odd `.19` is its floor, and the two are one number on purpose.
+oldest leg of CI runs. `npm ci && npm test` puts the suite through Vitest; `npm ci &&
+npm run lint` brings in the linter, which has opinions about correctness and none
+about how the code looks. The game still has no runtime dependencies — everything
+installed is a tool. The odd `.19` is the floor those tools share, and the two are
+one number on purpose.
 
 ## Controls
 
