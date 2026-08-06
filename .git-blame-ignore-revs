@@ -1,0 +1,10 @@
+# Commits that changed how the code is written and nothing about what it does.
+# GitHub reads this file on its own; git needs telling once, per clone:
+#
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Without it, `git blame` on two thirds of the tree answers "the day prettier was
+# turned on" instead of naming the change that actually put the line there.
+
+# format: the first run over the tree
+5f75ebc48dc289cd5d0ac8a904e96de437c4a14c
