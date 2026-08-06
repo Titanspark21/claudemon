@@ -1,12 +1,3 @@
-// The turn engine.
-//
-// Pure logic over a battle object, driven by one action at a time and returning a
-// list of events. The interface animates those events; it never computes anything.
-// That split is what makes the whole engine testable without a terminal.
-//
-// The maths is Gen 1's damage formula with modern stat stages and a modern type
-// chart — recognisable to anyone who played Red, without inheriting its bugs.
-
 import { move as moveData, species } from './data.mjs'
 import { attemptCatch, BALLS } from './capture.mjs'
 import { expFromDefeating, moneyFromDefeating } from './exp.mjs'
@@ -20,7 +11,6 @@ const SLEEP_WAKE_CHANCE = 1 / 3
 const THAW_CHANCE = 0.2
 const PARALYSIS_SKIP_CHANCE = 0.25
 
-/** Used when every move is out of PP. */
 const STRUGGLE = {
   move: 'struggle',
   data: {
@@ -37,7 +27,6 @@ const STRUGGLE = {
   },
 }
 
-/** Moves whose damage ignores the usual formula. */
 const FIXED_DAMAGE = {
   'dragon-rage': () => 40,
   'sonic-boom': () => 20,
@@ -50,10 +39,13 @@ const FIXED_DAMAGE = {
 
 const OHKO_MOVES = new Set(['guillotine', 'horn-drill', 'fissure'])
 
-/** Moves we do not model. Counter needs damage history the engine does not keep. */
-const UNSUPPORTED_MOVES = new Set(['counter', 'mirror-move', 'metronome', 'transform'])
+const UNSUPPORTED_MOVES = new Set([
+  'counter',
+  'mirror-move',
+  'metronome',
+  'transform',
+])
 
-/** Low Kick is weight-based in modern data, which the dataset has no weights for. */
 const FALLBACK_POWER = { 'low-kick': 50 }
 
 const STATUS_LABELS = {
@@ -74,7 +66,6 @@ const STAT_LABELS = {
   evasion: 'evasion',
 }
 
-/** Types that shrug off an ailment outright, because a Fire type cannot burn. */
 const AILMENT_IMMUNE_TYPES = {
   burn: ['fire'],
   poison: ['poison', 'steel'],
@@ -82,22 +73,22 @@ const AILMENT_IMMUNE_TYPES = {
   paralysis: ['electric'],
 }
 
-/** The engine owns which stat stages exist; nothing else should spell them out. */
 export function emptyStages() {
-  return { attack: 0, defense: 0, spAttack: 0, spDefense: 0, speed: 0, accuracy: 0, evasion: 0 }
+  return {
+    attack: 0,
+    defense: 0,
+    spAttack: 0,
+    spDefense: 0,
+    speed: 0,
+    accuracy: 0,
+    evasion: 0,
+  }
 }
 
-/** Modern stage multiplier: +1 is 1.5x, -1 is 0.67x, capped at six steps. */
 function stageMultiplier(stage) {
   return stage >= 0 ? (2 + stage) / 2 : 2 / (2 - stage)
 }
 
-/**
- * @param {object[]} [participants] everyone who has already been on the field
- *   this encounter, for a battle that continues one — a Pokemon replacing a
- *   fainted one is a new battle object against the same wild Pokemon, and the
- *   payout still owes whoever came before it.
- */
 export function createBattle({ playerMon, wildMon, seed, participants = [] }) {
   return {
     seed,
@@ -105,8 +96,6 @@ export function createBattle({ playerMon, wildMon, seed, participants = [] }) {
     turn: 0,
     player: { mon: playerMon, stages: emptyStages() },
     foe: { mon: wildMon, stages: emptyStages() },
-    // Everyone who has stood on the field, in the order they came out. Being
-    // there is what earns experience, so this only ever grows.
     participants: [...new Set([...participants, playerMon])],
     over: false,
     outcome: null,
@@ -115,13 +104,6 @@ export function createBattle({ playerMon, wildMon, seed, participants = [] }) {
   }
 }
 
-/**
- * Brings another party member out.
- *
- * Choosing one is the interface's business, but what a switch means is the
- * engine's: stat stages reset, the same as they do in the games, and standing on
- * the field at all puts a Pokemon on the payout list.
- */
 export function switchIn(battle, mon) {
   battle.player.mon = mon
   battle.player.stages = emptyStages()
@@ -129,7 +111,6 @@ export function switchIn(battle, mon) {
   return battle
 }
 
-/** Rebuilds the callable rng after a battle has been through JSON. */
 export function rehydrate(battle) {
   if (!battle.rng) battle.rng = makeRng(battle.seed)
   return battle
@@ -148,7 +129,6 @@ function say(events, text) {
   events.push({ type: 'message', text })
 }
 
-/** Effective speed, including paralysis and stat stages. */
 function effectiveSpeed(actor) {
   const base = actor.mon.stats.speed * stageMultiplier(actor.stages.speed)
   return actor.mon.status === 'paralysis' ? base / 2 : base
@@ -160,14 +140,10 @@ function moveSlotOf(actor, index) {
   return slot.pp > 0 ? slot : null
 }
 
-/** Whether a Pokemon has any move left with PP. */
 function hasUsableMove(actor) {
   return actor.mon.moves.some((slot) => slot.pp > 0)
 }
 
-/**
- * Whether a status stops the attack before it starts, emitting whatever it says.
- */
 function blockedByStatus(battle, side, events) {
   const actor = battle[side]
   const mon = actor.mon
@@ -220,28 +196,34 @@ function computeDamage(battle, attackerSide, move, isCrit) {
   const attackStat = physical ? 'attack' : 'spAttack'
   const defenseStat = physical ? 'defense' : 'spDefense'
 
-  // A critical hit ignores stat stages, so a defence boost cannot blunt it.
   const a =
-    attacker.mon.stats[attackStat] * (isCrit ? 1 : stageMultiplier(attacker.stages[attackStat]))
+    attacker.mon.stats[attackStat] *
+    (isCrit ? 1 : stageMultiplier(attacker.stages[attackStat]))
   const d =
-    defender.mon.stats[defenseStat] * (isCrit ? 1 : stageMultiplier(defender.stages[defenseStat]))
+    defender.mon.stats[defenseStat] *
+    (isCrit ? 1 : stageMultiplier(defender.stages[defenseStat]))
 
   const power = move.power ?? FALLBACK_POWER[move.key] ?? 50
   let damage =
-    Math.floor(Math.floor((Math.floor((2 * attackerLevel) / 5 + 2) * power * a) / d) / 50) + 2
+    Math.floor(
+      Math.floor((Math.floor((2 * attackerLevel) / 5 + 2) * power * a) / d) /
+        50,
+    ) + 2
 
   if (isCrit) damage = Math.floor(damage * 1.5)
 
   const attackerTypes = species(attacker.mon.species).types
   if (attackerTypes.includes(move.type)) damage = Math.floor(damage * 1.5)
 
-  const multiplier = effectiveness(move.type, species(defender.mon.species).types)
+  const multiplier = effectiveness(
+    move.type,
+    species(defender.mon.species).types,
+  )
   damage = Math.floor(damage * multiplier)
 
-  // A burn halves physical output.
-  if (attacker.mon.status === 'burn' && physical) damage = Math.floor(damage / 2)
+  if (attacker.mon.status === 'burn' && physical)
+    damage = Math.floor(damage / 2)
 
-  // The spread every hit gets, so identical attacks are not identical.
   damage = Math.floor((damage * randInt(battle.rng, 217, 255)) / 255)
 
   return { damage: multiplier === 0 ? 0 : Math.max(1, damage), multiplier }
@@ -253,14 +235,14 @@ function landsHit(battle, attackerSide, move) {
   const attacker = battle[attackerSide]
   const defender = battle[other(attackerSide)]
   const modifier =
-    stageMultiplier(attacker.stages.accuracy) / stageMultiplier(defender.stages.evasion)
+    stageMultiplier(attacker.stages.accuracy) /
+    stageMultiplier(defender.stages.evasion)
 
   return battle.rng() * 100 < move.accuracy * modifier
 }
 
 function applyStatChanges(battle, attackerSide, move, events) {
   for (const change of move.statChanges) {
-    // A negative change targets the opponent; a positive one the user.
     const side = change.change < 0 ? other(attackerSide) : attackerSide
     const actor = battle[side]
     const current = actor.stages[change.stat] ?? 0
@@ -269,7 +251,10 @@ function applyStatChanges(battle, attackerSide, move, events) {
     const statName = STAT_LABELS[change.stat] ?? change.stat
 
     if (next === current) {
-      say(events, `${who}'s ${statName} won't go ${change.change < 0 ? 'lower' : 'higher'}!`)
+      say(
+        events,
+        `${who}'s ${statName} won't go ${change.change < 0 ? 'lower' : 'higher'}!`,
+      )
       continue
     }
 
@@ -290,8 +275,10 @@ function applyAilment(battle, attackerSide, move, events) {
   const defender = battle[other(attackerSide)]
   if (defender.mon.status) return
 
-  // Status moves apply reliably; a damaging move only on its listed chance.
-  const rate = move.damageClass === 'status' ? move.ailmentChance || 100 : move.ailmentChance || 0
+  const rate =
+    move.damageClass === 'status'
+      ? move.ailmentChance || 100
+      : move.ailmentChance || 0
   if (rate <= 0 || !chance(battle.rng, rate / 100)) return
 
   const defenderTypes = species(defender.mon.species).types
@@ -299,24 +286,25 @@ function applyAilment(battle, attackerSide, move, events) {
   if (immune.some((type) => defenderTypes.includes(type))) return
 
   defender.mon.status = move.ailment
-  defender.mon.statusTurns = move.ailment === 'sleep' ? randInt(battle.rng, 1, 3) : 0
-  events.push({ type: 'status', side: other(attackerSide), status: move.ailment })
-  say(events, `${label(battle, other(attackerSide))} ${STATUS_LABELS[move.ailment]}!`)
+  defender.mon.statusTurns =
+    move.ailment === 'sleep' ? randInt(battle.rng, 1, 3) : 0
+  events.push({
+    type: 'status',
+    side: other(attackerSide),
+    status: move.ailment,
+  })
+  say(
+    events,
+    `${label(battle, other(attackerSide))} ${STATUS_LABELS[move.ailment]}!`,
+  )
 }
 
-/**
- * Whether a move cannot touch the defender at all, saying so if it cannot.
- *
- * Only for the damage paths that skip {@link computeDamage} — the normal path
- * learns the same thing from the multiplier it already computed.
- */
 function doesNotAffect(move, defenderTypes, events) {
   if (effectiveness(move.type, defenderTypes) !== 0) return false
   say(events, "It doesn't affect the foe...")
   return true
 }
 
-/** Runs one Pokemon's move. */
 function useMove(battle, attackerSide, moveIndex, events) {
   const attacker = battle[attackerSide]
   const defenderSide = other(attackerSide)
@@ -329,7 +317,6 @@ function useMove(battle, attackerSide, moveIndex, events) {
     move = { ...moveData(slot.move), key: slot.move }
     slot.pp--
   } else if (!hasUsableMove(attacker)) {
-    // Out of options entirely.
     move = { ...STRUGGLE.data, key: STRUGGLE.move }
   } else {
     say(events, 'No PP left for that move!')
@@ -358,7 +345,12 @@ function useMove(battle, attackerSide, moveIndex, events) {
       )
       if (healed > 0) {
         attacker.mon.hp += healed
-        events.push({ type: 'heal', side: attackerSide, amount: healed, hpAfter: attacker.mon.hp })
+        events.push({
+          type: 'heal',
+          side: attackerSide,
+          amount: healed,
+          hpAfter: attacker.mon.hp,
+        })
         say(events, `${label(battle, attackerSide)} regained health!`)
       }
     }
@@ -387,15 +379,21 @@ function useMove(battle, attackerSide, moveIndex, events) {
 
   const critChance = move.critRate > 0 ? HIGH_CRIT_CHANCE : CRIT_CHANCE
   const isCrit = chance(battle.rng, critChance)
-  const { damage, multiplier } = computeDamage(battle, attackerSide, move, isCrit)
+  const { damage, multiplier } = computeDamage(
+    battle,
+    attackerSide,
+    move,
+    isCrit,
+  )
 
   if (multiplier === 0) {
     say(events, "It doesn't affect the foe...")
     return
   }
 
-  // Multi-hit moves roll their hit count, then repeat the same damage.
-  const hits = move.maxHits ? randInt(battle.rng, move.minHits ?? move.maxHits, move.maxHits) : 1
+  const hits = move.maxHits
+    ? randInt(battle.rng, move.minHits ?? move.maxHits, move.maxHits)
+    : 1
   let total = 0
   for (let hit = 0; hit < hits; hit++) {
     if (isFainted(battle[defenderSide].mon)) break
@@ -410,15 +408,27 @@ function useMove(battle, attackerSide, moveIndex, events) {
   if (move.drain && total > 0) {
     const drained = Math.max(1, Math.floor((total * move.drain) / 100))
     if (drained > 0) {
-      attacker.mon.hp = Math.min(attacker.mon.stats.hp, attacker.mon.hp + drained)
-      events.push({ type: 'heal', side: attackerSide, amount: drained, hpAfter: attacker.mon.hp })
+      attacker.mon.hp = Math.min(
+        attacker.mon.stats.hp,
+        attacker.mon.hp + drained,
+      )
+      events.push({
+        type: 'heal',
+        side: attackerSide,
+        amount: drained,
+        hpAfter: attacker.mon.hp,
+      })
       say(events, `${label(battle, attackerSide)} had its energy drained!`)
     }
   }
 
-  // Struggle costs the user a quarter of the damage it dealt.
   if (move.key === STRUGGLE.move && total > 0) {
-    applyDamage(battle, attackerSide, Math.max(1, Math.floor(total / 4)), events)
+    applyDamage(
+      battle,
+      attackerSide,
+      Math.max(1, Math.floor(total / 4)),
+      events,
+    )
     say(events, `${label(battle, attackerSide)} is hit by recoil!`)
   }
 
@@ -428,7 +438,6 @@ function useMove(battle, attackerSide, moveIndex, events) {
   }
 }
 
-/** Burn and poison bite at the end of the turn. */
 function endOfTurnDamage(battle, side, events) {
   const mon = battle[side].mon
   if (isFainted(mon)) return
@@ -469,13 +478,6 @@ function finish(battle, outcome, events) {
   events.push({ type: 'end', outcome })
 }
 
-/**
- * Advances the battle by one player action.
- *
- * @param {object} battle
- * @param {{type: 'move', index: number} | {type: 'ball', key: string} | {type: 'run'}} action
- * @returns {object[]} events for the interface to play out
- */
 export function submitAction(battle, action) {
   const events = []
   if (battle.over) return events
@@ -505,13 +507,15 @@ export function submitAction(battle, action) {
     say(events, complaint)
   } else if (action.type === 'run') {
     battle.runAttempts++
-    // Faster Pokemon always get away; otherwise the odds improve with each try.
     const playerSpeed = effectiveSpeed(battle.player)
     const foeSpeed = effectiveSpeed(battle.foe)
     const odds =
       playerSpeed >= foeSpeed
         ? 1
-        : Math.min(0.95, (playerSpeed / foeSpeed) * 0.5 + battle.runAttempts * 0.15)
+        : Math.min(
+            0.95,
+            (playerSpeed / foeSpeed) * 0.5 + battle.runAttempts * 0.15,
+          )
 
     if (chance(battle.rng, odds)) {
       say(events, 'Got away safely!')
@@ -535,7 +539,6 @@ export function submitAction(battle, action) {
     if (checkFaint(battle, events)) return events
   }
 
-  // The foe still gets its turn after a failed ball or a failed escape.
   if (action.type !== 'move') {
     useMove(battle, 'foe', pickFoeMove(battle), events)
     if (checkFaint(battle, events)) return events
@@ -549,7 +552,6 @@ export function submitAction(battle, action) {
   return events
 }
 
-/** Priority first, then speed, with a coin flip to break a tie. */
 function decideOrder(battle, playerMoveIndex) {
   const playerSlot = moveSlotOf(battle.player, playerMoveIndex)
   const foeIndex = pickFoeMove(battle)
@@ -565,15 +567,7 @@ function decideOrder(battle, playerMoveIndex) {
   return chance(battle.rng, 0.5)
 }
 
-/**
- * The wild Pokemon's choice.
- *
- * Deliberately simple, and deliberately not random: it prefers whatever would hurt
- * most, so a type advantage feels like it matters, but it stays blind to status
- * moves and switching. A wild encounter should be beatable.
- */
 export function pickFoeMove(battle) {
-  // Memoise per turn so ordering and execution agree on the same choice.
   if (battle.foeChoiceTurn === battle.turn) return battle.foeChoice
 
   const foe = battle.foe.mon
@@ -589,7 +583,10 @@ export function pickFoeMove(battle) {
     const score =
       move.damageClass === 'status'
         ? 15
-        : (power * effectiveness(move.type, playerTypes) * (move.accuracy ?? 100)) / 100
+        : (power *
+            effectiveness(move.type, playerTypes) *
+            (move.accuracy ?? 100)) /
+          100
 
     if (score > bestScore) {
       bestScore = score

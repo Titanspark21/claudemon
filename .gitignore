@@ -1,23 +1,11 @@
-# macOS
 .DS_Store
 
-# Editors
 .vscode/
 .idea/
 *.swp
 
-# Node. Playing needs nothing installed; the only dependency is the linter, and it
-# is a devDependency, so `npm ci` is a contributor's step and never a player's.
 node_modules/
 npm-debug.log*
 
-# Where CI points CLAUDEMON_HOME, so the sprites it downloads land somewhere it can
-# cache by a relative path. Only ever written by .github/workflows/ci.yml.
 .claudemon-ci/
 
-# Nothing the game writes is in here — saves, config, sprites and the PokeAPI
-# response cache all live under ~/.claudemon. Two things that look ignorable and
-# are not:
-#
-#   data/  the dataset the plugin ships, so installing needs no PokeAPI round trip
-#   docs/  the screenshots the README shows, and the landing page GitHub Pages serves

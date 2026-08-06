@@ -1,10 +1,3 @@
-// What happens after the last hit lands.
-//
-// Experience, levels, new moves and evolution, produced as an ordered list of
-// steps rather than applied all at once. The interface walks the list, pausing on
-// the one step that needs an answer — which move to forget — so the pacing lives
-// in the view and the rules live here.
-
 import { move as moveData, species } from './data.mjs'
 import { movesLearnedAt, MAX_LEVEL, MOVE_LIMIT } from './exp.mjs'
 import {
@@ -18,24 +11,8 @@ import {
 } from './pokemon.mjs'
 import { markCaught } from './state.mjs'
 
-// Owned by exp.mjs, which builds the movesets this cap applies to. Re-exported
-// because callers reach for it alongside applyVictory.
 export { MOVE_LIMIT }
 
-/**
- * Applies a won battle to everyone who fought it.
- *
- * Every Pokemon that was on the field earns the full experience, whether it
- * landed a blow or not: coming out to soak a hit is taking part, and a divisor
- * would only teach people never to switch. One still fainted at the end earns
- * nothing, the same as in the games. Prize money is paid once, to the trainer.
- *
- * Everything except a forgotten move is applied immediately; `learn-choice` steps
- * are left for the interface to resolve with {@link learnMove} or ignore.
- *
- * @param {object[]} mons everyone who took part, in the order they came out
- * @returns {object[]} steps: money, exp, level, learn, learn-choice, evolve
- */
 export function applyVictory(save, mons, rewards) {
   const steps = []
 
@@ -52,14 +29,6 @@ export function applyVictory(save, mons, rewards) {
   return steps
 }
 
-/**
- * One Pokemon's share of a win: the experience, the levels it crosses and what
- * those bring with them.
- *
- * Every step carries its `mon`, because the one a step belongs to is not
- * necessarily the one on the field — a Pokemon on the bench can level up, learn
- * a move and evolve on the back of a fight it left halfway through.
- */
 function gainExp(save, mon, amount) {
   const steps = []
 
@@ -70,44 +39,40 @@ function gainExp(save, mon, amount) {
   const after = levelOf(mon)
   if (after === before) return steps
 
-  // Walk each level crossed, so nothing learned on the way up is skipped.
   for (let level = before + 1; level <= after; level++) {
     refreshStats(mon)
-    steps.push({ kind: 'level', level, mon, name: displayName(mon), stats: { ...mon.stats } })
+    steps.push({
+      kind: 'level',
+      level,
+      mon,
+      name: displayName(mon),
+      stats: { ...mon.stats },
+    })
 
     steps.push(...learnMovesAt(mon, level))
 
-    // The evolution belongs to the level that triggered it, not to the end of the
-    // climb: the levels above it are lived as the new species, and so are the moves
-    // they teach. Abra reaching 16 becomes a Kadabra that then learns Confusion at
-    // 16 — checking the old learnset for all of it left it knowing only Teleport.
     const target = pendingEvolution(mon, level)
     if (target) {
       const from = mon.species
       evolveInto(mon, target)
-      // An evolution is the only way a species joins your team without being caught, so
-      // it has to fill in its own entry. Without this the Pokedex would never credit you
-      // for the half of it you raised yourself.
       markCaught(save, target)
-      steps.push({ kind: 'evolve', from, to: target, mon, name: species(target).name })
+      steps.push({
+        kind: 'evolve',
+        from,
+        to: target,
+        mon,
+        name: species(target).name,
+      })
       steps.push(...learnMovesAt(mon, level))
     }
   }
 
-  if (levelOf(mon) >= MAX_LEVEL) steps.push({ kind: 'maxed', mon, name: displayName(mon) })
+  if (levelOf(mon) >= MAX_LEVEL)
+    steps.push({ kind: 'maxed', mon, name: displayName(mon) })
 
   return steps
 }
 
-/**
- * What reaching a level teaches, for whatever species this one is by then.
- *
- * Reads `mon.species` on every call rather than taking it as an argument, because an
- * evolution can change it between two calls for the same level.
- *
- * A full moveset is left alone and asked about instead — the answer arrives much
- * later, from the interface, through {@link learnMove}.
- */
 function learnMovesAt(mon, level) {
   const steps = []
 
@@ -118,30 +83,22 @@ function learnMovesAt(mon, level) {
       mon.moves.push(makeMoveSlot(name))
       steps.push({ kind: 'learn', move: name, mon, name: displayName(mon) })
     } else {
-      steps.push({ kind: 'learn-choice', move: name, mon, name: displayName(mon) })
+      steps.push({
+        kind: 'learn-choice',
+        move: name,
+        mon,
+        name: displayName(mon),
+      })
     }
   }
 
   return steps
 }
 
-/**
- * What an evolution teaches on arrival, for one that did not come up through a climb.
- *
- * A stone is used from the bag, so nobody was counting levels when it went off — but
- * the rule is the rule the levels follow: the learnset that decides is the one
- * belonging to what it just became, read at the level it is standing on. A Shellder
- * given a Water Stone at 50 becomes a Cloyster that knows what a Cloyster knows at 50.
- *
- * Call it after the evolution, never before: it reads the species off the Pokemon.
- *
- * @returns {object[]} learn and learn-choice steps, the same ones a level-up produces
- */
 export function learnEvolutionMoves(mon) {
   return learnMovesAt(mon, levelOf(mon))
 }
 
-/** Swaps a known move for a new one. Pass a null slot to decline. */
 export function learnMove(mon, newMove, slotIndex) {
   if (slotIndex === null || slotIndex === undefined) {
     return { learned: false, forgot: null }
@@ -151,7 +108,6 @@ export function learnMove(mon, newMove, slotIndex) {
   return { learned: true, forgot }
 }
 
-/** Human-readable lines for a step, for the battle message box. */
 export function describeStep(step) {
   switch (step.kind) {
     case 'money':

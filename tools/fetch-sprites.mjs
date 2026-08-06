@@ -1,13 +1,3 @@
-// Downloads the Gen 5 sprites for the original 151 into ~/.claudemon/data.
-//
-// Run once at install time. Sprites are not committed to the repository: they are
-// Nintendo's, and fetching them here keeps the repo clear of assets we have no
-// right to redistribute.
-//
-// Usage:
-//   node tools/fetch-sprites.mjs            all 151
-//   node tools/fetch-sprites.mjs 1 4 7 25   just these
-
 import { mkdirSync, writeFileSync, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { SPRITES_DIR, spriteFile } from '../src/paths.mjs'
@@ -19,14 +9,12 @@ const BASE =
 const CONCURRENCY = 8
 const KANTO = 151
 
-/** back sprites are what your own Pokemon shows in battle. */
 const SIDES = [
   { name: 'front', url: (id) => `${BASE}/${id}.png` },
   { name: 'back', url: (id) => `${BASE}/back/${id}.png` },
 ]
 
 async function download(url, destination) {
-  // Already there and non-empty: leave it alone so reruns are cheap.
   if (existsSync(destination) && statSync(destination).size > 0) return 'cached'
 
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -47,9 +35,13 @@ async function download(url, destination) {
 
 async function main() {
   const requested = process.argv.slice(2).map(Number).filter(Number.isInteger)
-  const ids = requested.length > 0 ? requested : Array.from({ length: KANTO }, (_, i) => i + 1)
+  const ids =
+    requested.length > 0
+      ? requested
+      : Array.from({ length: KANTO }, (_, i) => i + 1)
 
-  for (const side of SIDES) mkdirSync(join(SPRITES_DIR, side.name), { recursive: true })
+  for (const side of SIDES)
+    mkdirSync(join(SPRITES_DIR, side.name), { recursive: true })
 
   const jobs = ids.flatMap((id) =>
     SIDES.map((side) => ({ id, side: side.name, url: side.url(id) })),
@@ -64,7 +56,9 @@ async function main() {
       try {
         counts[await download(job.url, spriteFile(job.side, job.id, 'png'))]++
       } catch (error) {
-        process.stderr.write(`\n  ${job.side}/${job.id}.png failed: ${error.message}\n`)
+        process.stderr.write(
+          `\n  ${job.side}/${job.id}.png failed: ${error.message}\n`,
+        )
       }
       progress('sprites', ++done, jobs.length)
     },

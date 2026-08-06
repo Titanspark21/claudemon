@@ -1,8 +1,14 @@
-// The shop. Spend what you won.
-
 import { ITEMS, SHOP_STOCK, countOf } from '../../shop.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
-import { menuList, money, padLeft, padRight, panel, withFooter, wrap } from '../widgets.mjs'
+import {
+  menuList,
+  money,
+  padLeft,
+  padRight,
+  panel,
+  withFooter,
+  wrap,
+} from '../widgets.mjs'
 
 export function draw(ctx, size) {
   const { cols, rows } = size
@@ -26,14 +32,20 @@ export function draw(ctx, size) {
   })
 
   const height = Math.max(6, rows - 12)
-  for (const row of menuList(entries, ctx.shopSelection, { height, width: width - 2 })) {
+  for (const row of menuList(entries, ctx.shopSelection, {
+    height,
+    width: width - 2,
+  })) {
     lines.push(` ${row}`)
   }
 
   const chosen = ITEMS[SHOP_STOCK[ctx.shopSelection]]
   lines.push('')
   for (const row of panel(
-    [chosen.description, ctx.shopMessage ?? dim('[enter] buy one · [5] buy five')],
+    [
+      chosen.description,
+      ctx.shopMessage ?? dim('[enter] buy one · [5] buy five'),
+    ],
     width,
   )) {
     lines.push(` ${row}`)

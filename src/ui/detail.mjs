@@ -1,18 +1,16 @@
-// The block of numbers one Pokemon gets: health, experience, stats and moves.
-//
-// Shared by the team screen and the box. They show the same Pokemon on either side
-// of the same swap, so a difference between them would only ever be a bug.
-
 import { move as moveData, species } from '../data.mjs'
 import { expProgress } from '../exp.mjs'
 import { displayName, genderOf, levelOf } from '../pokemon.mjs'
 import { bold, dim } from './ansi.mjs'
-import { expBar, genderTag, hpBar, padRight, statusTag, typeBadge } from './widgets.mjs'
+import {
+  expBar,
+  genderTag,
+  hpBar,
+  padRight,
+  statusTag,
+  typeBadge,
+} from './widgets.mjs'
 
-/**
- * @param {object} mon a party or boxed Pokemon.
- * @returns {string[]} lines, unpadded: the caller decides how wide the column is.
- */
 export function monDetail(mon) {
   const lines = []
 
@@ -23,7 +21,9 @@ export function monDetail(mon) {
   )
   lines.push(species(mon.species).types.map(typeBadge).join(' '))
   lines.push('')
-  lines.push(`HP  ${hpBar(mon.hp, mon.stats.hp, 22)} ${dim(`${mon.hp}/${mon.stats.hp}`)}`)
+  lines.push(
+    `HP  ${hpBar(mon.hp, mon.stats.hp, 22)} ${dim(`${mon.hp}/${mon.stats.hp}`)}`,
+  )
 
   const progress = expProgress(mon.species, mon.exp)
   lines.push(

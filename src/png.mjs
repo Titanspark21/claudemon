@@ -1,13 +1,8 @@
-// A small PNG decoder, so sprites need no dependencies.
-//
-// Only what the Pokemon sprites actually use: non-interlaced images, every colour
-// type, bit depths 1 to 8. node:zlib does the inflating, which is the only hard
-// part of PNG. Decoding a 96x96 sprite takes about a millisecond, so the
-// companion does it on demand rather than shipping a pre-decoded copy.
-
 import { inflateSync } from 'node:zlib'
 
-export const SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+export const SIGNATURE = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+])
 
 const CHANNELS = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }
 
@@ -21,7 +16,6 @@ function paeth(left, above, upperLeft) {
   return upperLeft
 }
 
-/** Reverses the per-scanline filters PNG applies before compression. */
 function unfilter(raw, width, height, channels, bitDepth) {
   const bytesPerPixel = Math.max(1, Math.ceil((channels * bitDepth) / 8))
   const scanlineBytes = Math.ceil((width * channels * bitDepth) / 8)
@@ -37,7 +31,8 @@ function unfilter(raw, width, height, channels, bitDepth) {
       const value = raw[rawOffset + i]
       const left = i >= bytesPerPixel ? out[lineStart + i - bytesPerPixel] : 0
       const above = row > 0 ? out[prevStart + i] : 0
-      const upperLeft = row > 0 && i >= bytesPerPixel ? out[prevStart + i - bytesPerPixel] : 0
+      const upperLeft =
+        row > 0 && i >= bytesPerPixel ? out[prevStart + i - bytesPerPixel] : 0
 
       let restored
       switch (filter) {
@@ -66,7 +61,6 @@ function unfilter(raw, width, height, channels, bitDepth) {
   return { data: out, scanlineBytes }
 }
 
-/** Reads sample `index` out of a scanline packed at fewer than 8 bits per sample. */
 function readPacked(line, index, bitDepth) {
   const perByte = 8 / bitDepth
   const byte = line[Math.floor(index / perByte)]
@@ -74,12 +68,6 @@ function readPacked(line, index, bitDepth) {
   return (byte >> shift) & ((1 << bitDepth) - 1)
 }
 
-/**
- * Decodes a PNG buffer to straight RGBA.
- *
- * @returns {{ width: number, height: number, pixels: Uint8Array }} pixels is
- *   width * height * 4 bytes, in RGBA order.
- */
 export function decodePng(buffer) {
   if (!buffer.subarray(0, 8).equals(SIGNATURE)) throw new Error('not a PNG')
 
@@ -119,11 +107,18 @@ export function decodePng(buffer) {
   if (header.interlace) throw new Error('interlaced PNGs are not supported')
 
   const channels = CHANNELS[header.colorType]
-  if (!channels) throw new Error(`unsupported PNG colour type ${header.colorType}`)
+  if (!channels)
+    throw new Error(`unsupported PNG colour type ${header.colorType}`)
 
   const { width, height, bitDepth, colorType } = header
   const raw = inflateSync(Buffer.concat(idatChunks))
-  const { data, scanlineBytes } = unfilter(raw, width, height, channels, bitDepth)
+  const { data, scanlineBytes } = unfilter(
+    raw,
+    width,
+    height,
+    channels,
+    bitDepth,
+  )
 
   const pixels = new Uint8Array(width * height * 4)
   const maxSample = (1 << bitDepth) - 1
@@ -133,8 +128,6 @@ export function decodePng(buffer) {
 
     for (let x = 0; x < width; x++) {
       const target = (y * width + x) * 4
-      // No initial colour: every branch below writes all three. Alpha is the one
-      // that has a default, because only two colour types carry it.
       let r
       let g
       let b
@@ -147,7 +140,6 @@ export function decodePng(buffer) {
         b = palette[index * 3 + 2]
         if (transparency && index < transparency.length) a = transparency[index]
       } else if (bitDepth === 8 || bitDepth === 16) {
-        // 16-bit samples are big-endian; the high byte is all we need for display.
         const stride = bitDepth === 16 ? 2 : 1
         const base = x * channels * stride
         const sampleAt = (channel) => line[base + channel * stride]
@@ -164,7 +156,6 @@ export function decodePng(buffer) {
           if (colorType === 6) a = sampleAt(3)
         }
       } else {
-        // Sub-byte greyscale, scaled up to 0..255.
         const sample = readPacked(line, x * channels, bitDepth)
         r = g = b = Math.round((sample / maxSample) * 255)
       }

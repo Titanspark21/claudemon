@@ -1,8 +1,3 @@
-// The Pokédex: all 151, with what you have seen and what you have caught.
-//
-// Anything you have never met shows as a silhouette and a number, which is the
-// whole point of a Pokédex.
-
 import { loadData, species } from '../../data.mjs'
 import { STAT_NAMES } from '../../exp.mjs'
 import { spriteFile } from '../../paths.mjs'
@@ -10,9 +5,16 @@ import { speciesGender, speciesName } from '../../pokemon.mjs'
 import { timesFaced } from '../../state.mjs'
 import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
-import { genderTag, hpBar, menuList, padRight, typeBadge, withFooter, wrap } from '../widgets.mjs'
+import {
+  genderTag,
+  hpBar,
+  menuList,
+  padRight,
+  typeBadge,
+  withFooter,
+  wrap,
+} from '../widgets.mjs'
 
-/** Three-character labels, so the base-stat bars line up. */
 const STAT_GLYPHS = {
   hp: 'HP ',
   attack: 'Atk',
@@ -47,8 +49,6 @@ export function draw(ctx, size) {
     const isCaught = ctx.save.dex.caught.includes(mon.id)
     const isSeen = isCaught || ctx.save.dex.seen.includes(mon.id)
     const mark = isCaught ? brightGreen('●') : isSeen ? dim('◐') : gray('·')
-    // A species has a gender only where every one of them has the same one, which in
-    // Kanto is what separates the two Nidoran now that their names read alike.
     const name = isSeen
       ? `${speciesName(mon.id)}${genderTag(speciesGender(mon.id))}`
       : gray('-----')
@@ -56,9 +56,11 @@ export function draw(ctx, size) {
   })
 
   const listHeight = Math.max(6, rows - 6)
-  const list = menuList(entries, ctx.dexSelection, { height: listHeight, width: listWidth })
+  const list = menuList(entries, ctx.dexSelection, {
+    height: listHeight,
+    width: listWidth,
+  })
 
-  // Detail panel drawn alongside the list.
   const detail = []
   if (seen) {
     detail.push(
@@ -67,11 +69,9 @@ export function draw(ctx, size) {
       )}  ${dim(`#${String(selected.id).padStart(3, '0')}`)}`,
     )
     detail.push(selected.types.map(typeBadge).join(' '))
-    // How many of it you have stood in front of. Left off entirely at zero: an entry
-    // you have only ever seen has nothing to say here, and nor does one you caught
-    // before the tally existed.
     const faced = timesFaced(ctx.save, selected.id)
-    if (faced > 0) detail.push(dim(`Faced ${faced === 1 ? 'once' : `${faced} times`}`))
+    if (faced > 0)
+      detail.push(dim(`Faced ${faced === 1 ? 'once' : `${faced} times`}`))
     detail.push('')
     if (caught) {
       const stats = selected.stats
@@ -82,7 +82,11 @@ export function draw(ctx, size) {
         )
       }
       detail.push('')
-      detail.push(dim(`Catch rate ${selected.captureRate} · Base exp ${selected.baseExp}`))
+      detail.push(
+        dim(
+          `Catch rate ${selected.captureRate} · Base exp ${selected.baseExp}`,
+        ),
+      )
       const evolves = selected.evolutions.map((evolution) => {
         const how =
           evolution.trigger === 'level-up'
@@ -92,7 +96,8 @@ export function draw(ctx, size) {
               : 'by trading'
         return `${species(evolution.to).name} ${how}`
       })
-      if (evolves.length > 0) detail.push(dim(`Evolves into ${evolves.join(', ')}`))
+      if (evolves.length > 0)
+        detail.push(dim(`Evolves into ${evolves.join(', ')}`))
     } else {
       detail.push(dim('Seen, but not yet caught.'))
       detail.push(dim('Catch one to fill in its entry.'))
@@ -101,10 +106,12 @@ export function draw(ctx, size) {
     detail.push(gray('No data.'))
   }
 
-  // Sprite for the highlighted entry.
   const sprite = seen
     ? loadSprite(spriteFile('front', selected.id, 'png'), {
-        cols: Math.min(fitCanvasCols(size, 18, ctx.spriteScale), (cols - detailLeft - 4) * 2),
+        cols: Math.min(
+          fitCanvasCols(size, 18, ctx.spriteScale),
+          (cols - detailLeft - 4) * 2,
+        ),
       })
     : null
   const spriteBlock = sprite ? sprite.rows : []
@@ -118,7 +125,11 @@ export function draw(ctx, size) {
   }
 
   return {
-    lines: withFooter(lines, dim(' ↑ ↓ browse · PgUp/PgDn jump · [esc] back'), rows),
+    lines: withFooter(
+      lines,
+      dim(' ↑ ↓ browse · PgUp/PgDn jump · [esc] back'),
+      rows,
+    ),
     overlays,
   }
 }
@@ -127,10 +138,13 @@ export function onKey(ctx, key) {
   const total = loadData().pokedex.length
   const step = key.name === 'pageup' || key.name === 'pagedown' ? 10 : 1
 
-  if (key.name === 'up' || key.name === 'k') ctx.dexSelection = wrap(ctx.dexSelection - 1, total)
+  if (key.name === 'up' || key.name === 'k')
+    ctx.dexSelection = wrap(ctx.dexSelection - 1, total)
   else if (key.name === 'down' || key.name === 'j')
     ctx.dexSelection = wrap(ctx.dexSelection + 1, total)
-  else if (key.name === 'pageup') ctx.dexSelection = Math.max(0, ctx.dexSelection - step)
-  else if (key.name === 'pagedown') ctx.dexSelection = Math.min(total - 1, ctx.dexSelection + step)
+  else if (key.name === 'pageup')
+    ctx.dexSelection = Math.max(0, ctx.dexSelection - step)
+  else if (key.name === 'pagedown')
+    ctx.dexSelection = Math.min(total - 1, ctx.dexSelection + step)
   else if (key.name === 'escape' || key.name === 'q') ctx.setMode('home')
 }

@@ -1,16 +1,19 @@
-// Items, and the shop that sells them.
-
 import { BALLS } from './capture.mjs'
-import { displayName, evolveInto, isFainted, speciesName, stoneEvolution } from './pokemon.mjs'
+import {
+  displayName,
+  evolveInto,
+  isFainted,
+  speciesName,
+  stoneEvolution,
+} from './pokemon.mjs'
 
-/**
- * Everything that can sit in the bag.
- *
- * `kind` decides what using one does; the shop only cares about `price`, and an
- * item with no price cannot be bought.
- */
 export const ITEMS = {
-  'poke-ball': { name: 'Poké Ball', kind: 'ball', price: 200, description: 'A basic ball.' },
+  'poke-ball': {
+    name: 'Poké Ball',
+    kind: 'ball',
+    price: 200,
+    description: 'A basic ball.',
+  },
   'great-ball': {
     name: 'Great Ball',
     kind: 'ball',
@@ -30,7 +33,13 @@ export const ITEMS = {
     description: 'Never fails. Cannot be bought.',
   },
 
-  potion: { name: 'Potion', kind: 'heal', heals: 20, price: 300, description: 'Restores 20 HP.' },
+  potion: {
+    name: 'Potion',
+    kind: 'heal',
+    heals: 20,
+    price: 300,
+    description: 'Restores 20 HP.',
+  },
   'super-potion': {
     name: 'Super Potion',
     kind: 'heal',
@@ -98,43 +107,27 @@ export const ITEMS = {
   },
 }
 
-/** What the shop offers, in the order it lists them. */
-export const SHOP_STOCK = Object.keys(ITEMS).filter((key) => ITEMS[key].price !== null)
+export const SHOP_STOCK = Object.keys(ITEMS).filter(
+  (key) => ITEMS[key].price !== null,
+)
 
-/** Balls in the bag, in catch-rate order, for the battle menu. */
 export function ballsInBag(save) {
   return Object.keys(BALLS)
     .filter((key) => (save.bag[key] ?? 0) > 0)
     .sort((a, b) => BALLS[a].multiplier - BALLS[b].multiplier)
 }
 
-/**
- * Everything you are carrying, in the order the shop sells it.
- *
- * Ordered by `ITEMS` rather than by the save, so the list is the same list every time
- * you open it: a bag whose rows moved as you spent things would put something else
- * under the cursor every time you used one.
- */
 export function itemsInBag(save) {
   return Object.keys(ITEMS).filter((key) => countOf(save, key) > 0)
 }
 
-/** Kinds that are used on one of your own Pokemon. */
 const PARTY_ITEM_KINDS = new Set(['heal', 'cure', 'revive', 'stone'])
 
-/**
- * Whether this is something to use on a party member.
- *
- * False for balls, which need something standing in front of you. The bag screen still
- * lists them — they are in the bag — but out of a battle there is nothing to throw one
- * at, and an item that quietly did nothing would read as a broken bag.
- */
 export function usableOnParty(key) {
   return PARTY_ITEM_KINDS.has(ITEMS[key]?.kind)
 }
 
 export function countOf(save, key) {
-  // Tolerates a save that has not been through migration yet.
   return save.bag?.[key] ?? 0
 }
 
@@ -151,15 +144,11 @@ export function removeItem(save, key, quantity = 1) {
   return save
 }
 
-/**
- * Buys `quantity` of an item.
- *
- * @returns {{ ok: boolean, reason?: string, spent?: number }}
- */
 export function buy(save, key, quantity = 1) {
   const item = ITEMS[key]
   if (!item) return { ok: false, reason: 'No such item.' }
-  if (item.price === null) return { ok: false, reason: `${item.name} is not for sale.` }
+  if (item.price === null)
+    return { ok: false, reason: `${item.name} is not for sale.` }
 
   const cost = item.price * quantity
   if (save.money < cost) return { ok: false, reason: "You can't afford that." }
@@ -169,24 +158,15 @@ export function buy(save, key, quantity = 1) {
   return { ok: true, spent: cost }
 }
 
-/**
- * Uses an item on a Pokemon.
- *
- * Returns a message rather than throwing, because every failure here is something
- * the player should simply be told.
- *
- * @returns {{ ok: boolean, message: string, evolvedInto?: number }} `evolvedInto` is
- *   the species it has already become, not one for the caller to apply: it is there so
- *   whoever holds the save can credit the Pokedex with an entry nobody caught, and
- *   teach it what its new form knows.
- */
 export function useItem(save, key, mon) {
   const item = ITEMS[key]
   if (!item) return { ok: false, message: 'Nothing happened.' }
-  if (countOf(save, key) <= 0) return { ok: false, message: `You have no ${item.name}.` }
+  if (countOf(save, key) <= 0)
+    return { ok: false, message: `You have no ${item.name}.` }
 
   if (item.kind === 'heal') {
-    if (isFainted(mon)) return { ok: false, message: 'It had no effect on a fainted Pokémon.' }
+    if (isFainted(mon))
+      return { ok: false, message: 'It had no effect on a fainted Pokémon.' }
     if (mon.hp >= mon.stats.hp && !(item.cures && mon.status)) {
       return { ok: false, message: 'It would have no effect.' }
     }
@@ -209,7 +189,8 @@ export function useItem(save, key, mon) {
   }
 
   if (item.kind === 'revive') {
-    if (!isFainted(mon)) return { ok: false, message: 'It would have no effect.' }
+    if (!isFainted(mon))
+      return { ok: false, message: 'It would have no effect.' }
     mon.hp = Math.max(1, Math.floor(mon.stats.hp / 2))
     mon.status = null
     removeItem(save, key)
@@ -220,16 +201,9 @@ export function useItem(save, key, mon) {
     const target = stoneEvolution(mon, key)
     if (!target) return { ok: false, message: 'It would have no effect.' }
 
-    // Here, like every branch above it: an item applies itself. Reporting the evolution
-    // and leaving it for the caller to perform is what made a stone something you could
-    // buy, spend and watch do nothing — the one caller there was never read the field.
     const before = displayName(mon)
     evolveInto(mon, target)
     removeItem(save, key)
-    // What the new form knows at this level is not settled here, for the same reason
-    // the Pokedex entry is not: both belong to modules a bag has no business importing,
-    // and one of them imports this one back. `evolvedInto` is what asks for them, and
-    // every caller goes through the one place that answers it.
     return {
       ok: true,
       message: `Congratulations! ${before.toUpperCase()} evolved into ${speciesName(target).toUpperCase()}!`,

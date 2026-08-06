@@ -10,19 +10,9 @@ permissions:
   contents: read
 
 env:
-  # The override documented in src/paths.mjs. Pointing it inside the workspace gives
-  # the cache a predictable relative path, and the tests still sandbox themselves to
-  # a temp directory under it, so nothing here can be confused for a real save.
   CLAUDEMON_HOME: ${{ github.workspace }}/.claudemon-ci
 
 jobs:
-  # The sprites are not in the repo — they are downloaded at install time, for the
-  # reason given in tools/fetch-sprites.mjs. But two checks below genuinely need them
-  # on disk: the test that draws both sprites on a shared row, and check-data's
-  # assertion that all 302 PNGs are there.
-  #
-  # So one job fetches them and fills the cache, rather than four matrix legs each
-  # pulling 302 files off somebody else's host at once. Every job after this is a hit.
   sprites:
     runs-on: ubuntu-latest
     steps:
@@ -40,43 +30,27 @@ jobs:
       - if: steps.sprites.outputs.cache-hit != 'true'
         run: node tools/fetch-sprites.mjs
 
-  # No `needs:` — the linter reads source, so it does not wait on 302 sprites it will
-  # never open. It starts with the sprites job and usually finishes first, which is
-  # what makes a missing import show up in a PR before the matrix has warmed up.
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # One version rather than the matrix: the linter reads the same source
-          # whatever runs it, so three legs would be three identical answers. Which
-          # one hardly matters now that the floor is ESLint's own — 24 without
-          # tracking `latest`, and the matrix below is what proves the floor itself.
           node-version: '24'
           cache: npm
 
-      # `ci` rather than `install`, so the lockfile decides the version and a lint
-      # error is always the code's rather than a linter that moved under us.
       - run: npm ci
 
       - run: npm run lint
 
-      # Formatting is the other thing that can be settled without a sprite on disk, so
-      # it rides in the same job rather than paying for a second checkout to say the
-      # same thing. `npm run format` locally is what turns a red one green.
       - run: npm run format:check
 
   test:
     needs: sprites
     runs-on: ubuntu-latest
     strategy:
-      # Every version reports for itself; one old release failing should not hide
-      # whether the current one passes.
       fail-fast: false
       matrix:
-        # 20.19 is the floor the README promises, and the leg is pinned to it rather
-        # than to 20 so the oldest thing tested is the oldest thing promised.
         node: ['20.19', '22', '24']
 
     steps:
@@ -90,13 +64,8 @@ jobs:
           path: .claudemon-ci/data/sprites
           key: sprites-${{ hashFiles('tools/fetch-sprites.mjs') }}
 
-      # A no-op on a cache hit: fetch-sprites skips anything already on disk. Left
-      # unconditional so a cache miss costs a download rather than a red run.
       - run: node tools/fetch-sprites.mjs
 
-      # The shell expands the glob, which is what makes this work the same on 20.19 as
-      # on 24 — `node --test` only learned to expand patterns itself in 21, and it
-      # does not take a bare directory on every release either.
       - run: node --test test/*.test.mjs
 
   dataset:
@@ -115,7 +84,4 @@ jobs:
 
       - run: node tools/fetch-sprites.mjs
 
-      # The committed dataset only changes when somebody reruns fetch-data.mjs, which
-      # is exactly when a structural break or a moveset from the wrong version group
-      # would slip in unnoticed.
       - run: node tools/check-data.mjs

@@ -1,8 +1,3 @@
-// Loads the generated dataset, once per process.
-//
-// The companion is long-lived, so everything is read on first use and kept. It is
-// about 125 KB of JSON, which is nothing to hold and saves re-reading it every turn.
-
 import { readFileSync } from 'node:fs'
 import { dataFile } from './paths.mjs'
 
@@ -13,13 +8,6 @@ function read(name) {
   return JSON.parse(readFileSync(dataFile(name), 'utf8'))
 }
 
-/**
- * Just the Pokedex.
- *
- * Cached on its own because the prompt hook is a one-shot process that needs
- * nothing else: making it go through {@link loadData} would have it parse the
- * moves, types and growth curves on every prompt for no reason.
- */
 export function loadPokedex() {
   pokedexCache ??= read('pokedex.json')
   return pokedexCache

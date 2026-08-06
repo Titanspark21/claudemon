@@ -1,26 +1,21 @@
-// Renders a screen to stdout without taking over the terminal.
-//
-// The companion is a full-screen application, which makes it awkward to inspect
-// while building it. This drives the same view functions against a synthetic save
-// and prints one frame.
-//
-//   node tools/preview.mjs                    every screen at 100x34
-//   node tools/preview.mjs battle 120 44      one screen at a given size
-//   NO_COLOR=1 node tools/preview.mjs dex     silhouettes instead of colour
-
 import { createApp } from '../src/app.mjs'
 import { createBattle } from '../src/battle.mjs'
 import { DEFAULT_CONFIG } from '../src/config.mjs'
 import { createPokemon } from '../src/pokemon.mjs'
 import { makeRng } from '../src/rng.mjs'
-import { addPokemon, createSave, markCaught, markFaced, markSeen } from '../src/state.mjs'
+import {
+  addPokemon,
+  createSave,
+  markCaught,
+  markFaced,
+  markSeen,
+} from '../src/state.mjs'
 import { bold, dim } from '../src/ui/ansi.mjs'
 
 const [requested, colsArg, rowsArg] = process.argv.slice(2)
 const cols = Number(colsArg) || 100
 const rows = Number(rowsArg) || 34
 
-/** A save part-way through a playthrough, so screens have something to show. */
 function sampleSave() {
   const rng = makeRng(31337)
   const save = createSave({ trainer: 'Sergio', starterId: 4, rng })
@@ -28,8 +23,6 @@ function sampleSave() {
   save.money = 5400
   save.bag = { 'poke-ball': 7, 'great-ball': 2, potion: 3, 'thunder-stone': 1 }
 
-  // Built at the level we want rather than fed experience: bumping exp alone
-  // would leave it with a level 5 moveset.
   save.party[0] = createPokemon(4, 12, rng)
   addPokemon(save, createPokemon(25, 12, rng))
   addPokemon(save, createPokemon(16, 9, rng))
@@ -37,7 +30,6 @@ function sampleSave() {
   save.party[2].status = 'poison'
 
   for (const id of [10, 13, 19, 21, 41, 43, 74, 129, 133]) markSeen(save, id)
-  // A playthrough with some road behind it, so the Pokedex has a tally to show.
   for (const [id, times] of [
     [16, 9],
     [19, 6],
@@ -71,13 +63,12 @@ function show(title, app) {
   const { lines, overlays } = module.draw(app, { cols, rows })
   process.stdout.write(lines.join('\n') + '\n')
 
-  // Overlays carry absolute positions in a full-screen frame. Here the frame is
-  // just printed into the scrollback, so each one is replayed relative to the
-  // bottom of it: save the cursor, go up and across, draw, come back.
   for (const overlay of overlays) {
     const up = lines.length - overlay.row + 1
     if (up < 1) continue
-    process.stdout.write(`\x1b7\x1b[${up}A\r\x1b[${overlay.col - 1}C${overlay.sequence}\x1b8`)
+    process.stdout.write(
+      `\x1b7\x1b[${up}A\r\x1b[${overlay.col - 1}C${overlay.sequence}\x1b8`,
+    )
   }
 }
 
@@ -92,12 +83,6 @@ const MODULES = {
   update: await import('../src/ui/views/update.mjs'),
 }
 
-/**
- * An update part-way through, built by hand rather than started.
- *
- * The real one shells out to `claude plugin update`, which is not something a
- * preview should do to somebody's install.
- */
 function updateRun({ state = 'running', at = 1, to = null } = {}) {
   const labels = [
     ['refreshing the marketplace', 'refreshed the marketplace'],
@@ -116,7 +101,14 @@ function updateRun({ state = 'running', at = 1, to = null } = {}) {
       id: String(index),
       label,
       done,
-      status: state === 'done' ? 'ok' : index < at ? 'ok' : index === at ? 'running' : 'pending',
+      status:
+        state === 'done'
+          ? 'ok'
+          : index < at
+            ? 'ok'
+            : index === at
+              ? 'running'
+              : 'pending',
       detail: null,
     })),
   }
@@ -143,22 +135,35 @@ const scenes = {
   'home-working': () => {
     const app = makeApp(sampleSave())
     app.mode = 'home'
-    app.activity = { state: 'working', tool: 'Bash', since: Date.now() - 74_000, sessions: 1 }
-    // Part way across the field, so the walker is not against the edge.
-    // CLAUDEMON_WALK_STEP steps through the walk a frame at a time.
+    app.activity = {
+      state: 'working',
+      tool: 'Bash',
+      since: Date.now() - 74_000,
+      sessions: 1,
+    }
     app.scene.step = Number(process.env.CLAUDEMON_WALK_STEP ?? 14)
     return app
   },
   'home-needed': () => {
     const app = makeApp(sampleSave())
     app.mode = 'home'
-    app.activity = { state: 'waiting', tool: 'Bash', since: Date.now() - 9_000, sessions: 1 }
+    app.activity = {
+      state: 'waiting',
+      tool: 'Bash',
+      since: Date.now() - 9_000,
+      sessions: 1,
+    }
     return app
   },
   home: () => {
     const app = makeApp(sampleSave())
     app.mode = 'home'
-    app.activity = { state: 'working', tool: 'Edit', since: Date.now() - 213_000, sessions: 2 }
+    app.activity = {
+      state: 'working',
+      tool: 'Edit',
+      since: Date.now() - 213_000,
+      sessions: 2,
+    }
     app.encounter = {
       species: 25,
       name: 'Pikachu',
@@ -173,7 +178,11 @@ const scenes = {
     app.mode = 'battle'
     const wild = createPokemon(43, 12, makeRng(9))
     wild.hp = Math.floor(wild.stats.hp * 0.55)
-    const state = createBattle({ playerMon: app.save.party[0], wildMon: wild, seed: 5 })
+    const state = createBattle({
+      playerMon: app.save.party[0],
+      wildMon: wild,
+      seed: 5,
+    })
     app.battle = {
       state,
       menu: 'main',
@@ -191,9 +200,6 @@ const scenes = {
     }
     return app
   },
-  // The other half of the ball mark: the plain `battle` scene meets an Oddish the
-  // sample save has only ever seen, so put the two side by side to check that the
-  // mark is what changed and not the layout under it.
   'battle-caught': () => {
     const app = scenes.battle()
     markCaught(app.save, app.battle.state.foe.mon.species)
@@ -205,8 +211,6 @@ const scenes = {
     app.battle.selection = 2
     return app
   },
-  // Choosing who an item is for: the one screen where a fainted party member is a
-  // target rather than something to be warned about, so the row is not dimmed out.
   'battle-item': () => {
     const app = scenes.battle()
     app.save.bag.revive = 1
@@ -227,8 +231,10 @@ const scenes = {
     const app = scenes.battle()
     app.battle.message = 'CHARMANDER used Ember!'
     app.battle.menu = null
-    // Mid-drain, which is what the frame timer produces between two beats.
-    app.battle.effect = { side: 'foe', frame: Number(process.env.CLAUDEMON_HIT_FRAME ?? 2) }
+    app.battle.effect = {
+      side: 'foe',
+      frame: Number(process.env.CLAUDEMON_HIT_FRAME ?? 2),
+    }
     app.battle.hpTarget.foe = Math.floor(app.battle.hp.foe / 2)
     app.battle.hp.foe = Math.floor(app.battle.hp.foe * 0.8)
     return app
@@ -237,8 +243,6 @@ const scenes = {
     const app = scenes.battle()
     app.battle.message = 'You threw a Poké Ball!'
     app.battle.menu = null
-    // A throw that shakes three times and fails, which is the longest one there
-    // is. CLAUDEMON_BALL_FRAME steps through it a frame at a time.
     app.battle.ball = {
       shakes: 3,
       caught: false,
@@ -273,14 +277,21 @@ const scenes = {
   'home-update': () => {
     const app = makeApp(sampleSave())
     app.mode = 'home'
-    app.activity = { state: 'idle', tool: null, since: Date.now() - 40_000, sessions: 1 }
+    app.activity = {
+      state: 'idle',
+      tool: null,
+      since: Date.now() - 40_000,
+      sessions: 1,
+    }
     app.updateNotice = { kind: 'available', version: '0.6.0' }
     return app
   },
   update: () => {
     const app = makeApp(sampleSave())
     app.mode = 'update'
-    app.update = updateRun({ at: Number(process.env.CLAUDEMON_UPDATE_STEP ?? 1) })
+    app.update = updateRun({
+      at: Number(process.env.CLAUDEMON_UPDATE_STEP ?? 1),
+    })
     app.updateFrame = Number(process.env.CLAUDEMON_SPIN_FRAME ?? 0)
     return app
   },
@@ -296,7 +307,8 @@ const scenes = {
     const run = updateRun({ at: 1 })
     run.state = 'failed'
     run.steps[1].status = 'failed'
-    run.steps[1].detail = 'no `claude` command found — is Claude Code on your PATH?'
+    run.steps[1].detail =
+      'no `claude` command found — is Claude Code on your PATH?'
     app.update = run
     return app
   },
@@ -306,7 +318,9 @@ const names = requested ? [requested] : Object.keys(scenes)
 for (const name of names) {
   const build = scenes[name]
   if (!build) {
-    process.stderr.write(`unknown screen "${name}". try: ${Object.keys(scenes).join(', ')}\n`)
+    process.stderr.write(
+      `unknown screen "${name}". try: ${Object.keys(scenes).join(', ')}\n`,
+    )
     process.exit(1)
   }
   show(name, build())
