@@ -90,9 +90,12 @@ async function main() {
   // The field is `prompt`. It is worth being generous about it anyway: getting
   // this wrong is silent, and a hook that quietly does nothing on every prompt
   // looks exactly like a game where Pokemon simply never appear.
-  const prompt = typeof payload.prompt === 'string'
-    ? payload.prompt
-    : typeof payload.user_prompt === 'string' ? payload.user_prompt : ''
+  const prompt =
+    typeof payload.prompt === 'string'
+      ? payload.prompt
+      : typeof payload.user_prompt === 'string'
+        ? payload.user_prompt
+        : ''
 
   // The session file is the only place the steps can wait, so a payload without a
   // session is a prompt that walks nowhere. It has never been seen in the wild;

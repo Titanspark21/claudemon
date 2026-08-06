@@ -11,7 +11,11 @@ import { spriteFile } from '../../paths.mjs'
 import { hasPlayer } from '../../sound.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import {
-  NATIVE_CANVAS_COLS, fitCanvasCols, loadSprite, placeSprite, spriteHeight,
+  NATIVE_CANVAS_COLS,
+  fitCanvasCols,
+  loadSprite,
+  placeSprite,
+  spriteHeight,
 } from '../sprite.mjs'
 import { centre, padRight, withFooter, wrap } from '../widgets.mjs'
 
@@ -35,9 +39,17 @@ export const SETTINGS = [
     label: 'SIZE',
     read: (config) => spriteScale(config),
     values: [
-      { value: 1, label: 'FULL', note: 'As big as the window allows, which is also as sharp as it gets.' },
+      {
+        value: 1,
+        label: 'FULL',
+        note: 'As big as the window allows, which is also as sharp as it gets.',
+      },
       { value: 0.8, label: 'LARGE', note: 'A little smaller than the window could manage.' },
-      { value: 0.65, label: 'MEDIUM', note: 'Leaves more of the screen to the menus and the message box.' },
+      {
+        value: 0.65,
+        label: 'MEDIUM',
+        note: 'Leaves more of the screen to the menus and the message box.',
+      },
       { value: 0.5, label: 'SMALL', note: 'Half size. Chunky, but it fits in a short tab.' },
     ],
   },
@@ -52,9 +64,10 @@ export const SETTINGS = [
         // Asked of the machine rather than written down, because turning this on
         // where nothing can play a file is the one case someone would otherwise sit
         // pressing keys at a silent terminal wondering which end was broken.
-        note: () => (hasPlayer()
-          ? 'Blips in the menus and a theme under a battle. One switch for every sound the game makes.'
-          : 'No player on this machine (afplay, paplay, aplay, ffplay), so nothing will come of it.'),
+        note: () =>
+          hasPlayer()
+            ? 'Blips in the menus and a theme under a battle. One switch for every sound the game makes.'
+            : 'No player on this machine (afplay, paplay, aplay, ffplay), so nothing will come of it.',
       },
       { value: false, label: 'OFF', note: 'No blips. The bell below is a separate thing.' },
     ],
@@ -64,7 +77,11 @@ export const SETTINGS = [
     label: 'BELL',
     read: (config) => config?.bell !== false,
     values: [
-      { value: true, label: 'ON', note: 'Ring the terminal bell when Claude finishes or needs you.' },
+      {
+        value: true,
+        label: 'ON',
+        note: 'Ring the terminal bell when Claude finishes or needs you.',
+      },
       { value: false, label: 'OFF', note: 'Never make a sound.' },
     ],
   },
@@ -76,9 +93,21 @@ export const SETTINGS = [
     // and `false` are still two of them.
     read: (config) => ({ off: false, launch: 'launch', daily: true })[updateCheckMode(config)],
     values: [
-      { value: true, label: 'DAILY', note: 'Ask once a day whether a new claudemon is out. The only network this game uses.' },
-      { value: 'launch', label: 'LAUNCH', note: 'Ask every time claudemon starts. One request a launch, and never while you play.' },
-      { value: false, label: 'OFF', note: 'Never look. Nothing here opens a socket, and no new version is offered.' },
+      {
+        value: true,
+        label: 'DAILY',
+        note: 'Ask once a day whether a new claudemon is out. The only network this game uses.',
+      },
+      {
+        value: 'launch',
+        label: 'LAUNCH',
+        note: 'Ask every time claudemon starts. One request a launch, and never while you play.',
+      },
+      {
+        value: false,
+        label: 'OFF',
+        note: 'Never look. Nothing here opens a socket, and no new version is offered.',
+      },
     ],
   },
 ]
@@ -138,10 +167,15 @@ export function draw(ctx, size) {
   // is thrown away, and below it this is the number saying where the detail went —
   // a shorter tab, or a SIZE turned down.
   const share = Math.round((Math.min(canvas, NATIVE_CANVAS_COLS) / NATIVE_CANVAS_COLS) * 100)
-  lines.push(centre(dim(
-    `${canvas}-column canvas · ${share === 100 ? 'pixel for pixel' : `${share}% of native`}`
-    + ' · quadrant blocks · 4px per cell',
-  ), cols))
+  lines.push(
+    centre(
+      dim(
+        `${canvas}-column canvas · ${share === 100 ? 'pixel for pixel' : `${share}% of native`}` +
+          ' · quadrant blocks · 4px per cell',
+      ),
+      cols,
+    ),
+  )
 
   return { lines: withFooter(lines, dim(' ↑ ↓ choose · ← → change · [esc] back'), rows), overlays }
 }
@@ -168,7 +202,12 @@ export function onKey(ctx, key) {
     // itself: switching it on plays, switching it off does not, and either way the
     // press you just made is the thing you hear the result of.
     ctx.playSound?.('select')
-  } else if (key.name === 'right' || key.name === 'l' || key.name === 'enter' || key.name === 'space') {
+  } else if (
+    key.name === 'right' ||
+    key.name === 'l' ||
+    key.name === 'enter' ||
+    key.name === 'space'
+  ) {
     change(ctx, 1)
     ctx.playSound?.('select')
   } else if (key.name === 'escape' || key.name === 'q') {

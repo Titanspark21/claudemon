@@ -82,11 +82,7 @@ for (const mon of pokedex) {
   }
 
   for (const evolution of mon.evolutions) {
-    check(
-      `${label} evolves into a real Pokemon`,
-      byId.has(evolution.to),
-      `-> ${evolution.to}`,
-    )
+    check(`${label} evolves into a real Pokemon`, byId.has(evolution.to), `-> ${evolution.to}`)
     // Kanto has nothing above #151, so a chain pointing past it means we picked up
     // a later generation's evolution (Golbath -> Crobat and friends).
     check(`${label} evolution stays in Kanto`, evolution.to <= 151, `-> ${evolution.to}`)
@@ -118,8 +114,17 @@ for (const mon of pokedex) {
  * The battle engine has to special-case each of these.
  */
 const SPECIAL_DAMAGE = new Set([
-  'counter', 'dragon-rage', 'fissure', 'guillotine', 'horn-drill', 'low-kick',
-  'night-shade', 'psywave', 'seismic-toss', 'sonic-boom', 'super-fang',
+  'counter',
+  'dragon-rage',
+  'fissure',
+  'guillotine',
+  'horn-drill',
+  'low-kick',
+  'night-shade',
+  'psywave',
+  'seismic-toss',
+  'sonic-boom',
+  'super-fang',
 ])
 
 for (const [key, move] of Object.entries(moves)) {
@@ -162,7 +167,11 @@ for (const [name, table] of Object.entries(growth)) {
 const fact = (description, condition, detail) => check(`FACT: ${description}`, condition, detail)
 
 const charizard = byId.get(6)
-fact('Charizard is Fire/Flying', charizard.types.join('/') === 'fire/flying', charizard.types.join('/'))
+fact(
+  'Charizard is Fire/Flying',
+  charizard.types.join('/') === 'fire/flying',
+  charizard.types.join('/'),
+)
 fact('Charizard is a second evolution', charizard.stage === 2, String(charizard.stage))
 fact('Charizard comes from Charmeleon', charizard.evolvesFrom === 5, String(charizard.evolvesFrom))
 
@@ -187,11 +196,17 @@ fact(
   pikachu.evolutions[0]?.item === 'thunder-stone',
   String(pikachu.evolutions[0]?.item),
 )
-fact('Pikachu knows Thunder Shock at level 1',
-  pikachu.learnset.some((entry) => entry.move === 'thunder-shock' && entry.level <= 1))
+fact(
+  'Pikachu knows Thunder Shock at level 1',
+  pikachu.learnset.some((entry) => entry.move === 'thunder-shock' && entry.level <= 1),
+)
 
 const machoke = byId.get(67)
-fact('Machoke evolves by trade', machoke.evolutions[0]?.trigger === 'trade', machoke.evolutions[0]?.trigger)
+fact(
+  'Machoke evolves by trade',
+  machoke.evolutions[0]?.trigger === 'trade',
+  machoke.evolutions[0]?.trigger,
+)
 
 const mewtwo = byId.get(150)
 fact('Mewtwo is legendary', mewtwo.legendary === true)
@@ -223,9 +238,15 @@ fact('Normal cannot hit Ghost', types.normal.zero.includes('ghost'))
 fact('Electric cannot hit Ground', types.electric.zero.includes('ground'))
 
 fact('Tackle is physical', moves.tackle.damageClass === 'physical')
-fact('Growl lowers Attack',
-  moves.growl.statChanges.some((change) => change.stat === 'attack' && change.change === -1))
-fact('Thunder Wave paralyses', moves['thunder-wave'].ailment === 'paralysis', moves['thunder-wave'].ailment)
+fact(
+  'Growl lowers Attack',
+  moves.growl.statChanges.some((change) => change.stat === 'attack' && change.change === -1),
+)
+fact(
+  'Thunder Wave paralyses',
+  moves['thunder-wave'].ailment === 'paralysis',
+  moves['thunder-wave'].ailment,
+)
 fact('Ember can burn', moves.ember.ailment === 'burn', moves.ember.ailment)
 fact('Hyper Beam hits hard', moves['hyper-beam'].power === 150, String(moves['hyper-beam'].power))
 
@@ -239,8 +260,10 @@ fact(
 // --- Report ------------------------------------------------------------------
 
 console.log(bold('\nDataset check\n'))
-console.log(`  ${pokedex.length} Pokemon, ${Object.keys(moves).length} moves, ` +
-  `${Object.keys(types).length} types, ${Object.keys(growth).length} exp curves`)
+console.log(
+  `  ${pokedex.length} Pokemon, ${Object.keys(moves).length} moves, ` +
+    `${Object.keys(types).length} types, ${Object.keys(growth).length} exp curves`,
+)
 console.log(`  ${checks.run} assertions\n`)
 
 if (failures.length === 0) {

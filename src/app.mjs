@@ -13,12 +13,29 @@ import { createPokemon, displayName, isFainted, levelOf } from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { makeRng, randomSeed } from './rng.mjs'
 import {
-  ballsInBag, countOf, ITEMS, buy, itemsInBag, removeItem, useItem, usableOnParty,
+  ballsInBag,
+  countOf,
+  ITEMS,
+  buy,
+  itemsInBag,
+  removeItem,
+  useItem,
+  usableOnParty,
 } from './shop.mjs'
 import { play, startMusic, stopMusic } from './sound.mjs'
 import {
-  activePokemon, addPokemon, createSave, depositPokemon, healParty, markCaught, markFaced,
-  markSeen, publishStatus, saveGame, setLead, withdrawPokemon,
+  activePokemon,
+  addPokemon,
+  createSave,
+  depositPokemon,
+  healParty,
+  markCaught,
+  markFaced,
+  markSeen,
+  publishStatus,
+  saveGame,
+  setLead,
+  withdrawPokemon,
 } from './state.mjs'
 import { checkForUpdate, createUpdateRun, currentNotice } from './update.mjs'
 import { ballSteps } from './ui/ball.mjs'
@@ -84,8 +101,13 @@ const FRAMES_PER_SPIN = 3
  *   after it has finished.
  */
 export function createApp({
-  screen, save, config, makeUpdateRun = createUpdateRun, playSound = play,
-  playMusic = startMusic, endMusic = stopMusic,
+  screen,
+  save,
+  config,
+  makeUpdateRun = createUpdateRun,
+  playSound = play,
+  playMusic = startMusic,
+  endMusic = stopMusic,
 }) {
   /** Frames since the update spinner last turned. */
   let spinFrames = 0
@@ -314,9 +336,11 @@ export function createApp({
       if (ctx.config.bell) screen.bell?.()
     }
 
-    return next.state !== previous.state
-      || next.tool !== previous.tool
-      || next.sessions !== previous.sessions
+    return (
+      next.state !== previous.state ||
+      next.tool !== previous.tool ||
+      next.sessions !== previous.sessions
+    )
   }
 
   /**
@@ -332,7 +356,10 @@ export function createApp({
     const previous = ctx.updateNotice
     ctx.updateNotice = currentNotice()
 
-    if (previous?.kind === ctx.updateNotice?.kind && previous?.version === ctx.updateNotice?.version) {
+    if (
+      previous?.kind === ctx.updateNotice?.kind &&
+      previous?.version === ctx.updateNotice?.version
+    ) {
       return false
     }
     // The row appearing or going away moves everything under it, and the renderer's
@@ -449,13 +476,30 @@ export function createApp({
   /** @param {string} id an entry id from the home view's menu, never its label. */
   ctx.openHomeSelection = (id) => {
     switch (id) {
-      case 'fight': ctx.startNextBattle(); break
-      case 'dex': ctx.setMode('dex'); break
+      case 'fight':
+        ctx.startNextBattle()
+        break
+      case 'dex':
+        ctx.setMode('dex')
+        break
       // The bag opens over the team screen, so it has to arrive shut: the one it was
       // last open for is not necessarily still in the party.
-      case 'team': ctx.teamSelection = 0; ctx.clearTeamMessages(); ctx.closeBag(); ctx.setMode('team'); break
-      case 'shop': ctx.shopSelection = 0; ctx.shopMessage = null; ctx.setMode('shop'); break
-      case 'options': ctx.optionsSelection = 0; ctx.optionsMessage = null; ctx.setMode('options'); break
+      case 'team':
+        ctx.teamSelection = 0
+        ctx.clearTeamMessages()
+        ctx.closeBag()
+        ctx.setMode('team')
+        break
+      case 'shop':
+        ctx.shopSelection = 0
+        ctx.shopMessage = null
+        ctx.setMode('shop')
+        break
+      case 'options':
+        ctx.optionsSelection = 0
+        ctx.optionsMessage = null
+        ctx.setMode('options')
+        break
       case 'heal':
         // Healing is what you do in the gaps. The menu greys the entry out while
         // Claude works, but the rule belongs here too: nothing else guarantees the id
@@ -469,8 +513,11 @@ export function createApp({
         ctx.persist()
         ctx.notice = 'Your team is back to full health.'
         break
-      case 'quit': ctx.quit(); break
-      default: break
+      case 'quit':
+        ctx.quit()
+        break
+      default:
+        break
     }
   }
 
@@ -718,7 +765,8 @@ export function createApp({
       // Scaled to the bar rather than to the damage, so a big hit takes longer to
       // drain than a scratch and every bar empties at the same speed.
       const step = Math.max(1, Math.ceil(battle.state[side].mon.stats.hp / HP_DRAIN_STEPS))
-      battle.hp[side] = target > shown ? Math.min(target, shown + step) : Math.max(target, shown - step)
+      battle.hp[side] =
+        target > shown ? Math.min(target, shown + step) : Math.max(target, shown - step)
       moved = true
     }
 
@@ -748,13 +796,20 @@ export function createApp({
     if (!battle) return
 
     switch (battle.menu) {
-      case 'main': return chooseMainOption(ctx)
-      case 'fight': return chooseMove(ctx)
-      case 'bag': return chooseItem(ctx)
-      case 'target': return chooseItemTarget(ctx)
-      case 'party': return choosePartyMember(ctx)
-      case 'learn': return resolveLearnChoice(ctx)
-      default: return undefined
+      case 'main':
+        return chooseMainOption(ctx)
+      case 'fight':
+        return chooseMove(ctx)
+      case 'bag':
+        return chooseItem(ctx)
+      case 'target':
+        return chooseItemTarget(ctx)
+      case 'party':
+        return choosePartyMember(ctx)
+      case 'learn':
+        return resolveLearnChoice(ctx)
+      default:
+        return undefined
     }
   }
 
@@ -821,7 +876,10 @@ function queueEvents(ctx, events) {
 }
 
 function queueMessages(ctx, texts) {
-  queueEvents(ctx, texts.map((text) => ({ type: 'message', text })))
+  queueEvents(
+    ctx,
+    texts.map((text) => ({ type: 'message', text })),
+  )
 }
 
 /**
@@ -1043,7 +1101,10 @@ function chooseItemTarget(ctx) {
   // the field, since a Pokemon on the bench has no bar to animate.
   const onField = mon === battle.state.player.mon
   queueEvents(ctx, [
-    { type: 'message', text: `You used a ${ITEMS[key].name} on ${displayName(mon).toUpperCase()}.` },
+    {
+      type: 'message',
+      text: `You used a ${ITEMS[key].name} on ${displayName(mon).toUpperCase()}.`,
+    },
     { type: 'message', text: result.message },
     ...(!onField || mon.hp === before
       ? []
@@ -1157,9 +1218,10 @@ function processNextStep(ctx) {
   }
 
   if (step.kind === 'caught') {
-    const where = step.destination === 'party'
-      ? 'It joined your team!'
-      : 'Your team was full, so it went to the box.'
+    const where =
+      step.destination === 'party'
+        ? 'It joined your team!'
+        : 'Your team was full, so it went to the box.'
     queueMessages(ctx, [`${step.name.toUpperCase()} was added to the Pokédex.`, where])
     return
   }

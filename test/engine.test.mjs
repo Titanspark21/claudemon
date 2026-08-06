@@ -8,12 +8,24 @@ import assert from 'node:assert/strict'
 import { isDataReady, move as moveOf, species } from '../src/data.mjs'
 import { effectiveness } from '../src/typechart.mjs'
 import {
-  expForLevel, expFromDefeating, expProgress, levelFromExp, movesAtLevel, statsAtLevel,
+  expForLevel,
+  expFromDefeating,
+  expProgress,
+  levelFromExp,
+  movesAtLevel,
+  statsAtLevel,
 } from '../src/exp.mjs'
 import { attemptCatch, catchValue } from '../src/capture.mjs'
 import {
-  createPokemon, displayName, evolveInto, genderOf, levelOf, pendingEvolution, refreshStats,
-  speciesGender, speciesName,
+  createPokemon,
+  displayName,
+  evolveInto,
+  genderOf,
+  levelOf,
+  pendingEvolution,
+  refreshStats,
+  speciesGender,
+  speciesName,
 } from '../src/pokemon.mjs'
 import { createBattle, submitAction } from '../src/battle.mjs'
 import { makeRng } from '../src/rng.mjs'
@@ -53,12 +65,20 @@ test('an immunity in either slot beats a weakness in the other', () => {
 // --- Stats and experience ----------------------------------------------------
 
 test('stats grow with level and HP carries its flat bonus', () => {
-  const low = statsAtLevel(4, 5, Object.fromEntries(
-    ['hp', 'attack', 'defense', 'spAttack', 'spDefense', 'speed'].map((k) => [k, 15]),
-  ))
-  const high = statsAtLevel(4, 50, Object.fromEntries(
-    ['hp', 'attack', 'defense', 'spAttack', 'spDefense', 'speed'].map((k) => [k, 15]),
-  ))
+  const low = statsAtLevel(
+    4,
+    5,
+    Object.fromEntries(
+      ['hp', 'attack', 'defense', 'spAttack', 'spDefense', 'speed'].map((k) => [k, 15]),
+    ),
+  )
+  const high = statsAtLevel(
+    4,
+    50,
+    Object.fromEntries(
+      ['hp', 'attack', 'defense', 'spAttack', 'spDefense', 'speed'].map((k) => [k, 15]),
+    ),
+  )
 
   for (const stat of Object.keys(low)) {
     assert.ok(high[stat] > low[stat], `${stat} should grow`)
@@ -433,7 +453,10 @@ test('super effective hits harder than resisted ones', () => {
   const total = { strong: 0, weak: 0 }
 
   for (let seed = 1; seed <= 40; seed++) {
-    for (const [key, foeId] of [['strong', 1], ['weak', 7]]) {
+    for (const [key, foeId] of [
+      ['strong', 1],
+      ['weak', 7],
+    ]) {
       const charmander = mon(4, 30)
       // Force Ember into the first slot.
       charmander.moves = [{ move: 'ember', pp: 25, maxPp: 25 }]
@@ -475,7 +498,10 @@ test('running out of PP falls back to Struggle, which hurts the user', () => {
   const before = battle.player.mon.hp
   const events = submitAction(battle, { type: 'move', index: 0 })
 
-  assert.ok(events.some((event) => event.text?.includes('Struggle')), 'should use Struggle')
+  assert.ok(
+    events.some((event) => event.text?.includes('Struggle')),
+    'should use Struggle',
+  )
   assert.ok(battle.player.mon.hp < before, 'recoil should hurt')
 })
 

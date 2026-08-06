@@ -6,7 +6,14 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,11 +25,23 @@ if (existsSync(realData)) symlinkSync(realData, join(sandbox, 'data'))
 process.env.CLAUDEMON_HOME = sandbox
 
 const {
-  CHECK_INTERVAL_MS, checkForUpdate, createUpdateRun, dueForCheck, fetchLatestVersion,
-  readUpdateState, updateNotice, updatePlan,
+  CHECK_INTERVAL_MS,
+  checkForUpdate,
+  createUpdateRun,
+  dueForCheck,
+  fetchLatestVersion,
+  readUpdateState,
+  updateNotice,
+  updatePlan,
 } = await import('../src/update.mjs')
 const {
-  VERSION, compareVersions, installedVersions, isNewer, isPluginCopy, newestInstalled, versionAt,
+  VERSION,
+  compareVersions,
+  installedVersions,
+  isNewer,
+  isPluginCopy,
+  newestInstalled,
+  versionAt,
 } = await import('../src/version.mjs')
 const { DEFAULT_CONFIG, updateCheckMode } = await import('../src/config.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
@@ -45,7 +64,9 @@ const servingVersion = (version) => async () => ({
   text: async () => JSON.stringify({ name: 'claudemon', version }),
 })
 
-const refusing = () => async () => { throw new Error('ECONNREFUSED') }
+const refusing = () => async () => {
+  throw new Error('ECONNREFUSED')
+}
 
 // --- Comparing versions ------------------------------------------------------
 
@@ -156,14 +177,22 @@ test('a check records what it found, and does not ask again the same day', async
   const now = Date.parse('2026-03-01T12:00:00.000Z')
   let calls = 0
   const serve = servingVersion('9.9.9')
-  const fetchImpl = (...args) => { calls++; return serve(...args) }
+  const fetchImpl = (...args) => {
+    calls++
+    return serve(...args)
+  }
 
   const first = await checkForUpdate({ config: DEFAULT_CONFIG, now, file, fetchImpl })
   assert.equal(first.latest, '9.9.9')
   assert.equal(calls, 1)
   assert.equal(readUpdateState(file).latest, '9.9.9')
 
-  const second = await checkForUpdate({ config: DEFAULT_CONFIG, now: now + 60_000, file, fetchImpl })
+  const second = await checkForUpdate({
+    config: DEFAULT_CONFIG,
+    now: now + 60_000,
+    file,
+    fetchImpl,
+  })
   assert.equal(second.latest, '9.9.9')
   assert.equal(calls, 1, 'the cached answer was reused')
 
@@ -187,7 +216,10 @@ test('a forced check asks even though the last one was minutes ago', async () =>
   const file = updateFile('forced')
   const now = Date.parse('2026-03-01T12:00:00.000Z')
   let calls = 0
-  const fetchImpl = (...args) => { calls++; return servingVersion('9.9.9')(...args) }
+  const fetchImpl = (...args) => {
+    calls++
+    return servingVersion('9.9.9')(...args)
+  }
   const config = { ...DEFAULT_CONFIG, updateCheck: 'launch' }
 
   await checkForUpdate({ config, now, file, fetchImpl })
@@ -207,7 +239,10 @@ test('forcing a check does not override the check being switched off', async () 
   // Off is an answer, not a schedule: nothing should be able to talk it into a socket.
   const file = updateFile('forced-off')
   let calls = 0
-  const fetchImpl = (...args) => { calls++; return servingVersion('9.9.9')(...args) }
+  const fetchImpl = (...args) => {
+    calls++
+    return servingVersion('9.9.9')(...args)
+  }
 
   const state = await checkForUpdate({
     config: { ...DEFAULT_CONFIG, updateCheck: false },
@@ -223,9 +258,16 @@ test('forcing a check does not override the check being switched off', async () 
 test('the check switched off never asks, whatever the cache says', async () => {
   const file = updateFile('off')
   let calls = 0
-  const fetchImpl = (...args) => { calls++; return servingVersion('9.9.9')(...args) }
+  const fetchImpl = (...args) => {
+    calls++
+    return servingVersion('9.9.9')(...args)
+  }
 
-  const state = await checkForUpdate({ config: { ...DEFAULT_CONFIG, updateCheck: false }, file, fetchImpl })
+  const state = await checkForUpdate({
+    config: { ...DEFAULT_CONFIG, updateCheck: false },
+    file,
+    fetchImpl,
+  })
   assert.equal(calls, 0)
   assert.deepEqual(state, {}, 'nothing was learned')
   assert.equal(existsSync(file), false, 'and nothing was written')
@@ -259,15 +301,18 @@ test('a failed check does not unlearn what the last one found', async () => {
 
 test('a manifest that is not one is a failure, not a version', async () => {
   await assert.rejects(
-    () => fetchLatestVersion({ fetchImpl: async () => ({ ok: true, text: async () => '{"name":"claudemon"}' }) }),
+    () =>
+      fetchLatestVersion({
+        fetchImpl: async () => ({ ok: true, text: async () => '{"name":"claudemon"}' }),
+      }),
     /no version/,
   )
   await assert.rejects(
     () => fetchLatestVersion({ fetchImpl: async () => ({ ok: false, status: 404 }) }),
     /404/,
   )
-  await assert.rejects(
-    () => fetchLatestVersion({ fetchImpl: async () => ({ ok: true, text: async () => 'not json' }) }),
+  await assert.rejects(() =>
+    fetchLatestVersion({ fetchImpl: async () => ({ ok: true, text: async () => 'not json' }) }),
   )
 })
 
@@ -284,7 +329,9 @@ test('a check that blows up does not take the tab down with it', async () => {
   const state = await checkForUpdate({
     config: DEFAULT_CONFIG,
     file: updateFile('exploding'),
-    fetchImpl: () => { throw new TypeError('fetch is not a function') },
+    fetchImpl: () => {
+      throw new TypeError('fetch is not a function')
+    },
   })
   assert.match(state.error, /not a function/)
 })
@@ -321,7 +368,10 @@ test('an installed plugin is updated through Claude Code', () => {
   const plan = updatePlan({ root: join(cache, '0.5.0'), cache })
 
   assert.equal(plan.kind, 'plugin')
-  assert.deepEqual(plan.steps.map((step) => step.id), ['marketplace', 'plugin', 'install'])
+  assert.deepEqual(
+    plan.steps.map((step) => step.id),
+    ['marketplace', 'plugin', 'install'],
+  )
 
   const [marketplace, plugin] = plan.steps.map((step) => step.plan())
   assert.equal(marketplace.command, 'claude')
@@ -349,7 +399,10 @@ test('a clone is updated with git, and reports its own manifest', () => {
   const plan = updatePlan({ root: clone, cache: fakeCache('0.5.0') })
 
   assert.equal(plan.kind, 'clone')
-  assert.deepEqual(plan.steps.map((step) => step.id), ['pull', 'install'])
+  assert.deepEqual(
+    plan.steps.map((step) => step.id),
+    ['pull', 'install'],
+  )
   assert.deepEqual(plan.steps[0].plan().args, ['-C', clone, 'pull', '--ff-only'])
   assert.equal(plan.steps[1].plan().args[0], join(clone, 'tools', 'install.mjs'))
   // Not the plugin cache: the clone is what the launcher runs.
@@ -390,7 +443,10 @@ test('every step runs in order, and the version it left behind is read from the 
   await run.promise
 
   assert.deepEqual(ran, ['one', 'two', 'three'])
-  assert.deepEqual(run.steps.map((step) => step.status), ['ok', 'ok', 'ok'])
+  assert.deepEqual(
+    run.steps.map((step) => step.status),
+    ['ok', 'ok', 'ok'],
+  )
   assert.equal(run.state, 'done')
   assert.equal(run.from, VERSION)
   assert.equal(run.to, '0.6.0')
@@ -398,13 +454,19 @@ test('every step runs in order, and the version it left behind is read from the 
 
 test('a failure stops the steps after it', async () => {
   const { plan, exec, ran } = fakePlan({
-    results: [{ ok: true, output: '' }, { ok: false, output: 'boom\nno such marketplace' }],
+    results: [
+      { ok: true, output: '' },
+      { ok: false, output: 'boom\nno such marketplace' },
+    ],
   })
   const run = createUpdateRun({ plan, exec })
   await run.promise
 
   assert.deepEqual(ran, ['one', 'two'], 'the third was never attempted')
-  assert.deepEqual(run.steps.map((step) => step.status), ['ok', 'failed', 'pending'])
+  assert.deepEqual(
+    run.steps.map((step) => step.status),
+    ['ok', 'failed', 'pending'],
+  )
   assert.equal(run.state, 'failed')
   assert.equal(run.steps[1].detail, 'no such marketplace')
   assert.equal(run.to, null, 'nothing claims a new version')
@@ -429,7 +491,9 @@ test('a missing command says which one, and a timeout says so', async () => {
 test('an exec that throws is a failed step rather than a crash', async () => {
   const run = createUpdateRun({
     plan: onePlan('one'),
-    exec: async () => { throw new Error('spawn EACCES') },
+    exec: async () => {
+      throw new Error('spawn EACCES')
+    },
   })
   await run.promise
 
@@ -526,7 +590,12 @@ test('a launcher names the copy that wrote it, and falls back if it is gone', ()
 
 test('every launcher refuses to run rather than guessing, and says how to fix it', () => {
   for (const root of [`${CACHE}/0.6.0`, '/home/someone/code/claudemon']) {
-    const shim = shimSource({ target: 'scripts/run.sh', args: 'statusline.mjs', root, cache: CACHE })
+    const shim = shimSource({
+      target: 'scripts/run.sh',
+      args: 'statusline.mjs',
+      root,
+      cache: CACHE,
+    })
     assert.match(shim, /cannot find its files/)
     assert.match(shim, /claudemon-setup/)
     assert.match(shim, /exec "\$app\/scripts\/run\.sh" statusline\.mjs "\$@"/)
@@ -556,7 +625,11 @@ test('a hook points a launcher stuck on an older release at this one', () => {
   writeFileSync(path, asInstalledFrom(join(cache, '0.5.0')))
 
   const here = join(cache, '0.6.0')
-  const rewritten = relinkLaunchers({ root: here, cache, launchers: [{ path, target: 'bin/claudemon' }] })
+  const rewritten = relinkLaunchers({
+    root: here,
+    cache,
+    launchers: [{ path, target: 'bin/claudemon' }],
+  })
 
   assert.deepEqual(rewritten, [path])
   const after = readFileSync(path, 'utf8')
@@ -581,7 +654,10 @@ test("a clone's launcher is left alone, because it is meant to win", () => {
   const launcher = launcherAt('clone-launcher', '/home/someone/code/claudemon', cache)
   const before = readFileSync(launcher.path, 'utf8')
 
-  assert.deepEqual(relinkLaunchers({ root: join(cache, '0.6.0'), cache, launchers: [launcher] }), [])
+  assert.deepEqual(
+    relinkLaunchers({ root: join(cache, '0.6.0'), cache, launchers: [launcher] }),
+    [],
+  )
   assert.equal(readFileSync(launcher.path, 'utf8'), before, 'untouched')
 })
 

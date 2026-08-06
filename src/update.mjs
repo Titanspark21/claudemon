@@ -26,8 +26,9 @@ import { APP_ROOT, VERSION, isNewer, isPluginCopy, newestInstalled, versionAt } 
  * `/plugin install` resolves, so it is the version somebody installing right now
  * would get. Overridable so the tests never reach the network.
  */
-export const MANIFEST_URL = process.env.CLAUDEMON_MANIFEST_URL
-  || 'https://raw.githubusercontent.com/zamarrowski/claudemon/main/.claude-plugin/plugin.json'
+export const MANIFEST_URL =
+  process.env.CLAUDEMON_MANIFEST_URL ||
+  'https://raw.githubusercontent.com/zamarrowski/claudemon/main/.claude-plugin/plugin.json'
 
 /** Once a day. A toy game does not need to know sooner, and neither do you. */
 export const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
@@ -186,7 +187,11 @@ export function updatePlan({ root = APP_ROOT, cache = PLUGIN_CACHE } = {}) {
           id: 'pull',
           label: 'pulling the latest commit',
           done: 'pulled the latest commit',
-          plan: () => ({ command: 'git', args: ['-C', root, 'pull', '--ff-only'], timeoutMs: 60_000 }),
+          plan: () => ({
+            command: 'git',
+            args: ['-C', root, 'pull', '--ff-only'],
+            timeoutMs: 60_000,
+          }),
         },
         {
           id: 'install',

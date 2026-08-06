@@ -11,7 +11,15 @@ import { bold, brightGreen, brightYellow, dim, gray, visibleLength } from '../an
 import { bandRows, bandScale, grassLines } from '../grass.mjs'
 import { fitCanvasCols, loadSprite, placeSprite } from '../sprite.mjs'
 import {
-  centre, elapsed, genderTag, hpBar, menuGrid, money, padRight, panel, wrap,
+  centre,
+  elapsed,
+  genderTag,
+  hpBar,
+  menuGrid,
+  money,
+  padRight,
+  panel,
+  wrap,
 } from '../widgets.mjs'
 
 /**
@@ -77,7 +85,8 @@ export function countdownRow(encounter, now = Date.now()) {
 export function activityRow(activity, now = Date.now()) {
   if (!activity || activity.state === 'unknown') return ''
 
-  const age = typeof activity.since === 'number' ? ` ${dim('·')} ${dim(elapsed(now - activity.since))}` : ''
+  const age =
+    typeof activity.since === 'number' ? ` ${dim('·')} ${dim(elapsed(now - activity.since))}` : ''
   const others = activity.sessions > 1 ? dim(` (+${activity.sessions - 1})`) : ''
 
   if (activity.state === 'waiting') {
@@ -173,10 +182,12 @@ export function draw(ctx, size) {
   if (update) lines.push(` ${update}`)
 
   if (encounter) {
-    lines.push(centre(
-      `${brightYellow('✦')} ${bold(`A wild ${encounter.name.toUpperCase()}`)} appeared!`,
-      cols,
-    ))
+    lines.push(
+      centre(
+        `${brightYellow('✦')} ${bold(`A wild ${encounter.name.toUpperCase()}`)} appeared!`,
+        cols,
+      ),
+    )
     lines.push(centre(countdownRow(encounter), cols))
     lines.push('')
 
@@ -199,20 +210,30 @@ export function draw(ctx, size) {
     lines.push('')
     grassAt = lines.length
     lines.push('')
-    lines.push(centre(dim(
-      working
-        ? 'Every moment Claude works is a step further in.'
-        : 'Keep working in Claude Code — longer prompts walk further.',
-    ), cols))
+    lines.push(
+      centre(
+        dim(
+          working
+            ? 'Every moment Claude works is a step further in.'
+            : 'Keep working in Claude Code — longer prompts walk further.',
+        ),
+        cols,
+      ),
+    )
   }
 
   // Party strip
   lines.push('')
   if (lead) {
     const party = ctx.save.party.map((mon) => {
-      const name = isFainted(mon) ? gray(displayName(mon).toUpperCase()) : displayName(mon).toUpperCase()
-      return `${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)} ${
-        hpBar(mon.hp, mon.stats.hp, 10)}`
+      const name = isFainted(mon)
+        ? gray(displayName(mon).toUpperCase())
+        : displayName(mon).toUpperCase()
+      return `${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)} ${hpBar(
+        mon.hp,
+        mon.stats.hp,
+        10,
+      )}`
     })
     for (const line of panel(party, width, { title: 'Team' })) lines.push(` ${line}`)
   }

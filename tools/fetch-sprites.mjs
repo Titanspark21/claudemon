@@ -58,14 +58,18 @@ async function main() {
   const counts = { fetched: 0, cached: 0, missing: 0 }
   let done = 0
 
-  await pool(jobs, async (job) => {
-    try {
-      counts[await download(job.url, spriteFile(job.side, job.id, 'png'))]++
-    } catch (error) {
-      process.stderr.write(`\n  ${job.side}/${job.id}.png failed: ${error.message}\n`)
-    }
-    progress('sprites', ++done, jobs.length)
-  }, CONCURRENCY)
+  await pool(
+    jobs,
+    async (job) => {
+      try {
+        counts[await download(job.url, spriteFile(job.side, job.id, 'png'))]++
+      } catch (error) {
+        process.stderr.write(`\n  ${job.side}/${job.id}.png failed: ${error.message}\n`)
+      }
+      progress('sprites', ++done, jobs.length)
+    },
+    CONCURRENCY,
+  )
 
   console.log(
     `  ${counts.fetched} downloaded, ${counts.cached} already present, ${counts.missing} not available`,

@@ -19,7 +19,15 @@
 //      path of the whole session.
 //   4. Do as little as possible. Small files, no scanning, no network.
 
-import { beginTurn, endSession, endTurn, noteTool, noteWaiting, pruneSessions, readActivity } from '../src/activity.mjs'
+import {
+  beginTurn,
+  endSession,
+  endTurn,
+  noteTool,
+  noteWaiting,
+  pruneSessions,
+  readActivity,
+} from '../src/activity.mjs'
 import { encounterTtlMs, loadConfig } from '../src/config.mjs'
 import { loadSpeciesTable, rollEncounters, stepsWhileWorking } from '../src/encounter.mjs'
 import { logError } from '../src/log.mjs'
@@ -69,13 +77,19 @@ function walkWhileWorking(sessionId, now) {
 
   const config = loadConfig()
   const ttlMs = encounterTtlMs(config)
-  const { steps, taken } = stepsWhileWorking(now - (previous.lastStepAt ?? previous.since ?? now), config)
+  const { steps, taken } = stepsWhileWorking(
+    now - (previous.lastStepAt ?? previous.since ?? now),
+    config,
+  )
   const pending = Number.isInteger(previous.pendingSteps) ? Math.max(0, previous.pendingSteps) : 0
   if (steps === 0 && pending === 0) return null
 
   // Spent, whether or not the walk turns anything up. Everything below this line
   // is the dice, and the dice must not decide whether time passed.
-  const walked = { lastStepAt: (previous.lastStepAt ?? previous.since ?? now) + taken, pendingSteps: 0 }
+  const walked = {
+    lastStepAt: (previous.lastStepAt ?? previous.since ?? now) + taken,
+    pendingSteps: 0,
+  }
 
   // The clock still moves when the grass is occupied: that time was spent walking
   // past something you already have the chance to fight, and paying it out again

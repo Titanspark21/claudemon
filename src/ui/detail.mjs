@@ -16,16 +16,21 @@ import { expBar, genderTag, hpBar, padRight, statusTag, typeBadge } from './widg
 export function monDetail(mon) {
   const lines = []
 
-  lines.push(`${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))} ${dim(
-    `Lv${levelOf(mon)}`)} ${statusTag(mon.status)}`)
+  lines.push(
+    `${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))} ${dim(
+      `Lv${levelOf(mon)}`,
+    )} ${statusTag(mon.status)}`,
+  )
   lines.push(species(mon.species).types.map(typeBadge).join(' '))
   lines.push('')
   lines.push(`HP  ${hpBar(mon.hp, mon.stats.hp, 22)} ${dim(`${mon.hp}/${mon.stats.hp}`)}`)
 
   const progress = expProgress(mon.species, mon.exp)
-  lines.push(`EXP ${expBar(progress.fraction, 22)} ${dim(
-    progress.needed > 0 ? `${progress.into}/${progress.needed}` : 'max',
-  )}`)
+  lines.push(
+    `EXP ${expBar(progress.fraction, 22)} ${dim(
+      progress.needed > 0 ? `${progress.into}/${progress.needed}` : 'max',
+    )}`,
+  )
   lines.push('')
 
   lines.push(dim('Stats'))

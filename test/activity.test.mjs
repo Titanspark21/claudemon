@@ -18,8 +18,17 @@ const sandbox = mkdtempSync(join(tmpdir(), 'claudemon-activity-'))
 process.env.CLAUDEMON_HOME = sandbox
 
 const {
-  STALE_MS, beginTurn, endSession, endTurn, noteTool, noteWaiting,
-  pruneSessions, readActivity, readSessions, summariseActivity, writeActivity,
+  STALE_MS,
+  beginTurn,
+  endSession,
+  endTurn,
+  noteTool,
+  noteWaiting,
+  pruneSessions,
+  readActivity,
+  readSessions,
+  summariseActivity,
+  writeActivity,
 } = await import('../src/activity.mjs')
 const { DEFAULT_CONFIG } = await import('../src/config.mjs')
 const { stripAnsi } = await import('../src/ui/ansi.mjs')
@@ -30,7 +39,11 @@ const { activityRow } = await import('../src/ui/views/home.mjs')
  * Runs a hook the way Claude Code does: a real process, JSON on stdin, in its
  * own directory so one test cannot see another's sessions.
  */
-function runHook(script, payload, { home = mkdtempSync(join(tmpdir(), 'claudemon-hook-')), config } = {}) {
+function runHook(
+  script,
+  payload,
+  { home = mkdtempSync(join(tmpdir(), 'claudemon-hook-')), config } = {},
+) {
   if (config) writeFileSync(join(home, 'config.json'), JSON.stringify(config))
 
   const stdout = execFileSync(process.execPath, [join(root, 'scripts', script)], {
@@ -68,15 +81,26 @@ function sessionIn(home, id) {
 // --- the hook payload ---------------------------------------------------------
 
 /** A prompt submitted, then the first sign of Claude working on it. */
-function promptThenWork(session, { prompt = 'x'.repeat(120), event = 'PreToolUse', ...options } = {}) {
-  const { home } = runHook('on-prompt.mjs', {
-    session_id: session,
-    cwd: '/tmp',
-    hook_event_name: 'UserPromptSubmit',
-    prompt,
-  }, options)
+function promptThenWork(
+  session,
+  { prompt = 'x'.repeat(120), event = 'PreToolUse', ...options } = {},
+) {
+  const { home } = runHook(
+    'on-prompt.mjs',
+    {
+      session_id: session,
+      cwd: '/tmp',
+      hook_event_name: 'UserPromptSubmit',
+      prompt,
+    },
+    options,
+  )
 
-  runHook('on-activity.mjs', { session_id: session, cwd: '/tmp', hook_event_name: event, tool_name: 'Read' }, { home })
+  runHook(
+    'on-activity.mjs',
+    { session_id: session, cwd: '/tmp', hook_event_name: event, tool_name: 'Read' },
+    { home },
+  )
   return home
 }
 
@@ -84,12 +108,16 @@ test('a submitted prompt buys a walk rather than taking one', () => {
   // encounterChance 1 makes the roll certain, so this tests the wiring and not
   // the dice — which is exactly what makes it worth asserting that the grass is
   // still empty. Nothing jumps out at the keystroke, however lucky you are.
-  const { home } = runHook('on-prompt.mjs', {
-    session_id: 'aaa',
-    cwd: '/tmp',
-    hook_event_name: 'UserPromptSubmit',
-    prompt: 'x'.repeat(120),
-  }, { config: { encounterChance: 1 } })
+  const { home } = runHook(
+    'on-prompt.mjs',
+    {
+      session_id: 'aaa',
+      cwd: '/tmp',
+      hook_event_name: 'UserPromptSubmit',
+      prompt: 'x'.repeat(120),
+    },
+    { config: { encounterChance: 1 } },
+  )
 
   assert.equal(queueIn(home).length, 0, 'nothing appears in the same instant you press enter')
   assert.equal(sessionIn(home, 'aaa').pendingSteps, 3, 'three steps, owed to the turn')
@@ -155,7 +183,11 @@ test('the walk a prompt bought is only ever taken once', () => {
   // Face it, and the grass is empty again — but no time has passed, so the only
   // thing that could fill it is a debt that was already paid.
   writeFileSync(join(home, 'queue.jsonl'), '')
-  runHook('on-activity.mjs', { session_id: 'aaa5', hook_event_name: 'PreToolUse', tool_name: 'Bash' }, { home })
+  runHook(
+    'on-activity.mjs',
+    { session_id: 'aaa5', hook_event_name: 'PreToolUse', tool_name: 'Bash' },
+    { home },
+  )
 
   assert.equal(queueIn(home).length, 0, 'the second tool call walks nowhere')
 
@@ -164,12 +196,16 @@ test('the walk a prompt bought is only ever taken once', () => {
 })
 
 test('submitting a prompt marks the session as working', () => {
-  const { home } = runHook('on-prompt.mjs', {
-    session_id: 'bbb',
-    cwd: '/tmp',
-    hook_event_name: 'UserPromptSubmit',
-    prompt: 'hello',
-  }, { config: { encounterChance: 0 } })
+  const { home } = runHook(
+    'on-prompt.mjs',
+    {
+      session_id: 'bbb',
+      cwd: '/tmp',
+      hook_event_name: 'UserPromptSubmit',
+      prompt: 'hello',
+    },
+    { config: { encounterChance: 0 } },
+  )
 
   const session = sessionIn(home, 'bbb')
   assert.equal(session.state, 'working')
@@ -185,11 +221,15 @@ test('an empty prompt still starts the turn but walks nowhere', () => {
 
 test('the hook says nothing on stdout, whatever happens', () => {
   // Anything printed here is injected into the model's context on every prompt.
-  const { stdout } = runHook('on-prompt.mjs', {
-    session_id: 'ddd',
-    hook_event_name: 'UserPromptSubmit',
-    prompt: 'x'.repeat(400),
-  }, { config: { encounterChance: 1 } })
+  const { stdout } = runHook(
+    'on-prompt.mjs',
+    {
+      session_id: 'ddd',
+      hook_event_name: 'UserPromptSubmit',
+      prompt: 'x'.repeat(400),
+    },
+    { config: { encounterChance: 1 } },
+  )
 
   assert.equal(stdout, '')
 })
@@ -245,11 +285,15 @@ test('ending a session takes its file with it', () => {
 })
 
 test('time spent working walks you through the grass', () => {
-  const { home } = runHook('on-activity.mjs', {
-    session_id: 'jjj',
-    hook_event_name: 'PreToolUse',
-    tool_name: 'Bash',
-  }, { config: { encounterChance: 1, workStepSeconds: 20 } })
+  const { home } = runHook(
+    'on-activity.mjs',
+    {
+      session_id: 'jjj',
+      hook_event_name: 'PreToolUse',
+      tool_name: 'Bash',
+    },
+    { config: { encounterChance: 1, workStepSeconds: 20 } },
+  )
 
   assert.equal(queueIn(home).length, 0, 'no time has passed yet')
 
@@ -257,7 +301,11 @@ test('time spent working walks you through the grass', () => {
   const session = sessionIn(home, 'jjj')
   writeFileSync(
     join(home, 'sessions', 'jjj.json'),
-    JSON.stringify({ ...session, since: session.since - 120_000, lastStepAt: session.lastStepAt - 120_000 }),
+    JSON.stringify({
+      ...session,
+      since: session.since - 120_000,
+      lastStepAt: session.lastStepAt - 120_000,
+    }),
   )
 
   runHook('on-activity.mjs', { session_id: 'jjj', hook_event_name: 'Stop' }, { home })
@@ -269,11 +317,15 @@ test('time spent working walks you through the grass', () => {
 })
 
 test('a long turn does not bank a queue of battles for later', () => {
-  const { home } = runHook('on-activity.mjs', {
-    session_id: 'mmm',
-    hook_event_name: 'PreToolUse',
-    tool_name: 'Bash',
-  }, { config: { encounterChance: 1, workStepSeconds: 20 } })
+  const { home } = runHook(
+    'on-activity.mjs',
+    {
+      session_id: 'mmm',
+      hook_event_name: 'PreToolUse',
+      tool_name: 'Bash',
+    },
+    { config: { encounterChance: 1, workStepSeconds: 20 } },
+  )
 
   // Ten tool calls, each after two minutes of work. The clock keeps moving, but the
   // grass only ever holds the one Pokemon.
@@ -281,30 +333,50 @@ test('a long turn does not bank a queue of battles for later', () => {
     const session = sessionIn(home, 'mmm')
     writeFileSync(
       join(home, 'sessions', 'mmm.json'),
-      JSON.stringify({ ...session, since: session.since - 120_000, lastStepAt: session.lastStepAt - 120_000 }),
+      JSON.stringify({
+        ...session,
+        since: session.since - 120_000,
+        lastStepAt: session.lastStepAt - 120_000,
+      }),
     )
-    runHook('on-activity.mjs', { session_id: 'mmm', hook_event_name: 'PreToolUse', tool_name: 'Read' }, { home })
+    runHook(
+      'on-activity.mjs',
+      { session_id: 'mmm', hook_event_name: 'PreToolUse', tool_name: 'Read' },
+      { home },
+    )
   }
 
   assert.equal(queueIn(home).length, 1)
 })
 
 test('time spent stopped is not cashed in by the next tool call', () => {
-  const { home } = runHook('on-activity.mjs', {
-    session_id: 'lll',
-    hook_event_name: 'Notification',
-    message: 'permission?',
-  }, { config: { encounterChance: 1, workStepSeconds: 20 } })
+  const { home } = runHook(
+    'on-activity.mjs',
+    {
+      session_id: 'lll',
+      hook_event_name: 'Notification',
+      message: 'permission?',
+    },
+    { config: { encounterChance: 1, workStepSeconds: 20 } },
+  )
 
   // Half an hour sat on a permission prompt is not half an hour of waiting for
   // Claude, and must not pay out the moment the tool is approved.
   const session = sessionIn(home, 'lll')
   writeFileSync(
     join(home, 'sessions', 'lll.json'),
-    JSON.stringify({ ...session, since: session.since - 1_800_000, lastStepAt: session.lastStepAt - 1_800_000 }),
+    JSON.stringify({
+      ...session,
+      since: session.since - 1_800_000,
+      lastStepAt: session.lastStepAt - 1_800_000,
+    }),
   )
 
-  runHook('on-activity.mjs', { session_id: 'lll', hook_event_name: 'PreToolUse', tool_name: 'Bash' }, { home })
+  runHook(
+    'on-activity.mjs',
+    { session_id: 'lll', hook_event_name: 'PreToolUse', tool_name: 'Bash' },
+    { home },
+  )
   assert.equal(queueIn(home).length, 0)
 
   runHook('on-activity.mjs', { session_id: 'lll', hook_event_name: 'Stop' }, { home })
@@ -312,10 +384,14 @@ test('time spent stopped is not cashed in by the next tool call', () => {
 })
 
 test('an idle session does not walk anywhere', () => {
-  const { home } = runHook('on-activity.mjs', {
-    session_id: 'kkk',
-    hook_event_name: 'Stop',
-  }, { config: { encounterChance: 1, workStepSeconds: 20 } })
+  const { home } = runHook(
+    'on-activity.mjs',
+    {
+      session_id: 'kkk',
+      hook_event_name: 'Stop',
+    },
+    { config: { encounterChance: 1, workStepSeconds: 20 } },
+  )
 
   runHook('on-activity.mjs', { session_id: 'kkk', hook_event_name: 'Stop' }, { home })
   assert.equal(queueIn(home).length, 0)
@@ -394,7 +470,8 @@ test('working time past the cap is dropped rather than banked', () => {
 
 test('turning workStepSeconds off stops the clock walking', () => {
   assert.deepEqual(stepsWhileWorking(10 * 60_000, { ...DEFAULT_CONFIG, workStepSeconds: 0 }), {
-    steps: 0, taken: 0,
+    steps: 0,
+    taken: 0,
   })
 })
 
@@ -408,13 +485,24 @@ test('a session that says nothing for long enough is assumed dead', () => {
 })
 
 test('nothing reporting is unknown, not idle', () => {
-  assert.deepEqual(summariseActivity([]), { state: 'unknown', tool: null, since: null, sessions: 0 })
+  assert.deepEqual(summariseActivity([]), {
+    state: 'unknown',
+    tool: null,
+    since: null,
+    sessions: 0,
+  })
 })
 
 test('needing you outranks working, and working outranks idle', () => {
   const now = Date.now()
   const idle = { session: 'a', state: 'idle', at: now - 300, since: now - 300 }
-  const working = { session: 'b', state: 'working', at: now - 200, since: now - 9_000, tool: 'Bash' }
+  const working = {
+    session: 'b',
+    state: 'working',
+    at: now - 200,
+    since: now - 9_000,
+    tool: 'Bash',
+  }
   const waiting = { session: 'c', state: 'waiting', at: now - 100, since: now - 1_000 }
 
   assert.equal(summariseActivity([idle], now).state, 'idle')
@@ -424,7 +512,13 @@ test('needing you outranks working, and working outranks idle', () => {
 
 test('the summary describes the session that is actually moving', () => {
   const now = Date.now()
-  const stale = { session: 'a', state: 'working', at: now - 60_000, since: now - 60_000, tool: 'Read' }
+  const stale = {
+    session: 'a',
+    state: 'working',
+    at: now - 60_000,
+    since: now - 60_000,
+    tool: 'Read',
+  }
   const fresh = { session: 'b', state: 'working', at: now - 500, since: now - 4_000, tool: 'Bash' }
 
   const summary = summariseActivity([stale, fresh], now)
@@ -457,7 +551,11 @@ test('sessions are read back freshest first, and the ancient ones are pruned', (
   writeActivity({ v: 1, session: 'newest', state: 'working', at: now, since: now })
 
   const live = readSessions(now)
-  assert.deepEqual(live.map((entry) => entry.session), ['newest', 'recent'], 'the old one is already stale')
+  assert.deepEqual(
+    live.map((entry) => entry.session),
+    ['newest', 'recent'],
+    'the old one is already stale',
+  )
 
   assert.equal(pruneSessions(now), 1, 'and gets deleted')
   assert.equal(readActivity('old'), null)
@@ -483,7 +581,10 @@ test('the activity row names the tool and how long it has been at it', () => {
 
 test('the activity row shouts when Claude is blocked on you', () => {
   const now = Date.now()
-  assert.match(activityRow({ state: 'waiting', tool: null, since: now, sessions: 1 }, now), /needs you/)
+  assert.match(
+    activityRow({ state: 'waiting', tool: null, since: now, sessions: 1 }, now),
+    /needs you/,
+  )
   assert.match(activityRow({ state: 'idle', tool: null, since: now, sessions: 1 }, now), /idle/)
 })
 

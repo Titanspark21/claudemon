@@ -34,7 +34,11 @@ const CELL_ASPECT = 2
  * than computed, because the sixteen glyphs are scattered across Block Elements in
  * no useful order — the halves and the full block were there first, and Unicode
  * filled the ten gaps in around them.
+ *
+ * Laid out four to a row so the table is read the way the mask is built: the column
+ * is the top two pixels, the row the bottom two.
  */
+// prettier-ignore
 const QUADRANT_GLYPHS = [
   ' ', '▘', '▝', '▀',
   '▖', '▌', '▞', '▛',
@@ -191,7 +195,8 @@ function twoColours(colours) {
   for (const c of colours) {
     if (b === null || colourDistance(c, a) > colourDistance(b, a)) b = c
   }
-  if (colourDistance(a, b) === 0) return { front: a, back: null, belongsToFront: colours.map(() => true) }
+  if (colourDistance(a, b) === 0)
+    return { front: a, back: null, belongsToFront: colours.map(() => true) }
 
   // Whichever claims more pixels goes in the foreground, so the glyph carries the
   // bigger shape and the rarer colour sits behind it.
@@ -250,7 +255,9 @@ export function blockRows(image, cols, grid = BLOCK_GRIDS.quadrant) {
 
       if (!colorEnabled) {
         let mask = 0
-        solid.forEach((on, index) => { if (on) mask |= 1 << index })
+        solid.forEach((on, index) => {
+          if (on) mask |= 1 << index
+        })
         line += grid.glyph(mask)
         continue
       }

@@ -10,7 +10,12 @@ import assert from 'node:assert/strict'
 import { createScreen } from '../src/ui/screen.mjs'
 import { ballCells, ballOverlays, ballSteps } from '../src/ui/ball.mjs'
 import { BAND_PX, bandImage, bandRows, grassLines, walkerColumn } from '../src/ui/grass.mjs'
-import { HIT_FRAMES, draw as drawBattle, fitBattleSprites, hitOverlays } from '../src/ui/views/battle.mjs'
+import {
+  HIT_FRAMES,
+  draw as drawBattle,
+  fitBattleSprites,
+  hitOverlays,
+} from '../src/ui/views/battle.mjs'
 import { draw as drawBox } from '../src/ui/views/box.mjs'
 import { draw as drawDex } from '../src/ui/views/dex.mjs'
 import { draw as drawOptions } from '../src/ui/views/options.mjs'
@@ -19,11 +24,20 @@ import { draw as drawTeam } from '../src/ui/views/team.mjs'
 import { DEFAULT_CONFIG } from '../src/config.mjs'
 import { itemsInBag } from '../src/shop.mjs'
 import {
-  BLOCK_GRIDS, MIN_CANVAS_COLS, NATIVE_CANVAS_COLS, blockRows, fitCanvasCols,
+  BLOCK_GRIDS,
+  MIN_CANVAS_COLS,
+  NATIVE_CANVAS_COLS,
+  blockRows,
+  fitCanvasCols,
 } from '../src/ui/sprite.mjs'
 import { genderTag } from '../src/ui/widgets.mjs'
 import {
-  cursor, gray, reset, screen as screenCodes, stripAnsi, visibleLength,
+  cursor,
+  gray,
+  reset,
+  screen as screenCodes,
+  stripAnsi,
+  visibleLength,
 } from '../src/ui/ansi.mjs'
 
 function fakeTerminal({ cols = 40, rows = 12 } = {}) {
@@ -181,9 +195,7 @@ function rowWrite(frame, row) {
  */
 function reclaimed(frame, row, cols = 40) {
   const write = rowWrite(frame, row)
-  return write != null
-    && visibleLength(write) === cols
-    && !write.includes(screenCodes.clearLine)
+  return write != null && visibleLength(write) === cols && !write.includes(screenCodes.clearLine)
 }
 
 test('the cells a vanished overlay covered are written over, not only erased', () => {
@@ -212,7 +224,10 @@ test('rows that fall off the bottom of a shorter frame are wiped too', () => {
 
 test('a repaint wipes every row it draws, since it no longer knows what was there', () => {
   const term = fakeTerminal()
-  term.screen.render(['a', 'b', 'c'], [{ row: 2, col: 1, sequence: 'OVER', rows: 1, key: 'sprite' }])
+  term.screen.render(
+    ['a', 'b', 'c'],
+    [{ row: 2, col: 1, sequence: 'OVER', rows: 1, key: 'sprite' }],
+  )
 
   term.screen.repaint()
   term.screen.render(['a', 'b', 'c'])
@@ -245,9 +260,10 @@ test('a reclaimed row is written to the edge, and not erased afterwards', () => 
 
 test('an erase never follows the spaces that took a row back from an overlay', () => {
   const term = fakeTerminal({ rows: 8 })
-  term.screen.render(['a', 'b', 'c', 'd', 'e'], [
-    { row: 4, col: 1, sequence: 'OVER', rows: 2, key: 'sprite' },
-  ])
+  term.screen.render(
+    ['a', 'b', 'c', 'd', 'e'],
+    [{ row: 4, col: 1, sequence: 'OVER', rows: 2, key: 'sprite' }],
+  )
 
   term.screen.render(['a'])
 
@@ -256,10 +272,7 @@ test('an erase never follows the spaces that took a row back from an overlay', (
   const frame = term.frame()
   const erase = frame.indexOf(screenCodes.clearBelow)
   assert.ok(erase >= 0, 'the erase still goes out')
-  assert.ok(
-    frame.lastIndexOf(WIPE) > erase,
-    'but the spaces are the last thing those rows see',
-  )
+  assert.ok(frame.lastIndexOf(WIPE) > erase, 'but the spaces are the last thing those rows see')
 })
 
 test('a frame that changes nothing still writes nothing after all that', () => {
@@ -335,7 +348,10 @@ test('the explosion is drawn as overlays, not as rows', () => {
     overlays.every((overlay) => !overlay.sequence.includes(' ')),
     'a space written over a sprite would punch a hole in it',
   )
-  assert.ok(overlays.every((overlay) => overlay.key === 'hit:3'), 'and the frame keys them')
+  assert.ok(
+    overlays.every((overlay) => overlay.key === 'hit:3'),
+    'and the frame keys them',
+  )
 })
 
 test('the explosion sits centred on the sprite it is hitting', () => {
@@ -344,7 +360,9 @@ test('the explosion sits centred on the sprite it is hitting', () => {
 
   const left = Math.min(...overlays.map((overlay) => overlay.col))
   // Past the colour codes, 💥 is two cells wide and counts as two code units.
-  const right = Math.max(...overlays.map((overlay) => overlay.col + visibleLength(overlay.sequence)))
+  const right = Math.max(
+    ...overlays.map((overlay) => overlay.col + visibleLength(overlay.sequence)),
+  )
 
   assert.ok(Math.abs((left + right) / 2 - (centre + 1)) <= 1, `${left}..${right} around ${centre}`)
 })
@@ -664,7 +682,7 @@ test('a two-colour cell keeps both colours, and a transparent one keeps none beh
   // can afford a background, so both colours survive.
   const split = solidImage(2, 4)
   for (let y = 0; y < 4; y++) {
-    const at = (y * 2) * 4
+    const at = y * 2 * 4
     split.pixels[at] = 20
     split.pixels[at + 1] = 20
     split.pixels[at + 2] = 24
@@ -708,7 +726,12 @@ function battleMon(species) {
 }
 
 function battleCtx({
-  foe = 143, player = 4, menu = 'main', ball = null, effect = null, caught = [],
+  foe = 143,
+  player = 4,
+  menu = 'main',
+  ball = null,
+  effect = null,
+  caught = [],
 } = {}) {
   return {
     save: {
@@ -750,7 +773,13 @@ test('sprites only share rows when there is clear air between them', () => {
   // meet, so this is the condition the overlap must never be granted without.
   let shared = 0
 
-  for (const [foe, player] of [[143, 4], [4, 143], [16, 25], [143, 143], [25, 143]]) {
+  for (const [foe, player] of [
+    [143, 4],
+    [4, 143],
+    [16, 25],
+    [143, 143],
+    [25, 143],
+  ]) {
     for (const cols of [60, 80, 100, 120, 160]) {
       for (let rows = 24; rows <= 60; rows += 4) {
         const size = { cols, rows }
@@ -763,8 +792,8 @@ test('sprites only share rows when there is clear air between them', () => {
         const foeLeft = Math.max(1, width - fitted.foe.cols - 2)
         assert.ok(
           playerRight + 2 <= foeLeft,
-          `${foe} vs ${player} at ${cols}x${rows} shares rows but reaches `
-          + `${playerRight} into a foe starting at ${foeLeft}`,
+          `${foe} vs ${player} at ${cols}x${rows} shares rows but reaches ` +
+            `${playerRight} into a foe starting at ${foeLeft}`,
         )
       }
     }
@@ -774,7 +803,11 @@ test('sprites only share rows when there is clear air between them', () => {
 })
 
 test('the field never grows past the rows the layout can spare', () => {
-  for (const [foe, player] of [[143, 4], [143, 143], [16, 25]]) {
+  for (const [foe, player] of [
+    [143, 4],
+    [143, 143],
+    [16, 25],
+  ]) {
     for (let rows = 24; rows <= 60; rows += 2) {
       const size = { cols: 120, rows }
       const fitted = fitBattleSprites(size, foe, player, { scale: 1 })
@@ -950,7 +983,10 @@ test('a box with nothing in it still says how to get out of it', () => {
   const { lines } = drawBox(ctx, { cols: 100, rows: 34 })
   const plain = lines.map(stripAnsi)
 
-  assert.ok(plain.some((line) => line.includes('The box is empty')), 'it says so')
+  assert.ok(
+    plain.some((line) => line.includes('The box is empty')),
+    'it says so',
+  )
   assert.equal(lines.length, 33, 'and it is closed like every other screen')
   assert.match(plain[plain.length - 1], /\[esc\]/)
 })
@@ -976,8 +1012,14 @@ test('the bag opens over the team, on the Pokemon the cursor was on', () => {
 
   assert.match(plain[0], /BAG/, 'the header says which list you are in')
   assert.match(plain[0], /on PIKACHU/, 'and who it is for')
-  assert.ok(plain.some((line) => /Potion\s+x2/.test(line)), 'the items are the list now')
-  assert.ok(plain.some((line) => /Restores 20 HP/.test(line)), 'with what the one under the cursor does')
+  assert.ok(
+    plain.some((line) => /Potion\s+x2/.test(line)),
+    'the items are the list now',
+  )
+  assert.ok(
+    plain.some((line) => /Restores 20 HP/.test(line)),
+    'with what the one under the cursor does',
+  )
 
   // The details on the right are still Pikachu's: they are how you see what the item is
   // about to change.
@@ -988,8 +1030,7 @@ test('the bag opens over the team, on the Pokemon the cursor was on', () => {
 })
 
 test('the bag marks the item that would evolve the one you have chosen', () => {
-  const stoned = drawTeam(bagCtx('thunder-stone', 1), { cols: 100, rows: 34 })
-    .lines.map(stripAnsi)
+  const stoned = drawTeam(bagCtx('thunder-stone', 1), { cols: 100, rows: 34 }).lines.map(stripAnsi)
 
   // Pikachu is what the Thunder Stone is for, and the screen has to say so before you
   // spend it: 2,100₽ is a lot to pay to find out by guessing.
@@ -1001,9 +1042,11 @@ test('the bag marks the item that would evolve the one you have chosen', () => {
   )
 
   // The same stone on Charmander, which it does nothing for.
-  const wasted = drawTeam(bagCtx('thunder-stone', 0), { cols: 100, rows: 34 })
-    .lines.map(stripAnsi)
-  assert.doesNotMatch(wasted.find((line) => /Thunder Stone/.test(line)), /✦/)
+  const wasted = drawTeam(bagCtx('thunder-stone', 0), { cols: 100, rows: 34 }).lines.map(stripAnsi)
+  assert.doesNotMatch(
+    wasted.find((line) => /Thunder Stone/.test(line)),
+    /✦/,
+  )
   assert.ok(!wasted.some((line) => /would become/.test(line)), 'and promises nothing')
 })
 
@@ -1072,8 +1115,14 @@ test('the team shows a gender symbol beside every Pokemon that has one', () => {
 
   // Charmander is one-eighth female and Pikachu an even split, so at IV 15 the two in
   // the party come out one of each: a symbol that ignored the ratio could not.
-  assert.ok(plain.some((line) => /CHARMANDER♂/.test(line)), 'Charmander is male here')
-  assert.ok(plain.some((line) => /PIKACHU♀/.test(line)), 'Pikachu is female here')
+  assert.ok(
+    plain.some((line) => /CHARMANDER♂/.test(line)),
+    'Charmander is male here',
+  )
+  assert.ok(
+    plain.some((line) => /PIKACHU♀/.test(line)),
+    'Pikachu is female here',
+  )
 })
 
 test('a gender symbol takes one cell, so the name column still lines up', () => {
@@ -1141,7 +1190,13 @@ test('a Pokemon with no gender gets no symbol, and nor does an unreadable one', 
   const { lines } = drawTeam(ctx, { cols: 100, rows: 34 })
   const plain = lines.map(stripAnsi)
 
-  assert.ok(plain.some((line) => /MAGNEMITE\s/.test(line)), 'Magnemite stands alone')
-  assert.ok(plain.some((line) => /PIKACHU\s/.test(line)), 'and so does the one we cannot read')
+  assert.ok(
+    plain.some((line) => /MAGNEMITE\s/.test(line)),
+    'Magnemite stands alone',
+  )
+  assert.ok(
+    plain.some((line) => /PIKACHU\s/.test(line)),
+    'and so does the one we cannot read',
+  )
   assert.ok(!plain.join('\n').match(/[♂♀]/), 'no symbol anywhere on the screen')
 })

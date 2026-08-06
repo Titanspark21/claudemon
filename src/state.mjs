@@ -7,7 +7,14 @@
 import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { BALLS } from './capture.mjs'
 import { HOME, SAVE_FILE } from './paths.mjs'
-import { createPokemon, displayName, healFully, isFainted, levelOf, refreshStats } from './pokemon.mjs'
+import {
+  createPokemon,
+  displayName,
+  healFully,
+  isFainted,
+  levelOf,
+  refreshStats,
+} from './pokemon.mjs'
 import { writeStatus } from './status.mjs'
 import { countOf } from './shop.mjs'
 
@@ -121,9 +128,10 @@ export function healParty(save) {
  * home screen owes anyone an explanation, so it has to agree with `healParty`.
  */
 export function partyNeedsHealing(save) {
-  return save.party.some((mon) => mon.hp < mon.stats.hp
-    || mon.status != null
-    || mon.moves.some((slot) => slot.pp < slot.maxPp))
+  return save.party.some(
+    (mon) =>
+      mon.hp < mon.stats.hp || mon.status != null || mon.moves.some((slot) => slot.pp < slot.maxPp),
+  )
 }
 
 export function markSeen(save, speciesId) {

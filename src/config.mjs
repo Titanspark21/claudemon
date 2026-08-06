@@ -171,5 +171,7 @@ export function updateCheckMode(config = DEFAULT_CONFIG) {
  */
 export function encounterTtlMs(config = DEFAULT_CONFIG) {
   const seconds = Number(config?.encounterTtlSeconds)
-  return (Number.isFinite(seconds) && seconds > 0 ? seconds : DEFAULT_CONFIG.encounterTtlSeconds) * 1000
+  return (
+    (Number.isFinite(seconds) && seconds > 0 ? seconds : DEFAULT_CONFIG.encounterTtlSeconds) * 1000
+  )
 }

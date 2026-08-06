@@ -26,7 +26,7 @@ export function draw(ctx, size) {
     lines.push('')
     lines.push(centre('First things first.', cols))
     lines.push('')
-    lines.push(centre("What should people call you?", cols))
+    lines.push(centre('What should people call you?', cols))
     lines.push('')
 
     const cursor = ctx.setup.blink ? '█' : ' '
@@ -53,13 +53,19 @@ export function draw(ctx, size) {
   lines.push(centre(chosen.types.map(typeBadge).join(' '), cols))
   lines.push('')
 
-  const stats = statsAtLevel(chosenId, 5, Object.fromEntries(
-    STAT_NAMES.map((key) => [key, AVERAGE_IV]),
-  ))
-  lines.push(centre(
-    dim(`at level 5 — HP ${stats.hp} · Atk ${stats.attack} · Def ${stats.defense} · Spd ${stats.speed}`),
-    cols,
-  ))
+  const stats = statsAtLevel(
+    chosenId,
+    5,
+    Object.fromEntries(STAT_NAMES.map((key) => [key, AVERAGE_IV])),
+  )
+  lines.push(
+    centre(
+      dim(
+        `at level 5 — HP ${stats.hp} · Atk ${stats.attack} · Def ${stats.defense} · Spd ${stats.speed}`,
+      ),
+      cols,
+    ),
+  )
 
   lines.push('')
   const picker = STARTERS.map((id, index) => {

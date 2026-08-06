@@ -11,22 +11,91 @@ import { displayName, evolveInto, isFainted, speciesName, stoneEvolution } from 
  */
 export const ITEMS = {
   'poke-ball': { name: 'Poké Ball', kind: 'ball', price: 200, description: 'A basic ball.' },
-  'great-ball': { name: 'Great Ball', kind: 'ball', price: 600, description: 'Catches better than a Poké Ball.' },
-  'ultra-ball': { name: 'Ultra Ball', kind: 'ball', price: 1200, description: 'A high performance ball.' },
-  'master-ball': { name: 'Master Ball', kind: 'ball', price: null, description: 'Never fails. Cannot be bought.' },
+  'great-ball': {
+    name: 'Great Ball',
+    kind: 'ball',
+    price: 600,
+    description: 'Catches better than a Poké Ball.',
+  },
+  'ultra-ball': {
+    name: 'Ultra Ball',
+    kind: 'ball',
+    price: 1200,
+    description: 'A high performance ball.',
+  },
+  'master-ball': {
+    name: 'Master Ball',
+    kind: 'ball',
+    price: null,
+    description: 'Never fails. Cannot be bought.',
+  },
 
   potion: { name: 'Potion', kind: 'heal', heals: 20, price: 300, description: 'Restores 20 HP.' },
-  'super-potion': { name: 'Super Potion', kind: 'heal', heals: 50, price: 700, description: 'Restores 50 HP.' },
-  'hyper-potion': { name: 'Hyper Potion', kind: 'heal', heals: 200, price: 1200, description: 'Restores 200 HP.' },
-  'full-restore': { name: 'Full Restore', kind: 'heal', heals: Infinity, cures: true, price: 3000, description: 'Fully restores HP and status.' },
-  'full-heal': { name: 'Full Heal', kind: 'cure', price: 600, description: 'Cures any status condition.' },
-  revive: { name: 'Revive', kind: 'revive', price: 1500, description: 'Revives a fainted Pokémon to half HP.' },
+  'super-potion': {
+    name: 'Super Potion',
+    kind: 'heal',
+    heals: 50,
+    price: 700,
+    description: 'Restores 50 HP.',
+  },
+  'hyper-potion': {
+    name: 'Hyper Potion',
+    kind: 'heal',
+    heals: 200,
+    price: 1200,
+    description: 'Restores 200 HP.',
+  },
+  'full-restore': {
+    name: 'Full Restore',
+    kind: 'heal',
+    heals: Infinity,
+    cures: true,
+    price: 3000,
+    description: 'Fully restores HP and status.',
+  },
+  'full-heal': {
+    name: 'Full Heal',
+    kind: 'cure',
+    price: 600,
+    description: 'Cures any status condition.',
+  },
+  revive: {
+    name: 'Revive',
+    kind: 'revive',
+    price: 1500,
+    description: 'Revives a fainted Pokémon to half HP.',
+  },
 
-  'fire-stone': { name: 'Fire Stone', kind: 'stone', price: 2100, description: 'Evolves certain Pokémon.' },
-  'water-stone': { name: 'Water Stone', kind: 'stone', price: 2100, description: 'Evolves certain Pokémon.' },
-  'thunder-stone': { name: 'Thunder Stone', kind: 'stone', price: 2100, description: 'Evolves certain Pokémon.' },
-  'leaf-stone': { name: 'Leaf Stone', kind: 'stone', price: 2100, description: 'Evolves certain Pokémon.' },
-  'moon-stone': { name: 'Moon Stone', kind: 'stone', price: 2100, description: 'Evolves certain Pokémon.' },
+  'fire-stone': {
+    name: 'Fire Stone',
+    kind: 'stone',
+    price: 2100,
+    description: 'Evolves certain Pokémon.',
+  },
+  'water-stone': {
+    name: 'Water Stone',
+    kind: 'stone',
+    price: 2100,
+    description: 'Evolves certain Pokémon.',
+  },
+  'thunder-stone': {
+    name: 'Thunder Stone',
+    kind: 'stone',
+    price: 2100,
+    description: 'Evolves certain Pokémon.',
+  },
+  'leaf-stone': {
+    name: 'Leaf Stone',
+    kind: 'stone',
+    price: 2100,
+    description: 'Evolves certain Pokémon.',
+  },
+  'moon-stone': {
+    name: 'Moon Stone',
+    kind: 'stone',
+    price: 2100,
+    description: 'Evolves certain Pokémon.',
+  },
 }
 
 /** What the shop offers, in the order it lists them. */

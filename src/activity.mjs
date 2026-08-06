@@ -9,7 +9,14 @@
 // the save follow — so there is still nothing to lock. Writes are tmp + rename,
 // because the companion can read at any moment.
 
-import { mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { join } from 'node:path'
 import { SESSIONS_DIR, sessionFile } from './paths.mjs'
 
@@ -204,7 +211,7 @@ export function noteTool(sessionId, cwd, tool, { lastStepAt, pendingSteps } = {}
     // was idle — or sat on a permission prompt — for twenty minutes would cash the
     // whole wait in at the next tool call, which is not time anyone spent waiting
     // on Claude.
-    lastStepAt: lastStepAt ?? (working ? previous.lastStepAt ?? entry.at : entry.at),
+    lastStepAt: lastStepAt ?? (working ? (previous.lastStepAt ?? entry.at) : entry.at),
     // The prompt's own steps do not restart with the clock, though: they are a walk
     // that was bought and not yet taken, and the only things that clear that debt
     // are spending it and the turn ending.

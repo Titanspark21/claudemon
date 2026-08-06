@@ -6,7 +6,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
 } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -37,12 +43,16 @@ function stubScreen() {
   let bells = 0
   return {
     size: () => ({ cols: 100, rows: 34 }),
-    render: () => { frames++ },
+    render: () => {
+      frames++
+    },
     repaint: () => {},
     stop: () => {},
     onKey: () => {},
     onResize: () => {},
-    bell: () => { bells++ },
+    bell: () => {
+      bells++
+    },
     frameCount: () => frames,
     bellCount: () => bells,
   }
@@ -1172,7 +1182,10 @@ test('a stone teaches what the new form knows at the level it arrived at', () =>
   assert.equal(shellder.species, 91, 'a Cloyster')
   // Spike Cannon is Cloyster's move at 50, and a Shellder never learns it. The stone is
   // the only thing that was ever going to bring it.
-  assert.ok(shellder.moves.some((slot) => slot.move === 'spike-cannon'), 'and it learned it')
+  assert.ok(
+    shellder.moves.some((slot) => slot.move === 'spike-cannon'),
+    'and it learned it',
+  )
   assert.match([].concat(app.bagMessage).join(' '), /learned Spike Cannon/i, 'and said so')
   assert.ok(
     loadSave().party[1].moves.some((slot) => slot.move === 'spike-cannon'),
@@ -1195,7 +1208,11 @@ test('a stone that cannot fit the move keeps the four it has and says why', () =
   press(app, 'enter')
 
   assert.equal(shellder.species, 91, 'it still evolves')
-  assert.deepEqual(shellder.moves.map((slot) => slot.move), before, 'and keeps its moves')
+  assert.deepEqual(
+    shellder.moves.map((slot) => slot.move),
+    before,
+    'and keeps its moves',
+  )
 
   // There is no forget-a-move menu outside a battle, so the screen has to close the
   // question instead of leaving it open on a prompt that never comes.
@@ -1589,7 +1606,9 @@ function stubRun() {
     to: null,
     steps: [{ id: 'plugin', label: 'fetching', done: 'fetched', status: 'running', detail: null }],
   }
-  run.promise = new Promise((resolve) => { settle = resolve })
+  run.promise = new Promise((resolve) => {
+    settle = resolve
+  })
   run.finish = (state = 'done', to = '0.6.0') => {
     run.state = state
     run.to = state === 'done' ? to : null
@@ -1690,7 +1709,10 @@ test('the home screen carries the version, and the notice only when there is one
 
   app.updateNotice = null
   const quiet = homeView.draw(app, size).lines
-  assert.ok(quiet.some((line) => line.includes(`v${VERSION}`)), 'the version is on screen')
+  assert.ok(
+    quiet.some((line) => line.includes(`v${VERSION}`)),
+    'the version is on screen',
+  )
   assert.equal(quiet.filter((line) => line.includes('is out')).length, 0)
 
   app.updateNotice = { kind: 'available', version: '9.9.9' }

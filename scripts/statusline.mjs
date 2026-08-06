@@ -86,9 +86,10 @@ function gameRow(config) {
     // that is plainly not counting reads as old, which is the truth; "A wild PIDGEY
     // appeared!" sat there on its own does not.
     const expiresAt = encounterExpiresAt(encounter, ttlMs)
-    const left = expiresAt == null
-      ? ''
-      : `  ${dim('·')}  ${dim(`${Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000))}s left`)}`
+    const left =
+      expiresAt == null
+        ? ''
+        : `  ${dim('·')}  ${dim(`${Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000))}s left`)}`
 
     return `${brightYellow('✦')} ${headline}${left}  ${dim('·')}  ${call}`
   }
@@ -111,7 +112,9 @@ function main() {
   if (Number.isInteger(probeRows) && probeRows > 0) {
     const lines = []
     for (let row = 1; row <= probeRows; row++) {
-      lines.push(`${brightYellow(`row ${row}/${probeRows}`)} ${dim('─'.repeat(24))} claudemon probe`)
+      lines.push(
+        `${brightYellow(`row ${row}/${probeRows}`)} ${dim('─'.repeat(24))} claudemon probe`,
+      )
     }
     process.stdout.write(`${lines.join('\n')}\n`)
     return

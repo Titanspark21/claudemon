@@ -18,9 +18,21 @@ process.env.CLAUDEMON_HOME = sandbox
 const { isDataReady, move: moveOf, species } = await import('../src/data.mjs')
 const { SAVE_FILE } = await import('../src/paths.mjs')
 const {
-  activePokemon, addPokemon, createSave, depositPokemon, healParty, loadSave,
-  markFaced, markSeen, partyIsWipedOut, PARTY_LIMIT, saveGame, setLead, timesFaced,
-  totalBalls, withdrawPokemon,
+  activePokemon,
+  addPokemon,
+  createSave,
+  depositPokemon,
+  healParty,
+  loadSave,
+  markFaced,
+  markSeen,
+  partyIsWipedOut,
+  PARTY_LIMIT,
+  saveGame,
+  setLead,
+  timesFaced,
+  totalBalls,
+  withdrawPokemon,
 } = await import('../src/state.mjs')
 const { buy, countOf, ITEMS, useItem, ballsInBag } = await import('../src/shop.mjs')
 const { applyVictory, learnMove, MOVE_LIMIT } = await import('../src/progression.mjs')
@@ -316,7 +328,9 @@ test('a full moveset asks which move to forget instead of silently dropping one'
   const save = newSave(4)
   const mon = save.party[0]
   mon.moves = ['scratch', 'growl', 'tackle', 'leer'].map((name) => ({
-    move: name, pp: moveOf(name).pp, maxPp: moveOf(name).pp,
+    move: name,
+    pp: moveOf(name).pp,
+    maxPp: moveOf(name).pp,
   }))
 
   const steps = applyVictory(save, [mon], { exp: expForLevel(4, 10) - mon.exp, money: 0 })
@@ -339,7 +353,10 @@ test('declining to learn a move leaves the moveset alone', () => {
 
   const result = learnMove(mon, 'flamethrower', null)
   assert.equal(result.learned, false)
-  assert.deepEqual(mon.moves.map((slot) => slot.move), before)
+  assert.deepEqual(
+    mon.moves.map((slot) => slot.move),
+    before,
+  )
 })
 
 test('reaching the evolution level evolves at the end of the payout', () => {
@@ -361,14 +378,21 @@ test('a Pokemon that evolves learns what its new form knows at that level', () =
   const save = newSave(4)
   const abra = createPokemon(63, 15, makeRng(11))
   addPokemon(save, abra)
-  assert.deepEqual(abra.moves.map((slot) => slot.move), ['teleport'], 'Abra knows one move')
+  assert.deepEqual(
+    abra.moves.map((slot) => slot.move),
+    ['teleport'],
+    'Abra knows one move',
+  )
 
   const steps = applyVictory(save, [abra], { exp: expForLevel(63, 16) - abra.exp, money: 0 })
 
   assert.equal(abra.species, 64, 'Kadabra')
   // Confusion is on Kadabra's learnset at 16, not Abra's, so reading the old one
   // left the Kadabra standing there with nothing but Teleport.
-  assert.ok(abra.moves.some((slot) => slot.move === 'confusion'), 'and it learned Confusion')
+  assert.ok(
+    abra.moves.some((slot) => slot.move === 'confusion'),
+    'and it learned Confusion',
+  )
   const learned = steps.filter((step) => step.kind === 'learn').map((step) => step.move)
   assert.ok(learned.includes('confusion'), 'and said so')
 
@@ -451,7 +475,7 @@ test('everyone who took part earns the experience, and the money is paid once', 
 
   assert.equal(starter.exp, expBefore.starter + 50, 'the one that finished it earns')
   assert.equal(backup.exp, expBefore.backup + 50, 'and so does the one that only stood there')
-  assert.equal(save.money, moneyBefore + 120, 'the prize is the trainer\'s, not a share each')
+  assert.equal(save.money, moneyBefore + 120, "the prize is the trainer's, not a share each")
   assert.equal(steps.filter((step) => step.kind === 'exp').length, 2, 'one line each')
   assert.equal(steps.filter((step) => step.kind === 'money').length, 1)
 })
