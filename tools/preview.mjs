@@ -1,5 +1,6 @@
 import { createApp } from '../src/app.mjs'
 import { createBattle } from '../src/battle.mjs'
+import { createBattleFlow } from '../src/battleFlow.mjs'
 import { DEFAULT_CONFIG } from '../src/constants.mjs'
 import { createPokemon } from '../src/pokemon.mjs'
 import { makeRng } from '../src/rng.mjs'
@@ -198,21 +199,7 @@ const SCENES = {
       seed: 5,
     })
 
-    app.battle = {
-      state,
-      menu: 'main',
-      selection: 0,
-      message: null,
-      events: [],
-      hp: { player: state.player.mon.hp, foe: state.foe.mon.hp },
-      hpTarget: { player: state.player.mon.hp, foe: state.foe.mon.hp },
-      effect: null,
-      ball: null,
-      postSteps: null,
-      learnStep: null,
-      bagItems: [],
-      bagItem: null,
-    }
+    app.battle = createBattleFlow(state)
 
     return app
   },

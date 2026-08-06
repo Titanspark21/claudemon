@@ -38,33 +38,26 @@ const mapStats = (stats) => {
   }
 }
 
+const mapSave = (save) => {
+  return {
+    version: save.version,
+    trainer: save.trainer,
+    party: save.party ? save.party.map(mapPokemon) : [],
+    box: save.box ? save.box.map(mapPokemon) : [],
+    bag: save.bag ?? {},
+    money: save.money ?? 0,
+    dex: mapDex(save.dex),
+    stats: mapStats(save.stats),
+  }
+}
+
 export const transformResponseSave = (save) => {
   if (!save) return null
 
-  return {
-    version: save.version,
-    trainer: save.trainer,
-    party: save.party ? save.party.map(mapPokemon) : [],
-    box: save.box ? save.box.map(mapPokemon) : [],
-    bag: save.bag ?? {},
-    money: save.money ?? 0,
-    dex: mapDex(save.dex),
-    stats: mapStats(save.stats),
-  }
+  return mapSave(save)
 }
 
-export const transformRequestSaveGame = (save) => {
-  return {
-    version: save.version,
-    trainer: save.trainer,
-    party: save.party ? save.party.map(mapPokemon) : [],
-    box: save.box ? save.box.map(mapPokemon) : [],
-    bag: save.bag ?? {},
-    money: save.money ?? 0,
-    dex: mapDex(save.dex),
-    stats: mapStats(save.stats),
-  }
-}
+export const transformRequestSaveGame = (save) => mapSave(save)
 
 const mapStatusLead = (lead) => {
   if (!lead) return null
@@ -75,9 +68,7 @@ const mapStatusLead = (lead) => {
   }
 }
 
-export const transformResponseStatus = (status) => {
-  if (!status) return null
-
+const mapStatus = (status) => {
   return {
     lead: mapStatusLead(status.lead),
     balls: status.balls,
@@ -87,107 +78,80 @@ export const transformResponseStatus = (status) => {
   }
 }
 
-export const transformRequestWriteStatus = (status) => {
+export const transformResponseStatus = (status) => {
+  if (!status) return null
+
+  return mapStatus(status)
+}
+
+export const transformRequestWriteStatus = (status) => mapStatus(status)
+
+const mapActivity = (entry) => {
   return {
-    lead: mapStatusLead(status.lead),
-    balls: status.balls,
-    money: status.money,
-    caught: status.caught,
-    heartbeat: status.heartbeat,
+    v: entry.v,
+    session: entry.session,
+    cwd: entry.cwd,
+    at: entry.at,
+    state: entry.state,
+    tool: entry.tool,
+    since: entry.since,
+    lastStepAt: entry.lastStepAt,
+    pendingSteps: entry.pendingSteps,
+    message: entry.message,
   }
 }
 
 export const transformResponseActivity = (entry) => {
   if (!entry) return null
 
-  return {
-    v: entry.v,
-    session: entry.session,
-    cwd: entry.cwd,
-    at: entry.at,
-    state: entry.state,
-    tool: entry.tool,
-    since: entry.since,
-    lastStepAt: entry.lastStepAt,
-    pendingSteps: entry.pendingSteps,
-    message: entry.message,
-  }
+  return mapActivity(entry)
 }
 
-export const transformRequestWriteActivity = (entry) => {
+export const transformRequestWriteActivity = (entry) => mapActivity(entry)
+
+const mapConfig = (config) => {
   return {
-    v: entry.v,
-    session: entry.session,
-    cwd: entry.cwd,
-    at: entry.at,
-    state: entry.state,
-    tool: entry.tool,
-    since: entry.since,
-    lastStepAt: entry.lastStepAt,
-    pendingSteps: entry.pendingSteps,
-    message: entry.message,
+    encounterChance: config.encounterChance,
+    charsPerStep: config.charsPerStep,
+    maxSteps: config.maxSteps,
+    workStepSeconds: config.workStepSeconds,
+    sound: config.sound,
+    bell: config.bell,
+    updateCheck: config.updateCheck,
+    encounterTtlSeconds: config.encounterTtlSeconds,
+    spriteScale: config.spriteScale,
+    wrappedStatusLine: config.wrappedStatusLine,
+    probeRows: config.probeRows,
   }
 }
 
 export const transformResponseConfig = (config) => {
   if (!config) return null
 
-  return {
-    encounterChance: config.encounterChance,
-    charsPerStep: config.charsPerStep,
-    maxSteps: config.maxSteps,
-    workStepSeconds: config.workStepSeconds,
-    sound: config.sound,
-    bell: config.bell,
-    updateCheck: config.updateCheck,
-    encounterTtlSeconds: config.encounterTtlSeconds,
-    spriteScale: config.spriteScale,
-    wrappedStatusLine: config.wrappedStatusLine,
-    probeRows: config.probeRows,
-  }
+  return mapConfig(config)
 }
 
-export const transformRequestWriteConfig = (config) => {
+export const transformRequestWriteConfig = (config) => mapConfig(config)
+
+const mapEncounter = (entry) => {
   return {
-    encounterChance: config.encounterChance,
-    charsPerStep: config.charsPerStep,
-    maxSteps: config.maxSteps,
-    workStepSeconds: config.workStepSeconds,
-    sound: config.sound,
-    bell: config.bell,
-    updateCheck: config.updateCheck,
-    encounterTtlSeconds: config.encounterTtlSeconds,
-    spriteScale: config.spriteScale,
-    wrappedStatusLine: config.wrappedStatusLine,
-    probeRows: config.probeRows,
+    v: entry.v,
+    species: entry.species,
+    name: entry.name,
+    level: entry.level,
+    seed: entry.seed,
+    session: entry.session,
+    at: entry.at,
   }
 }
 
 export const transformResponseEncounter = (entry) => {
   if (!entry) return null
 
-  return {
-    v: entry.v,
-    species: entry.species,
-    name: entry.name,
-    level: entry.level,
-    seed: entry.seed,
-    session: entry.session,
-    at: entry.at,
-  }
+  return mapEncounter(entry)
 }
 
-export const transformRequestWriteEncounter = (entry) => {
-  return {
-    v: entry.v,
-    species: entry.species,
-    name: entry.name,
-    level: entry.level,
-    seed: entry.seed,
-    session: entry.session,
-    at: entry.at,
-  }
-}
+export const transformRequestWriteEncounter = (entry) => mapEncounter(entry)
 
 export const transformResponseManifest = (manifest) => {
   if (!manifest) return null
@@ -197,20 +161,18 @@ export const transformResponseManifest = (manifest) => {
   }
 }
 
+const mapUpdateState = (state) => {
+  return {
+    checkedAt: state.checkedAt,
+    latest: state.latest,
+    error: state.error,
+  }
+}
+
 export const transformResponseUpdateState = (state) => {
   if (!state) return null
 
-  return {
-    checkedAt: state.checkedAt,
-    latest: state.latest,
-    error: state.error,
-  }
+  return mapUpdateState(state)
 }
 
-export const transformRequestWriteUpdateState = (state) => {
-  return {
-    checkedAt: state.checkedAt,
-    latest: state.latest,
-    error: state.error,
-  }
-}
+export const transformRequestWriteUpdateState = (state) => mapUpdateState(state)

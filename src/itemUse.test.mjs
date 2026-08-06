@@ -4,7 +4,7 @@ import { applyItem } from './itemUse.mjs'
 import { createPokemon } from './pokemon.mjs'
 import { makeRng } from './rng.mjs'
 
-test('Should hand back the item result untouched when nothing evolved', () => {
+test('Should hand back the item result with no steps when nothing evolved', () => {
   const mon = createPokemon(4, 30, makeRng(1))
   const save = {
     bag: { potion: 1 },
@@ -16,7 +16,7 @@ test('Should hand back the item result untouched when nothing evolved', () => {
   const result = applyItem(save, 'potion', mon)
 
   expect(result.ok).toBe(true)
-  expect(result.steps).toBe(undefined)
+  expect(result.steps).toEqual([])
   expect(save.dex.caught).toEqual([4])
 })
 
