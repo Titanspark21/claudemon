@@ -7,3 +7,5 @@ package-lock.json
 README.md
 
 .claudemon-ci/
+
+coverage/

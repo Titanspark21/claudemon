@@ -58,6 +58,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
 
       - uses: actions/cache/restore@v4
         with:
@@ -66,7 +69,56 @@ jobs:
 
       - run: node tools/fetch-sprites.mjs
 
-      - run: node --test test/*.test.mjs
+      - run: npm test
+
+  coverage:
+    needs: sprites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: .claudemon-ci/data/sprites
+          key: sprites-${{ hashFiles('tools/fetch-sprites.mjs') }}
+
+      - run: node tools/fetch-sprites.mjs
+
+      # Thresholds live in vitest.config.mjs, so a drop fails here.
+      - name: Measure
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run coverage | tee /tmp/coverage.txt
+
+      - name: Report
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -f /tmp/coverage.txt ]; then
+            echo 'Coverage did not get far enough to report.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo '### Coverage'
+            echo ''
+            echo '```'
+            sed -n '/^ *File/,$p' /tmp/coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-html
+          path: coverage/
+          retention-days: 14
 
   dataset:
     needs: sprites

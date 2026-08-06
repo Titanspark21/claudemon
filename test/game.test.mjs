@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { mkdtempSync, symlinkSync, existsSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
