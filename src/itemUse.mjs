@@ -5,7 +5,7 @@ import { markCaught } from './state.mjs'
 export const applyItem = (save, key, mon) => {
   const result = useItem(save, key, mon)
 
-  if (!result.evolvedInto) return result
+  if (!result.evolvedInto) return { ...result, steps: [] }
 
   markCaught(save, result.evolvedInto)
 

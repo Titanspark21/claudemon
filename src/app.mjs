@@ -444,9 +444,9 @@ export const createApp = ({
 
     const result = applyItem(ctx.save, key, mon)
 
-    const taught = (result.steps ?? []).flatMap(describeStep)
+    const taught = result.steps.flatMap(describeStep)
 
-    if (result.steps?.some((step) => step.kind === 'learn-choice')) {
+    if (result.steps.some((step) => step.kind === 'learn-choice')) {
       taught.push(BAG_MESSAGES.noRoomForMove)
     }
 
