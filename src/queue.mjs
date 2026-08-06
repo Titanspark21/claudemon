@@ -6,20 +6,30 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { HOME, QUEUE_FILE } from './paths.mjs'
+import {
+  transformRequestWriteEncounter,
+  transformResponseEncounter,
+} from './transformers.mjs'
 
-function parseLines(contents) {
+const parseLines = (contents) => {
   const entries = []
+
   for (const line of contents.split('\n')) {
     const trimmed = line.trim()
+
     if (trimmed === '') continue
+
     try {
-      entries.push(JSON.parse(trimmed))
+      const entry = transformResponseEncounter(JSON.parse(trimmed))
+
+      if (entry) entries.push(entry)
     } catch {}
   }
+
   return entries
 }
 
-export function peekQueue() {
+export const peekQueue = () => {
   try {
     return parseLines(readFileSync(QUEUE_FILE, 'utf8'))
   } catch {
@@ -27,31 +37,51 @@ export function peekQueue() {
   }
 }
 
-function stampOf(entry) {
-  const at = Date.parse(entry?.at)
-  return Number.isNaN(at) ? null : at
+const stampOf = (entry) => {
+  const at = Date.parse(entry.at)
+
+  if (Number.isNaN(at)) return null
+
+  return at
 }
 
-function isLive(entry, ttlMs, now) {
+const isLive = (entry, ttlMs, now) => {
   const at = stampOf(entry)
+
   return at != null && now - at < ttlMs
 }
 
-export function encounterExpiresAt(entry, ttlMs) {
+export const encounterExpiresAt = (entry, ttlMs) => {
   const at = stampOf(entry)
-  return at == null ? null : at + ttlMs
+
+  if (at == null) return null
+
+  return at + ttlMs
 }
 
-export function readEncounter(ttlMs, now = Date.now()) {
+export const readEncounter = (ttlMs, now = Date.now()) => {
   const live = peekQueue().filter((entry) => isLive(entry, ttlMs, now))
-  return live.length > 0 ? live[live.length - 1] : null
+
+  if (live.length === 0) return null
+
+  return live[live.length - 1]
 }
 
-export function writeEncounter(entry) {
-  const stamped = { ...entry, at: entry.at ?? new Date().toISOString() }
+export const writeEncounter = (entry) => {
+  const stamped = transformRequestWriteEncounter({
+    v: entry.v,
+    species: entry.species,
+    name: entry.name,
+    level: entry.level,
+    seed: entry.seed,
+    session: entry.session,
+    at: entry.at ?? new Date().toISOString(),
+  })
+
   mkdirSync(HOME, { recursive: true })
 
   const tmp = `${QUEUE_FILE}.${process.pid}.tmp`
+
   try {
     writeFileSync(tmp, `${JSON.stringify(stamped)}\n`)
     renameSync(tmp, QUEUE_FILE)
@@ -59,18 +89,22 @@ export function writeEncounter(entry) {
     try {
       unlinkSync(tmp)
     } catch {}
+
     throw error
   }
+
   return stamped
 }
 
-export function offerEncounter(entry, ttlMs, now = Date.now()) {
+export const offerEncounter = (entry, ttlMs, now = Date.now()) => {
   if (readEncounter(ttlMs, now)) return false
+
   writeEncounter(entry)
+
   return true
 }
 
-export function clearEncounter() {
+export const clearEncounter = () => {
   try {
     writeFileSync(QUEUE_FILE, '')
   } catch {}

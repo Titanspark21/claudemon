@@ -1,85 +1,118 @@
-import { test } from 'vitest'
-import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { expect, test } from 'vitest'
 
 process.env.CLAUDEMON_HOME = mkdtempSync(join(tmpdir(), 'claudemon-status-'))
 
-const { STATUS_FILE } = await import('../src/paths.mjs')
+const { HOME, STATUS_FILE } = await import('../src/paths.mjs')
 const { companionIsLive, readStatus, writeStatus } =
   await import('../src/status.mjs')
 
-function clearStatus() {
+const clearStatus = () => {
   try {
     rmSync(STATUS_FILE)
   } catch {}
 }
 
-test('no status file yet reads as nothing, not as a crash', () => {
+test('Should read no status file yet as nothing rather than crashing', () => {
   clearStatus()
 
-  assert.equal(readStatus(), null)
+  expect(readStatus()).toBeNull()
 })
 
-test('a half-written status reads as nothing too', () => {
+test('Should read a half-written status as nothing too', () => {
   writeFileSync(STATUS_FILE, '{"session":')
 
-  assert.equal(readStatus(), null, 'a torn file is not worth throwing over')
+  expect(readStatus(), 'a torn file is not worth throwing over').toBeNull()
 })
 
-test('what is written comes back, stamped with the moment it went out', () => {
+test('Should read back what was written, stamped with the moment it went out', () => {
   clearStatus()
+
   const before = Date.now()
-  writeStatus({ session: 'abc', state: 'working' })
+
+  writeStatus({
+    lead: { name: 'Charmander', level: 7 },
+    balls: 5,
+    money: 3000,
+    caught: 2,
+  })
+
   const after = Date.now()
-
   const read = readStatus()
-  assert.equal(read.session, 'abc')
-  assert.equal(read.state, 'working')
-  assert.ok(
-    read.heartbeat >= before && read.heartbeat <= after,
+
+  expect(read.lead).toEqual({ name: 'Charmander', level: 7 })
+  expect(read.balls).toBe(5)
+  expect(read.money).toBe(3000)
+  expect(read.caught).toBe(2)
+  expect(
+    read.heartbeat,
     'the heartbeat is stamped on the way out, not by the caller',
-  )
+  ).toBeGreaterThanOrEqual(before)
+  expect(read.heartbeat).toBeLessThanOrEqual(after)
+  expect(
+    companionIsLive(read),
+    'a status just written is live by its own reckoning',
+  ).toBe(true)
 })
 
-test('a heartbeat the caller supplies is overruled by the real one', () => {
+test('Should let nothing beyond the status contract survive the write', () => {
   clearStatus()
-  writeStatus({ session: 'abc', heartbeat: 1 })
+  writeStatus({
+    lead: { name: 'Pikachu', level: 5, hp: 19 },
+    balls: 1,
+    money: 10,
+    caught: 1,
+    heartbeat: 1,
+    session: 'abc',
+    state: 'working',
+  })
 
-  assert.ok(readStatus().heartbeat > 1, 'you do not get to fake being alive')
+  const onDisk = JSON.parse(readFileSync(STATUS_FILE, 'utf8'))
+
+  expect(Object.keys(onDisk).sort()).toEqual([
+    'balls',
+    'caught',
+    'heartbeat',
+    'lead',
+    'money',
+  ])
+  expect(
+    onDisk.heartbeat,
+    'you do not get to fake being alive',
+  ).toBeGreaterThan(1)
 })
 
-test('each write replaces the last, leaving one file behind', () => {
+test('Should replace the last write with the next, leaving one file behind', () => {
   clearStatus()
-  writeStatus({ session: 'first' })
-  writeStatus({ session: 'second' })
+  writeStatus({ lead: { name: 'First', level: 1 } })
+  writeStatus({ lead: { name: 'Second', level: 2 } })
 
-  assert.equal(readStatus().session, 'second')
-  assert.equal(
-    JSON.parse(readFileSync(STATUS_FILE, 'utf8')).session,
-    'second',
-    'the rename lands on the real path',
+  expect(readStatus().lead.name, 'the rename lands on the real path').toBe(
+    'Second',
   )
+  expect(
+    readdirSync(HOME),
+    'and the temporary file is not left behind',
+  ).toEqual(['status.json'])
 })
 
-test('a companion is live only while its heartbeat is recent', () => {
-  assert.equal(companionIsLive(null), false, 'nobody there')
-  assert.equal(companionIsLive({}), false, 'no heartbeat at all')
-  assert.equal(companionIsLive({ heartbeat: 0 }), false, 'a zero is not a beat')
+test('Should call a companion live only while its heartbeat is recent', () => {
+  expect(companionIsLive(null), 'nobody there').toBe(false)
+  expect(companionIsLive({}), 'no heartbeat at all').toBe(false)
+  expect(companionIsLive({ heartbeat: 0 }), 'a zero is not a beat').toBe(false)
 
-  assert.equal(companionIsLive({ heartbeat: Date.now() }), true)
-  assert.equal(companionIsLive({ heartbeat: Date.now() - 14_000 }), true)
-  assert.equal(
+  expect(companionIsLive({ heartbeat: Date.now() })).toBe(true)
+  expect(companionIsLive({ heartbeat: Date.now() - 14_000 })).toBe(true)
+  expect(
     companionIsLive({ heartbeat: Date.now() - 16_000 }),
-    false,
     'fifteen seconds of silence and it is gone',
-  )
-})
-
-test('a status just written is live by its own reckoning', () => {
-  clearStatus()
-  writeStatus({ session: 'abc' })
-
-  assert.equal(companionIsLive(readStatus()), true)
+  ).toBe(false)
 })

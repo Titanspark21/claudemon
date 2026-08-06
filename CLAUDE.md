@@ -80,6 +80,25 @@ const getUsableMoves = (mon, includeStatus) =>
 `constants.mjs` file. Lookup tables, message strings, tunable rates and stock lists
 all belong there — never inline inside a branch.
 
+There is **one `constants.mjs` per directory**, and a module imports from the one that
+sits next to it: `src/constants.mjs`, `src/ui/constants.mjs`,
+`src/ui/views/constants.mjs`, `scripts/constants.mjs`, `tools/constants.mjs`. This is
+what the flat **Project shape** above requires — do NOT promote a module to its own
+folder just to give it a private constants file.
+
+A constant only moves out if it is pure data. A value that calls a function, derives
+from another value, or reads `process.env` is not a constant in this sense and stays in
+the module that owns it — that is why every path in `src/paths.mjs` (all built with
+`join()`) stays where it is.
+
+```js
+// ✅ GOOD — pure data, moves to src/constants.mjs
+export const POISON_FRACTIONS = { poison: 8, burn: 16 }
+
+// ✅ GOOD — derived at load time, stays in src/paths.mjs
+export const SAVE_FILE = join(HOME, 'save.json')
+```
+
 **ONE CONCERN PER FILE**: Each file MUST cover one thing. NEVER put two unrelated
 screens, two unrelated engines, or a screen and the logic it drives in the same file.
 
@@ -368,24 +387,30 @@ export const draw = (ctx, size) => {
 }
 ```
 
-The standard structure for a feature should be:
+A feature is built out of these pieces:
 
 ```
-feature/
-  __fixtures__/           shared test data, only when two files consume it
-  helpers.mjs             pure functions and logic helpers
-  helpers.test.mjs        unit tests for helpers
-  transformers.mjs        boundary mapping (see below)
-  transformers.test.mjs   unit tests for transformers
-  constants.mjs           constants used by the feature
-  feature.mjs             the module itself
-  feature.test.mjs        unit tests for the module
+__fixtures__/           shared test data, only when two files consume it
+helpers.mjs             pure functions and logic helpers
+helpers.test.mjs        unit tests for helpers
+transformers.mjs        boundary mapping (see below)
+transformers.test.mjs   unit tests for transformers
+constants.mjs           constants used by the feature
+feature.mjs             the module itself
+feature.test.mjs        unit tests for the module
 ```
 
-These files are not mandatory for every feature but should be created when needed,
-following this structure. Tests are colocated with the code they cover; when the
-first colocated test lands, widen the `include` glob in `vitest.config.mjs` so it
-actually runs.
+They are not mandatory for every feature but should be created when needed. They live
+**flat, beside the module**, in the directory the **Project shape** above assigns to
+them — a feature does NOT get its own folder. `constants.mjs` and `transformers.mjs`
+are per-directory and shared by the modules in it; `helpers.mjs` is only worth
+extracting when the logic is reused, otherwise the module keeps its own helpers at
+module scope.
+
+Tests live in `test/`, one suite per area. A new module may instead colocate its test
+next to it (`feature.test.mjs`) when that keeps the pair readable; the first time one
+lands, widen the `include` glob in `vitest.config.mjs` so it actually runs. Do not
+move the existing suites out of `test/` to chase the colocated form.
 
 ## Boundaries & Transformers
 
@@ -497,6 +522,11 @@ committing:
 3. **Run tests**: `npm run coverage` — the suite plus the coverage thresholds.
    `npm test` runs the suite alone, and `npm test -- test/battle.test.mjs` runs a
    single file.
+
+The linter resolves imports, via `eslint-plugin-import-x`: an import of a name a module
+does not export, an unresolvable path, or a dependency cycle is a lint error. So after
+moving an export between modules, `npm run lint` is what tells you whether every importer
+was repointed — you do not have to wait for a test to happen to load that module.
 
 `.githooks/pre-commit` runs exactly these, so a clean local run means a clean commit.
 `git commit --no-verify` skips it; do not reach for that to get around a failure.

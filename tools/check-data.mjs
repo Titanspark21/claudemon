@@ -1,40 +1,47 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { dataFile, spriteFile } from '../src/paths.mjs'
+import { existsSync } from 'node:fs'
+import { spriteFile } from '../src/paths.mjs'
+import { loadData } from '../src/data.mjs'
 import { bold, brightGreen, brightRed, dim } from '../src/ui/ansi.mjs'
+import {
+  DAMAGE_CLASSES,
+  FAILURE_LIST_LIMIT,
+  KANTO,
+  SPECIAL_DAMAGE_MOVES,
+  SPRITE_SIDES,
+  STAT_KEYS,
+} from './constants.mjs'
 
 const failures = []
 const checks = { run: 0 }
 
-function check(description, condition, detail = '') {
+const check = (description, condition, detail = '') => {
   checks.run++
+
   if (!condition)
     failures.push(`${description}${detail ? ` ${dim(`(${detail})`)}` : ''}`)
 }
 
-function load(name) {
+const readDataset = () => {
   try {
-    return JSON.parse(readFileSync(dataFile(name), 'utf8'))
+    return loadData()
   } catch (error) {
-    console.error(`\n${brightRed('✘')} cannot read ${name}: ${error.message}`)
+    console.error(
+      `\n${brightRed('✘')} cannot read the dataset: ${error.message}`,
+    )
     console.error(`  Run ${bold('node tools/fetch-data.mjs')} first.\n`)
     process.exit(1)
   }
 }
 
-const pokedex = load('pokedex.json')
-const moves = load('moves.json')
-const types = load('types.json')
-const growth = load('growth.json')
-
-const byId = new Map(pokedex.map((mon) => [mon.id, mon]))
+const { pokedex, byId, moves, types, growth } = readDataset()
 
 check(
-  'pokedex holds 151 entries',
-  pokedex.length === 151,
+  `pokedex holds ${KANTO} entries`,
+  pokedex.length === KANTO,
   `got ${pokedex.length}`,
 )
 
-for (let id = 1; id <= 151; id++) {
+for (let id = 1; id <= KANTO; id++) {
   check(`#${id} is present`, byId.has(id))
 }
 
@@ -53,14 +60,7 @@ for (const mon of pokedex) {
     check(`${label} type "${type}" is in the type chart`, type in types)
   }
 
-  for (const stat of [
-    'hp',
-    'attack',
-    'defense',
-    'spAttack',
-    'spDefense',
-    'speed',
-  ]) {
+  for (const stat of Object.values(STAT_KEYS)) {
     check(
       `${label} has ${stat}`,
       Number.isInteger(mon.stats[stat]) && mon.stats[stat] > 0,
@@ -106,7 +106,7 @@ for (const mon of pokedex) {
     )
     check(
       `${label} evolution stays in Kanto`,
-      evolution.to <= 151,
+      evolution.to <= KANTO,
       `-> ${evolution.to}`,
     )
   }
@@ -130,7 +130,7 @@ for (const mon of pokedex) {
     check(`${label} with no pre-evolution is stage 0`, mon.stage === 0)
   }
 
-  for (const side of ['front', 'back']) {
+  for (const side of SPRITE_SIDES) {
     check(
       `${label} ${side} sprite is on disk`,
       existsSync(spriteFile(side, mon.id, 'png')),
@@ -138,25 +138,11 @@ for (const mon of pokedex) {
   }
 }
 
-const SPECIAL_DAMAGE = new Set([
-  'counter',
-  'dragon-rage',
-  'fissure',
-  'guillotine',
-  'horn-drill',
-  'low-kick',
-  'night-shade',
-  'psywave',
-  'seismic-toss',
-  'sonic-boom',
-  'super-fang',
-])
-
 for (const [key, move] of Object.entries(moves)) {
   check(`move ${key} has a type in the chart`, move.type in types)
   check(
     `move ${key} has a damage class`,
-    ['physical', 'special', 'status'].includes(move.damageClass),
+    DAMAGE_CLASSES.includes(move.damageClass),
     move.damageClass,
   )
   check(`move ${key} has PP`, Number.isInteger(move.pp) && move.pp > 0)
@@ -170,7 +156,7 @@ for (const [key, move] of Object.entries(moves)) {
   } else if (move.power === null) {
     check(
       `damaging move ${key} without power is a known special case`,
-      SPECIAL_DAMAGE.has(key),
+      SPECIAL_DAMAGE_MOVES.has(key),
       'needs handling in the battle engine',
     )
   } else {
@@ -185,15 +171,19 @@ for (const [name, table] of Object.entries(growth)) {
     `length ${table.length}`,
   )
   check(`curve ${name} starts at 0`, table[1] === 0, String(table[1]))
+
   let rising = true
+
   for (let level = 2; level <= 100; level++) {
     if (table[level] <= table[level - 1]) rising = false
   }
+
   check(`curve ${name} increases every level`, rising)
 }
 
-const fact = (description, condition, detail) =>
-  check(`FACT: ${description}`, condition, detail)
+const fact = (description, condition, detail) => {
+  return check(`FACT: ${description}`, condition, detail)
+}
 
 const charizard = byId.get(6)
 fact(
@@ -340,9 +330,15 @@ if (failures.length === 0) {
   console.log(`  ${brightGreen('✔')} everything checks out\n`)
 } else {
   console.log(`  ${brightRed('✘')} ${failures.length} failed:\n`)
-  for (const failure of failures.slice(0, 40)) console.log(`    ${failure}`)
-  if (failures.length > 40)
-    console.log(`    ${dim(`...and ${failures.length - 40} more`)}`)
+
+  for (const failure of failures.slice(0, FAILURE_LIST_LIMIT))
+    console.log(`    ${failure}`)
+
+  if (failures.length > FAILURE_LIST_LIMIT)
+    console.log(
+      `    ${dim(`...and ${failures.length - FAILURE_LIST_LIMIT} more`)}`,
+    )
+
   console.log()
   process.exit(1)
 }

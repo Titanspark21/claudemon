@@ -1,17 +1,12 @@
-import { test } from 'vitest'
-import assert from 'node:assert/strict'
-import { mkdtempSync, symlinkSync, existsSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { expect, test } from 'vitest'
+import { existsSync } from 'node:fs'
 
-const sandbox = mkdtempSync(join(tmpdir(), 'claudemon-test-'))
-const realData = join(
-  process.env.CLAUDEMON_HOME || join(homedir(), '.claudemon'),
-  'data',
-)
-if (existsSync(realData)) symlinkSync(realData, join(sandbox, 'data'))
-process.env.CLAUDEMON_HOME = sandbox
+import { useSandboxHome } from './sandboxHome.mjs'
 
+useSandboxHome('claudemon-test-')
+
+const { EMPTY_STATS, ITEMS, MOVE_LIMIT, PARTY_LIMIT } =
+  await import('../src/constants.mjs')
 const { isDataReady, move: moveOf, species } = await import('../src/data.mjs')
 const { SAVE_FILE } = await import('../src/paths.mjs')
 const {
@@ -24,17 +19,14 @@ const {
   markFaced,
   markSeen,
   partyIsWipedOut,
-  PARTY_LIMIT,
   saveGame,
   setLead,
   timesFaced,
   totalBalls,
   withdrawPokemon,
 } = await import('../src/state.mjs')
-const { buy, countOf, ITEMS, useItem, ballsInBag } =
-  await import('../src/shop.mjs')
-const { applyVictory, learnMove, MOVE_LIMIT } =
-  await import('../src/progression.mjs')
+const { buy, countOf, useItem, ballsInBag } = await import('../src/shop.mjs')
+const { applyVictory, learnMove } = await import('../src/progression.mjs')
 const { createPokemon, levelOf, isFainted } = await import('../src/pokemon.mjs')
 const { expForLevel } = await import('../src/exp.mjs')
 const { makeRng } = await import('../src/rng.mjs')
@@ -43,271 +35,311 @@ if (!isDataReady()) {
   throw new Error('dataset missing — run: node tools/fetch-data.mjs')
 }
 
-function newSave(starter = 4) {
-  return createSave({ trainer: 'Tester', starterId: starter, rng: makeRng(7) })
-}
+test('Should start a new save with a level 5 starter and some supplies', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
 
-test('a new save starts with a level 5 starter and some supplies', () => {
-  const save = newSave(4)
-
-  assert.equal(save.party.length, 1)
-  assert.equal(save.party[0].species, 4)
-  assert.equal(levelOf(save.party[0]), 5)
-  assert.ok(save.money > 0)
-  assert.ok(totalBalls(save) > 0)
-  assert.deepEqual(save.dex.caught, [4], 'the starter counts as caught')
+  expect(save.party).toHaveLength(1)
+  expect(save.party[0].species).toBe(4)
+  expect(levelOf(save.party[0])).toBe(5)
+  expect(save.money).toBeGreaterThan(0)
+  expect(totalBalls(save)).toBeGreaterThan(0)
+  expect(save.dex.caught, 'the starter counts as caught').toEqual([4])
 })
 
-test('a save survives a write and a read', () => {
-  const save = newSave(7)
+test('Should hand a save back from disk exactly as it was written', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 7, rng: makeRng(7) })
+
   save.money = 4242
   save.party[0].hp = 3
   saveGame(save)
 
-  assert.ok(existsSync(SAVE_FILE))
-  const loaded = loadSave()
-  assert.equal(loaded.money, 4242)
-  assert.equal(loaded.party[0].species, 7)
-  assert.equal(loaded.party[0].hp, 3)
-})
-
-test('loading a save with missing fields fills them in rather than failing', () => {
-  const bare = { party: [createPokemon(4, 5, makeRng(1))] }
-  saveGame(bare)
+  expect(existsSync(SAVE_FILE)).toBe(true)
 
   const loaded = loadSave()
-  assert.ok(Array.isArray(loaded.box))
-  assert.ok(loaded.dex.seen)
-  assert.equal(typeof loaded.money, 'number')
-  assert.equal(loaded.party.length, 1, 'the team survives the migration')
+
+  expect(loaded.trainer.name).toBe('Tester')
+  expect(loaded.money).toBe(4242)
+  expect(loaded.party[0].species).toBe(7)
+  expect(loaded.party[0].hp).toBe(3)
+  expect(loaded.party[0].moves.map((slot) => slot.move)).toEqual(
+    save.party[0].moves.map((slot) => slot.move),
+  )
 })
 
-test('a caught Pokemon joins the party until it is full, then goes to the box', () => {
-  const save = newSave()
+test('Should fill in the fields a save is missing rather than failing to load it', () => {
+  saveGame({ party: [createPokemon(4, 5, makeRng(1))] })
+
+  const loaded = loadSave()
+
+  expect(loaded.box).toEqual([])
+  expect(loaded.dex).toStrictEqual({ seen: [4], caught: [4], faced: {} })
+  expect(loaded.stats).toStrictEqual(EMPTY_STATS)
+  expect(loaded.money, 'a save from before money starts at nothing').toBe(0)
+  expect(loaded.party, 'the team survives the migration').toHaveLength(1)
+
+  expect(
+    loaded.bag,
+    'a save from before the bag has an empty one',
+  ).toStrictEqual({})
+  expect(countOf(loaded, 'potion')).toBe(0)
+
+  loaded.money = 1000
+
+  expect(buy(loaded, 'potion').ok, 'and it can be shopped into').toBe(true)
+  expect(countOf(loaded, 'potion')).toBe(1)
+})
+
+test('Should put a caught Pokemon in the party until it is full, then in the box', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
   for (let i = 1; i < PARTY_LIMIT; i++) {
-    assert.equal(addPokemon(save, createPokemon(16, 5, makeRng(i))), 'party')
+    expect(addPokemon(save, createPokemon(16, 5, makeRng(i)))).toBe('party')
   }
-  assert.equal(save.party.length, PARTY_LIMIT)
 
-  assert.equal(addPokemon(save, createPokemon(19, 5, makeRng(99))), 'box')
-  assert.equal(save.box.length, 1)
+  expect(save.party).toHaveLength(PARTY_LIMIT)
+
+  expect(addPokemon(save, createPokemon(19, 5, makeRng(99)))).toBe('box')
+  expect(save.box).toHaveLength(1)
 })
 
-test('the box hands a Pokemon back once there is room for it', () => {
-  const save = newSave()
-  for (let i = 1; i < PARTY_LIMIT; i++)
+test('Should hand a Pokemon back out of the box once there is room for it', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
+  for (let i = 1; i < PARTY_LIMIT; i++) {
     addPokemon(save, createPokemon(16, 5, makeRng(i)))
+  }
+
   addPokemon(save, createPokemon(19, 5, makeRng(99)))
 
-  assert.equal(withdrawPokemon(save, 0), false)
-  assert.equal(save.box.length, 1)
-  assert.equal(
-    withdrawPokemon(save, 4),
-    false,
-    'and nothing out of range moves',
-  )
+  expect(withdrawPokemon(save, 0)).toBe(false)
+  expect(save.box).toHaveLength(1)
+  expect(withdrawPokemon(save, 4), 'and nothing out of range moves').toBe(false)
 
-  assert.equal(depositPokemon(save, PARTY_LIMIT - 1), true)
-  assert.equal(save.party.length, PARTY_LIMIT - 1)
-  assert.equal(save.box.length, 2)
+  expect(depositPokemon(save, PARTY_LIMIT - 1)).toBe(true)
+  expect(save.party).toHaveLength(PARTY_LIMIT - 1)
+  expect(save.box).toHaveLength(2)
 
-  assert.equal(withdrawPokemon(save, 0), true)
-  assert.equal(save.party.length, PARTY_LIMIT)
-  assert.equal(save.party[PARTY_LIMIT - 1].species, 19)
+  expect(withdrawPokemon(save, 0)).toBe(true)
+  expect(save.party).toHaveLength(PARTY_LIMIT)
+  expect(save.party[PARTY_LIMIT - 1].species).toBe(19)
 })
 
-test('the last Pokemon cannot be sent to the box', () => {
-  const save = newSave()
+test('Should refuse to send the last Pokemon to the box', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
 
-  assert.equal(depositPokemon(save, 0), false)
-  assert.equal(save.party.length, 1)
-  assert.equal(save.box.length, 0)
+  expect(depositPokemon(save, 0)).toBe(false)
+  expect(save.party).toHaveLength(1)
+  expect(save.box).toHaveLength(0)
 })
 
-test('the active Pokemon skips fainted ones', () => {
-  const save = newSave()
+test('Should skip the fainted ones when picking the active Pokemon', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
   addPokemon(save, createPokemon(16, 5, makeRng(2)))
 
   save.party[0].hp = 0
-  assert.equal(activePokemon(save).species, 16)
+
+  expect(activePokemon(save).species).toBe(16)
 
   save.party[1].hp = 0
-  assert.equal(activePokemon(save), null)
-  assert.equal(partyIsWipedOut(save), true)
+
+  expect(activePokemon(save)).toBe(null)
+  expect(partyIsWipedOut(save)).toBe(true)
 
   healParty(save)
-  assert.ok(save.party.every((mon) => !isFainted(mon)))
-  assert.equal(partyIsWipedOut(save), false)
+
+  expect(save.party.some(isFainted), 'healing brings everyone back').toBe(false)
+  expect(partyIsWipedOut(save)).toBe(false)
 })
 
-test('setting a lead moves it to the front', () => {
-  const save = newSave()
+test('Should move a Pokemon to the front when it is made the lead', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
   addPokemon(save, createPokemon(25, 9, makeRng(3)))
-
   setLead(save, 1)
-  assert.equal(save.party[0].species, 25)
-  assert.equal(save.party[1].species, 4)
+
+  expect(save.party.map((mon) => mon.species)).toEqual([25, 4])
 })
 
-test('the Pokedex records what was only seen separately from what was caught', () => {
-  const save = newSave()
-  markSeen(save, 150)
-
-  assert.ok(save.dex.seen.includes(150))
-  assert.ok(!save.dex.caught.includes(150))
+test('Should record what the Pokedex only saw apart from what it caught', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
 
   markSeen(save, 150)
-  assert.equal(
-    save.dex.seen.filter((id) => id === 150).length,
-    1,
+
+  expect(save.dex.seen).toContain(150)
+  expect(save.dex.caught).not.toContain(150)
+
+  markSeen(save, 150)
+
+  expect(
+    save.dex.seen.filter((id) => id === 150),
     'no duplicates',
-  )
+  ).toEqual([150])
 })
 
-test('the Pokedex keeps a tally of how many of each you have faced', () => {
-  const save = newSave()
+test('Should keep a tally of how many of each you have faced', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
 
-  assert.equal(timesFaced(save, 16), 0, 'nothing faced yet')
+  expect(timesFaced(save, 16), 'nothing faced yet').toBe(0)
+
   markSeen(save, 16)
-  assert.equal(timesFaced(save, 16), 0, 'and seeing one is not facing it')
+
+  expect(timesFaced(save, 16), 'and seeing one is not facing it').toBe(0)
 
   markFaced(save, 16)
   markFaced(save, 16)
   markFaced(save, 19)
-  assert.equal(timesFaced(save, 16), 2)
-  assert.equal(timesFaced(save, 19), 1)
-  assert.ok(
-    save.dex.seen.includes(19),
+
+  expect(timesFaced(save, 16)).toBe(2)
+  expect(timesFaced(save, 19)).toBe(1)
+  expect(
+    save.dex.seen,
     'facing one you had never met also records it',
-  )
+  ).toContain(19)
 
   saveGame(save)
-  assert.equal(timesFaced(loadSave(), 16), 2)
+
+  expect(timesFaced(loadSave(), 16)).toBe(2)
 })
 
-test('a save from before the tally starts counting from zero rather than guessing', () => {
-  const save = newSave()
+test('Should count from zero on a save from before the tally rather than guessing', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
   markSeen(save, 150)
   delete save.dex.faced
   saveGame(save)
 
   const loaded = loadSave()
-  assert.deepEqual(loaded.dex.faced, {}, 'no invented numbers')
-  assert.equal(timesFaced(loaded, 150), 0)
+
+  expect(loaded.dex.faced, 'no invented numbers').toStrictEqual({})
+  expect(timesFaced(loaded, 150)).toBe(0)
 
   markFaced(loaded, 150)
-  assert.equal(timesFaced(loaded, 150), 1, 'and it counts from here')
+
+  expect(timesFaced(loaded, 150), 'and it counts from here').toBe(1)
 })
 
-test('buying costs money and stocks the bag', () => {
-  const save = newSave()
+test('Should charge money and stock the bag when you buy', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
   save.money = 1000
+
   const before = countOf(save, 'poke-ball')
-
   const result = buy(save, 'poke-ball', 2)
-  assert.equal(result.ok, true)
-  assert.equal(save.money, 1000 - ITEMS['poke-ball'].price * 2)
-  assert.equal(countOf(save, 'poke-ball'), before + 2)
+
+  expect(result.ok).toBe(true)
+  expect(save.money).toBe(1000 - ITEMS['poke-ball'].price * 2)
+  expect(countOf(save, 'poke-ball')).toBe(before + 2)
 })
 
-test('you cannot buy what you cannot afford, and nothing changes when you try', () => {
-  const save = newSave()
+test('Should refuse what you cannot afford and change nothing when you try', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
   save.money = 10
+
   const before = countOf(save, 'ultra-ball')
-
   const result = buy(save, 'ultra-ball')
-  assert.equal(result.ok, false)
-  assert.equal(save.money, 10, 'money must not move')
-  assert.equal(countOf(save, 'ultra-ball'), before)
+
+  expect(result.ok).toBe(false)
+  expect(save.money, 'money must not move').toBe(10)
+  expect(countOf(save, 'ultra-ball')).toBe(before)
 })
 
-test('the Master Ball is not for sale', () => {
-  const save = newSave()
+test('Should keep the Master Ball out of the shop', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
   save.money = 999999
-  assert.equal(buy(save, 'master-ball').ok, false)
+
+  expect(buy(save, 'master-ball').ok).toBe(false)
 })
 
-test('a potion heals, and does nothing at full health', () => {
-  const save = newSave()
+test('Should heal with a potion and do nothing at full health', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const mon = save.party[0]
+
   mon.hp = 1
 
   const healed = useItem(save, 'potion', mon)
-  assert.equal(healed.ok, true)
-  assert.equal(mon.hp, Math.min(mon.stats.hp, 1 + 20))
+
+  expect(healed.ok).toBe(true)
+  expect(mon.hp).toBe(Math.min(mon.stats.hp, 1 + ITEMS.potion.heals))
 
   const afterHealing = countOf(save, 'potion')
+
   mon.hp = mon.stats.hp
+
   const wasted = useItem(save, 'potion', mon)
-  assert.equal(wasted.ok, false)
-  assert.equal(
-    countOf(save, 'potion'),
+
+  expect(wasted.ok).toBe(false)
+  expect(countOf(save, 'potion'), 'a refused item is not consumed').toBe(
     afterHealing,
-    'a refused item is not consumed',
   )
 })
 
-test('a revive only works on a fainted Pokemon', () => {
-  const save = newSave()
-  save.bag.revive = 2
+test('Should only let a revive work on a fainted Pokemon', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const mon = save.party[0]
 
-  assert.equal(useItem(save, 'revive', mon).ok, false)
+  save.bag.revive = 2
+
+  expect(useItem(save, 'revive', mon).ok).toBe(false)
 
   mon.hp = 0
-  assert.equal(useItem(save, 'revive', mon).ok, true)
-  assert.equal(mon.hp, Math.floor(mon.stats.hp / 2))
-  assert.equal(countOf(save, 'revive'), 1)
+
+  expect(useItem(save, 'revive', mon).ok).toBe(true)
+  expect(mon.hp).toBe(Math.floor(mon.stats.hp / 2))
+  expect(countOf(save, 'revive')).toBe(1)
 })
 
-test('the right stone evolves and the wrong one does nothing', () => {
-  const save = newSave(4)
+test('Should evolve with the right stone and do nothing with the wrong one', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+  const pikachu = createPokemon(25, 20, makeRng(4))
+
   save.bag['thunder-stone'] = 1
   save.bag['fire-stone'] = 1
-  const pikachu = createPokemon(25, 20, makeRng(4))
   addPokemon(save, pikachu)
 
   const wrong = useItem(save, 'fire-stone', pikachu)
-  assert.equal(wrong.ok, false)
-  assert.equal(countOf(save, 'fire-stone'), 1, 'a wasted stone is kept')
+
+  expect(wrong.ok).toBe(false)
+  expect(countOf(save, 'fire-stone'), 'a wasted stone is kept').toBe(1)
 
   const right = useItem(save, 'thunder-stone', pikachu)
-  assert.equal(right.ok, true)
-  assert.equal(right.evolvedInto, 26, 'Pikachu becomes Raichu')
-  assert.equal(pikachu.species, 26, 'and it has actually evolved')
-  assert.match(right.message, /RAICHU/)
-  assert.equal(countOf(save, 'thunder-stone'), 0)
+
+  expect(right.ok).toBe(true)
+  expect(right.evolvedInto, 'Pikachu becomes Raichu').toBe(26)
+  expect(pikachu.species, 'and it has actually evolved').toBe(26)
+  expect(right.message).toMatch(/RAICHU/)
+  expect(countOf(save, 'thunder-stone')).toBe(0)
 })
 
-test('the battle menu only lists balls you actually have', () => {
-  const save = newSave()
+test('Should only list the balls you actually have, weakest first', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
   save.bag = { 'poke-ball': 2, potion: 1 }
-  assert.deepEqual(ballsInBag(save), ['poke-ball'])
+
+  expect(ballsInBag(save)).toEqual(['poke-ball'])
 
   save.bag['ultra-ball'] = 1
-  assert.deepEqual(
-    ballsInBag(save),
-    ['poke-ball', 'ultra-ball'],
-    'weakest first',
-  )
+
+  expect(ballsInBag(save)).toEqual(['poke-ball', 'ultra-ball'])
 })
 
-test('winning pays out money and experience', () => {
-  const save = newSave()
+test('Should pay out money and experience for winning', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const mon = save.party[0]
   const expBefore = mon.exp
   const moneyBefore = save.money
 
   const steps = applyVictory(save, [mon], { exp: 50, money: 120 })
 
-  assert.equal(save.money, moneyBefore + 120)
-  assert.equal(mon.exp, expBefore + 50)
-  assert.ok(steps.some((step) => step.kind === 'money'))
-  assert.ok(steps.some((step) => step.kind === 'exp'))
+  expect(save.money).toBe(moneyBefore + 120)
+  expect(mon.exp).toBe(expBefore + 50)
+  expect(steps.map((step) => step.kind)).toEqual(['money', 'exp', 'level'])
 })
 
-test('enough experience levels a Pokemon up and raises its stats', () => {
-  const save = newSave()
+test('Should level a Pokemon up and raise its stats once it has the experience', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const mon = save.party[0]
   const statsBefore = { ...mon.stats }
 
@@ -315,32 +347,45 @@ test('enough experience levels a Pokemon up and raises its stats', () => {
     exp: expForLevel(4, 12) - mon.exp,
     money: 0,
   })
-
-  assert.equal(levelOf(mon), 12)
-  assert.ok(mon.stats.attack > statsBefore.attack)
   const levels = steps.filter((step) => step.kind === 'level')
-  assert.equal(levels.length, 7, 'one step per level crossed')
-  assert.equal(levels.at(-1).level, 12)
+
+  expect(levelOf(mon)).toBe(12)
+  expect(mon.stats.attack).toBeGreaterThan(statsBefore.attack)
+  expect(
+    levels.map((step) => step.level),
+    'one step per level crossed',
+  ).toEqual([6, 7, 8, 9, 10, 11, 12])
 })
 
-test('moves learned on the way up are picked up, not skipped', () => {
-  const save = newSave(4)
+test('Should pick up the moves learned on the way up rather than skipping them', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const mon = save.party[0]
+
   mon.moves = mon.moves.slice(0, 1)
 
   const steps = applyVictory(save, [mon], {
     exp: expForLevel(4, 15) - mon.exp,
     money: 0,
   })
-  const learned = steps.filter((step) => step.kind === 'learn')
+  const learned = steps
+    .filter((step) => step.kind === 'learn')
+    .map((step) => step.move)
 
-  assert.ok(learned.length > 0, 'Charmander learns Ember at 9 and Leer at 15')
-  assert.ok(mon.moves.some((slot) => slot.move === 'ember'))
+  expect(learned, 'Charmander learns Ember at 9 and Leer at 15').toEqual([
+    'ember',
+    'leer',
+  ])
+  expect(mon.moves.map((slot) => slot.move)).toEqual([
+    'scratch',
+    'ember',
+    'leer',
+  ])
 })
 
-test('a full moveset asks which move to forget instead of silently dropping one', () => {
-  const save = newSave(4)
+test('Should ask which move to forget on a full moveset instead of silently dropping one', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const mon = save.party[0]
+
   mon.moves = ['scratch', 'growl', 'tackle', 'leer'].map((name) => ({
     move: name,
     pp: moveOf(name).pp,
@@ -353,31 +398,34 @@ test('a full moveset asks which move to forget instead of silently dropping one'
   })
   const choice = steps.find((step) => step.kind === 'learn-choice')
 
-  assert.ok(choice, 'should ask rather than decide')
-  assert.equal(mon.moves.length, MOVE_LIMIT, 'nothing changed until answered')
+  expect(choice, 'should ask rather than decide').toBeTruthy()
+  expect(mon.moves, 'nothing changed until answered').toHaveLength(MOVE_LIMIT)
 
   const result = learnMove(mon, choice.move, 1)
-  assert.equal(result.learned, true)
-  assert.equal(result.forgot, 'growl')
-  assert.equal(mon.moves[1].move, choice.move)
-  assert.equal(mon.moves.length, MOVE_LIMIT)
+
+  expect(result.learned).toBe(true)
+  expect(result.forgot).toBe('growl')
+  expect(mon.moves.map((slot) => slot.move)).toEqual([
+    'scratch',
+    choice.move,
+    'tackle',
+    'leer',
+  ])
 })
 
-test('declining to learn a move leaves the moveset alone', () => {
-  const save = newSave(4)
+test('Should leave the moveset alone when you decline to learn a move', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const mon = save.party[0]
   const before = mon.moves.map((slot) => slot.move)
 
   const result = learnMove(mon, 'flamethrower', null)
-  assert.equal(result.learned, false)
-  assert.deepEqual(
-    mon.moves.map((slot) => slot.move),
-    before,
-  )
+
+  expect(result.learned).toBe(false)
+  expect(mon.moves.map((slot) => slot.move)).toEqual(before)
 })
 
-test('reaching the evolution level evolves at the end of the payout', () => {
-  const save = newSave(4)
+test('Should evolve at the end of the payout and open the new Pokedex entry', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const mon = save.party[0]
 
   const steps = applyVictory(save, [mon], {
@@ -385,76 +433,62 @@ test('reaching the evolution level evolves at the end of the payout', () => {
     money: 0,
   })
   const evolve = steps.find((step) => step.kind === 'evolve')
+  const unattributed = steps.filter((step) => step.mon !== mon)
 
-  assert.ok(evolve, 'Charmander evolves at 16')
-  assert.equal(evolve.to, 5)
-  assert.equal(mon.species, 5)
-  assert.equal(species(mon.species).name, 'Charmeleon')
-  assert.equal(steps.at(-1).kind, 'evolve')
+  expect(evolve.to, 'Charmander evolves at 16').toBe(5)
+  expect(mon.species).toBe(5)
+  expect(species(mon.species).name).toBe('Charmeleon')
+  expect(steps.at(-1).kind).toBe('evolve')
+
+  expect(
+    save.dex.caught,
+    'Charmeleon is caught rather than merely seen, and Charmander stays behind it',
+  ).toEqual([4, 5])
+  expect(save.dex.seen).toEqual([4, 5])
+  expect(save.stats.caught, 'an evolution is not a new catch').toBe(1)
+
+  expect(
+    unattributed.map((step) => step.kind),
+    'every step says which Pokemon it is about',
+  ).toEqual([])
 })
 
-test('a Pokemon that evolves learns what its new form knows at that level', () => {
-  const save = newSave(4)
-  const abra = createPokemon(63, 15, makeRng(11))
-  addPokemon(save, abra)
-  assert.deepEqual(
-    abra.moves.map((slot) => slot.move),
-    ['teleport'],
-    'Abra knows one move',
-  )
-
-  const steps = applyVictory(save, [abra], {
-    exp: expForLevel(63, 16) - abra.exp,
-    money: 0,
-  })
-
-  assert.equal(abra.species, 64, 'Kadabra')
-  assert.ok(
-    abra.moves.some((slot) => slot.move === 'confusion'),
-    'and it learned Confusion',
-  )
-  const learned = steps
-    .filter((step) => step.kind === 'learn')
-    .map((step) => step.move)
-  assert.ok(learned.includes('confusion'), 'and said so')
-
-  const evolveAt = steps.findIndex((step) => step.kind === 'evolve')
-  const learnAt = steps.findIndex(
-    (step) => step.kind === 'learn' && step.move === 'confusion',
-  )
-  assert.ok(
-    evolveAt < learnAt,
-    'the new move arrives with the evolution, after it',
-  )
-})
-
-test('levels above the evolution teach the evolved form its own moves', () => {
-  const save = newSave(4)
+test('Should teach the evolved form the moves it knows above the evolution', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const abra = createPokemon(63, 10, makeRng(12))
+
   addPokemon(save, abra)
 
   const steps = applyVictory(save, [abra], {
     exp: expForLevel(63, 20) - abra.exp,
     money: 0,
   })
-  const known = abra.moves.map((slot) => slot.move)
-
-  assert.equal(abra.species, 64)
-  assert.ok(known.includes('confusion'), 'Confusion at 16')
-  assert.ok(known.includes('disable'), 'Disable at 20, as a Kadabra')
-
-  const evolveAt = steps.findIndex((step) => step.kind === 'evolve')
-  const lastLevelAt = steps.map((step) => step.kind).lastIndexOf('level')
-  assert.ok(
-    evolveAt < lastLevelAt,
-    'it evolved at 16 and kept levelling as a Kadabra',
+  const kinds = steps.map((step) => step.kind)
+  const evolveAt = kinds.indexOf('evolve')
+  const learnAt = steps.findIndex(
+    (step) => step.kind === 'learn' && step.move === 'confusion',
   )
-  assert.equal(steps[evolveAt - 1].kind, 'level')
-  assert.equal(steps[evolveAt - 1].level, 16)
+
+  expect(abra.species, 'Kadabra').toBe(64)
+  expect(abra.moves.map((slot) => slot.move)).toEqual([
+    'teleport',
+    'confusion',
+    'disable',
+  ])
+
+  expect(steps[evolveAt - 1].kind).toBe('level')
+  expect(steps[evolveAt - 1].level, 'it evolved at 16').toBe(16)
+  expect(
+    evolveAt,
+    'the new move arrives with the evolution, after it',
+  ).toBeLessThan(learnAt)
+  expect(evolveAt, 'and it kept levelling as a Kadabra').toBeLessThan(
+    kinds.lastIndexOf('level'),
+  )
 })
 
-test('a payout big enough to cross two evolutions performs both', () => {
-  const save = newSave(4)
+test('Should perform both evolutions when a payout is big enough to cross two', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const mon = save.party[0]
 
   const steps = applyVictory(save, [mon], {
@@ -462,125 +496,83 @@ test('a payout big enough to cross two evolutions performs both', () => {
     money: 0,
   })
 
-  assert.equal(mon.species, 6, 'a Charizard, not a Charmeleon still owed one')
-  assert.deepEqual(
+  expect(mon.species, 'a Charizard, not a Charmeleon still owed one').toBe(6)
+  expect(
     steps.filter((step) => step.kind === 'evolve').map((step) => step.to),
-    [5, 6],
     'and it went through the middle of the family rather than skipping it',
-  )
-  assert.ok(
-    save.dex.caught.includes(5) && save.dex.caught.includes(6),
-    'both are entries',
-  )
+  ).toEqual([5, 6])
+  expect(save.dex.caught, 'both are entries').toEqual([4, 5, 6])
 })
 
-test('an evolution fills in its own Pokedex entry', () => {
-  const save = newSave(4)
-  const mon = save.party[0]
+test('Should repair a save on load that evolved before the dex was told', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
 
-  applyVictory(save, [mon], { exp: expForLevel(4, 16) - mon.exp, money: 0 })
-
-  assert.ok(
-    save.dex.caught.includes(5),
-    'Charmeleon is caught, not merely seen',
-  )
-  assert.ok(save.dex.seen.includes(5))
-  assert.ok(
-    save.dex.caught.includes(4),
-    'and Charmander stays in the dex behind it',
-  )
-  assert.equal(save.stats.caught, 1)
-})
-
-test('a save that evolved before the dex was told is repaired on load', () => {
-  const save = newSave(4)
   save.party[0].species = 5
   saveGame(save)
 
   const loaded = loadSave()
 
-  assert.ok(loaded.dex.caught.includes(5))
-  assert.equal(
-    loaded.stats.caught,
+  expect(loaded.dex.caught).toContain(5)
+  expect(loaded.stats.caught, 'a repair is not a new catch').toBe(
     save.stats.caught,
-    'a repair is not a new catch',
   )
 })
 
-test('everyone who took part earns the experience, and the money is paid once', () => {
-  const save = newSave()
+test('Should hand the experience to everyone who took part and pay the money once', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const starter = save.party[0]
   const backup = createPokemon(16, 5, makeRng(8))
+
   addPokemon(save, backup)
+
   const moneyBefore = save.money
   const expBefore = { starter: starter.exp, backup: backup.exp }
 
   const steps = applyVictory(save, [starter, backup], { exp: 50, money: 120 })
 
-  assert.equal(
-    starter.exp,
+  expect(starter.exp, 'the one that finished it earns').toBe(
     expBefore.starter + 50,
-    'the one that finished it earns',
   )
-  assert.equal(
-    backup.exp,
+  expect(backup.exp, 'and so does the one that only stood there').toBe(
     expBefore.backup + 50,
-    'and so does the one that only stood there',
   )
-  assert.equal(
-    save.money,
+  expect(save.money, "the prize is the trainer's, not a share each").toBe(
     moneyBefore + 120,
-    "the prize is the trainer's, not a share each",
   )
-  assert.equal(
-    steps.filter((step) => step.kind === 'exp').length,
-    2,
+  expect(
+    steps.filter((step) => step.kind === 'exp').map((step) => step.mon),
     'one line each',
-  )
-  assert.equal(steps.filter((step) => step.kind === 'money').length, 1)
+  ).toEqual([starter, backup])
+  expect(steps.filter((step) => step.kind === 'money')).toHaveLength(1)
 })
 
-test('a Pokemon still fainted at the end earns nothing', () => {
-  const save = newSave()
+test('Should hand nothing to a Pokemon still fainted at the end', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const starter = save.party[0]
   const knockedOut = createPokemon(16, 5, makeRng(9))
+
   addPokemon(save, knockedOut)
   knockedOut.hp = 0
+
   const expBefore = knockedOut.exp
-
-  const steps = applyVictory(save, [knockedOut, starter], { exp: 50, money: 0 })
-
-  assert.equal(
-    knockedOut.exp,
-    expBefore,
-    'it was carried off before the payout',
-  )
-  assert.equal(
-    steps.filter((step) => step.kind === 'exp').length,
-    1,
-    'and is not announced',
-  )
-})
-
-test('a step says which Pokemon it is about, bench included', () => {
-  const save = newSave(4)
-  const mon = save.party[0]
-  mon.moves = mon.moves.slice(0, 1)
-
-  const steps = applyVictory(save, [mon], {
-    exp: expForLevel(4, 16) - mon.exp,
+  const steps = applyVictory(save, [knockedOut, starter], {
+    exp: 50,
     money: 0,
   })
 
-  assert.ok(steps.length > 0)
-  assert.ok(steps.every((step) => step.kind === 'money' || step.mon === mon))
+  expect(knockedOut.exp, 'it was carried off before the payout').toBe(expBefore)
+  expect(
+    steps.filter((step) => step.kind === 'exp').map((step) => step.mon),
+    'and is not announced',
+  ).toEqual([starter])
 })
 
-test('a Pokemon that gains no level just gains experience', () => {
-  const save = newSave()
+test('Should just hand experience to a Pokemon that gains no level', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
   const mon = save.party[0]
+
   const steps = applyVictory(save, [mon], { exp: 1, money: 1 })
 
-  assert.equal(levelOf(mon), 5)
-  assert.ok(!steps.some((step) => step.kind === 'level'))
+  expect(levelOf(mon)).toBe(5)
+  expect(steps.map((step) => step.kind)).toEqual(['money', 'exp'])
 })

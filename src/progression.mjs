@@ -1,5 +1,6 @@
+import { MAX_LEVEL, MOVE_LIMIT, MOVE_SLOTS_FULL_LINE } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
-import { movesLearnedAt, MAX_LEVEL, MOVE_LIMIT } from './exp.mjs'
+import { movesLearnedAt } from './learnset.mjs'
 import {
   displayName,
   evolveInto,
@@ -11,69 +12,7 @@ import {
 } from './pokemon.mjs'
 import { markCaught } from './state.mjs'
 
-export { MOVE_LIMIT }
-
-export function applyVictory(save, mons, rewards) {
-  const steps = []
-
-  if (rewards.money > 0) {
-    save.money += rewards.money
-    steps.push({ kind: 'money', amount: rewards.money })
-  }
-
-  for (const mon of mons) {
-    if (isFainted(mon)) continue
-    steps.push(...gainExp(save, mon, rewards.exp))
-  }
-
-  return steps
-}
-
-function gainExp(save, mon, amount) {
-  const steps = []
-
-  const before = levelOf(mon)
-  mon.exp += amount
-  steps.push({ kind: 'exp', amount, mon, name: displayName(mon) })
-
-  const after = levelOf(mon)
-  if (after === before) return steps
-
-  for (let level = before + 1; level <= after; level++) {
-    refreshStats(mon)
-    steps.push({
-      kind: 'level',
-      level,
-      mon,
-      name: displayName(mon),
-      stats: { ...mon.stats },
-    })
-
-    steps.push(...learnMovesAt(mon, level))
-
-    const target = pendingEvolution(mon, level)
-    if (target) {
-      const from = mon.species
-      evolveInto(mon, target)
-      markCaught(save, target)
-      steps.push({
-        kind: 'evolve',
-        from,
-        to: target,
-        mon,
-        name: species(target).name,
-      })
-      steps.push(...learnMovesAt(mon, level))
-    }
-  }
-
-  if (levelOf(mon) >= MAX_LEVEL)
-    steps.push({ kind: 'maxed', mon, name: displayName(mon) })
-
-  return steps
-}
-
-function learnMovesAt(mon, level) {
+const learnMovesAt = (mon, level) => {
   const steps = []
 
   for (const name of movesLearnedAt(mon.species, level)) {
@@ -95,20 +34,85 @@ function learnMovesAt(mon, level) {
   return steps
 }
 
-export function learnEvolutionMoves(mon) {
-  return learnMovesAt(mon, levelOf(mon))
+const gainExp = (save, mon, amount) => {
+  const steps = []
+  const before = levelOf(mon)
+
+  mon.exp += amount
+  steps.push({ kind: 'exp', amount, mon, name: displayName(mon) })
+
+  const after = levelOf(mon)
+
+  if (after === before) return steps
+
+  for (let level = before + 1; level <= after; level++) {
+    refreshStats(mon)
+    steps.push({
+      kind: 'level',
+      level,
+      mon,
+      name: displayName(mon),
+      stats: { ...mon.stats },
+    })
+
+    steps.push(...learnMovesAt(mon, level))
+
+    const target = pendingEvolution(mon, level)
+
+    if (target) {
+      const from = mon.species
+
+      evolveInto(mon, target)
+      markCaught(save, target)
+      steps.push({
+        kind: 'evolve',
+        from,
+        to: target,
+        mon,
+        name: species(target).name,
+      })
+      steps.push(...learnMovesAt(mon, level))
+    }
+  }
+
+  if (levelOf(mon) >= MAX_LEVEL)
+    steps.push({ kind: 'maxed', mon, name: displayName(mon) })
+
+  return steps
 }
 
-export function learnMove(mon, newMove, slotIndex) {
+export const applyVictory = (save, mons, rewards) => {
+  const steps = []
+
+  if (rewards.money > 0) {
+    save.money += rewards.money
+    steps.push({ kind: 'money', amount: rewards.money })
+  }
+
+  for (const mon of mons) {
+    if (isFainted(mon)) continue
+
+    steps.push(...gainExp(save, mon, rewards.exp))
+  }
+
+  return steps
+}
+
+export const learnEvolutionMoves = (mon) => learnMovesAt(mon, levelOf(mon))
+
+export const learnMove = (mon, newMove, slotIndex) => {
   if (slotIndex === null || slotIndex === undefined) {
     return { learned: false, forgot: null }
   }
-  const forgot = mon.moves[slotIndex]?.move ?? null
+
+  const forgot = mon.moves[slotIndex].move
+
   mon.moves[slotIndex] = makeMoveSlot(newMove)
+
   return { learned: true, forgot }
 }
 
-export function describeStep(step) {
+export const describeStep = (step) => {
   switch (step.kind) {
     case 'money':
       return [`You got ${step.amount}₽ for winning!`]
@@ -121,7 +125,7 @@ export function describeStep(step) {
     case 'learn-choice':
       return [
         `${step.name} wants to learn ${moveData(step.move).name},`,
-        `but it already knows four moves.`,
+        MOVE_SLOTS_FULL_LINE,
       ]
     case 'evolve':
       return [`Congratulations! Your Pokémon evolved into ${step.name}!`]

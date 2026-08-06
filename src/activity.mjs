@@ -7,46 +7,60 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join } from 'node:path'
+import {
+  ACTIVITY_PRIORITY,
+  ACTIVITY_VERSION,
+  PRUNE_MS,
+  STALE_MS,
+  WAITING_MESSAGE_LIMIT,
+} from './constants.mjs'
 import { SESSIONS_DIR, sessionFile } from './paths.mjs'
+import {
+  transformRequestWriteActivity,
+  transformResponseActivity,
+} from './transformers.mjs'
 
-export const STALE_MS = 30 * 60_000
-
-const PRUNE_MS = 24 * 60 * 60_000
-
-const PRIORITY = ['waiting', 'working', 'idle']
-
-function readEntry(path) {
+const parseEntryFile = (path) => {
   try {
-    const entry = JSON.parse(readFileSync(path, 'utf8'))
-    return typeof entry?.at === 'number' ? entry : null
+    return JSON.parse(readFileSync(path, 'utf8'))
   } catch {
     return null
   }
 }
 
-export function readActivity(sessionId) {
-  return readEntry(sessionFile(sessionId))
-}
+const readEntry = (path) => {
+  const entry = transformResponseActivity(parseEntryFile(path))
 
-export function writeActivity(entry) {
-  try {
-    mkdirSync(SESSIONS_DIR, { recursive: true })
-    const path = sessionFile(entry.session)
-    const tmp = `${path}.${process.pid}.tmp`
-    writeFileSync(tmp, JSON.stringify(entry))
-    renameSync(tmp, path)
-  } catch {}
+  if (typeof entry?.at !== 'number') return null
+
   return entry
 }
 
-export function clearActivity(sessionId) {
+export const readActivity = (sessionId) => readEntry(sessionFile(sessionId))
+
+export const writeActivity = (entry) => {
+  try {
+    mkdirSync(SESSIONS_DIR, { recursive: true })
+
+    const path = sessionFile(entry.session)
+    const tmp = `${path}.${process.pid}.tmp`
+
+    writeFileSync(tmp, JSON.stringify(transformRequestWriteActivity(entry)))
+    renameSync(tmp, path)
+  } catch {}
+
+  return entry
+}
+
+export const clearActivity = (sessionId) => {
   try {
     unlinkSync(sessionFile(sessionId))
   } catch {}
 }
 
-export function readSessions(now = Date.now()) {
+export const readSessions = (now = Date.now()) => {
   let names
+
   try {
     names = readdirSync(SESSIONS_DIR)
   } catch {
@@ -54,16 +68,21 @@ export function readSessions(now = Date.now()) {
   }
 
   const sessions = []
+
   for (const name of names) {
     if (!name.endsWith('.json')) continue
+
     const entry = readEntry(join(SESSIONS_DIR, name))
+
     if (entry && now - entry.at < STALE_MS) sessions.push(entry)
   }
+
   return sessions.sort((a, b) => b.at - a.at)
 }
 
-export function pruneSessions(now = Date.now()) {
+export const pruneSessions = (now = Date.now()) => {
   let names
+
   try {
     names = readdirSync(SESSIONS_DIR)
   } catch {
@@ -71,118 +90,162 @@ export function pruneSessions(now = Date.now()) {
   }
 
   let removed = 0
+
   for (const name of names) {
     if (!name.endsWith('.json')) continue
+
     const path = join(SESSIONS_DIR, name)
     const entry = readEntry(path)
+
     if (entry && now - entry.at < PRUNE_MS) continue
+
     try {
       unlinkSync(path)
       removed++
     } catch {}
   }
+
   return removed
 }
 
-export function summariseActivity(sessions, now = Date.now()) {
-  const live = sessions.filter((entry) => now - entry.at < STALE_MS)
-  if (live.length === 0)
-    return { state: 'unknown', tool: null, since: null, sessions: 0 }
+const unknownActivity = () => {
+  return { state: 'unknown', tool: null, since: null, sessions: 0 }
+}
 
-  for (const state of PRIORITY) {
+const sinceOf = (entry, fallback) => {
+  if (typeof entry.since === 'number') return entry.since
+
+  return fallback
+}
+
+export const summariseActivity = (sessions, now = Date.now()) => {
+  const live = sessions.filter((entry) => now - entry.at < STALE_MS)
+
+  if (live.length === 0) return unknownActivity()
+
+  for (const state of ACTIVITY_PRIORITY) {
     const matching = live.filter((entry) => entry.state === state)
+
     if (matching.length === 0) continue
 
     const leader = matching.reduce((best, entry) =>
       entry.at > best.at ? entry : best,
     )
+
     return {
       state,
       tool: leader.tool ?? null,
-      since: typeof leader.since === 'number' ? leader.since : leader.at,
+      since: sinceOf(leader, leader.at),
       sessions: matching.length,
     }
   }
 
-  return { state: 'unknown', tool: null, since: null, sessions: 0 }
+  return unknownActivity()
 }
 
-export function isWorking(activity) {
-  return activity?.state === 'working'
+export const isWorking = (activity) => activity?.state === 'working'
+
+const resolveCwd = (cwd, previous) => cwd ?? previous?.cwd ?? null
+
+const resolveSince = (previous, continuing, at) => {
+  if (!continuing) return at
+
+  return sinceOf(previous, at)
 }
 
-function base(sessionId, cwd, previous) {
-  return {
-    v: 1,
-    session: sessionId,
-    cwd: cwd ?? previous?.cwd ?? null,
-    at: Date.now(),
-  }
+const resolveLastStepAt = (lastStepAt, previous, continuing, at) => {
+  if (lastStepAt != null) return lastStepAt
+  if (!continuing) return at
+
+  return previous.lastStepAt ?? at
 }
 
-export function beginTurn(sessionId, cwd, { pendingSteps = 0 } = {}) {
+const resolvePendingSteps = (pendingSteps, previous) => {
+  if (pendingSteps != null) return pendingSteps
+
+  return previous?.pendingSteps ?? 0
+}
+
+const truncateMessage = (message) => {
+  if (typeof message !== 'string') return null
+
+  return message.slice(0, WAITING_MESSAGE_LIMIT)
+}
+
+export const beginTurn = (sessionId, cwd, { pendingSteps = 0 } = {}) => {
   const previous = readActivity(sessionId)
-  const entry = base(sessionId, cwd, previous)
+  const at = Date.now()
+
   return writeActivity({
-    ...entry,
+    v: ACTIVITY_VERSION,
+    session: sessionId,
+    cwd: resolveCwd(cwd, previous),
+    at,
     state: 'working',
     tool: null,
-    since: entry.at,
-    lastStepAt: entry.at,
+    since: at,
+    lastStepAt: at,
     pendingSteps,
   })
 }
 
-export function noteTool(
+export const noteTool = (
   sessionId,
   cwd,
   tool,
   { lastStepAt, pendingSteps } = {},
-) {
+) => {
   const previous = readActivity(sessionId)
-  const entry = base(sessionId, cwd, previous)
+  const at = Date.now()
   const working = previous?.state === 'working'
+
   return writeActivity({
-    ...entry,
+    v: ACTIVITY_VERSION,
+    session: sessionId,
+    cwd: resolveCwd(cwd, previous),
+    at,
     state: 'working',
     tool: tool ?? null,
-    since:
-      working && typeof previous.since === 'number' ? previous.since : entry.at,
-    lastStepAt:
-      lastStepAt ?? (working ? (previous.lastStepAt ?? entry.at) : entry.at),
-    pendingSteps: pendingSteps ?? previous?.pendingSteps ?? 0,
+    since: resolveSince(previous, working, at),
+    lastStepAt: resolveLastStepAt(lastStepAt, previous, working, at),
+    pendingSteps: resolvePendingSteps(pendingSteps, previous),
   })
 }
 
-export function noteWaiting(sessionId, cwd, message) {
+export const noteWaiting = (sessionId, cwd, message) => {
   const previous = readActivity(sessionId)
-  const entry = base(sessionId, cwd, previous)
+  const at = Date.now()
   const already = previous?.state === 'waiting'
+
   return writeActivity({
-    ...entry,
+    v: ACTIVITY_VERSION,
+    session: sessionId,
+    cwd: resolveCwd(cwd, previous),
+    at,
     state: 'waiting',
     tool: previous?.tool ?? null,
-    since:
-      already && typeof previous.since === 'number' ? previous.since : entry.at,
-    lastStepAt: previous?.lastStepAt ?? entry.at,
+    since: resolveSince(previous, already, at),
+    lastStepAt: previous?.lastStepAt ?? at,
     pendingSteps: previous?.pendingSteps ?? 0,
-    message: typeof message === 'string' ? message.slice(0, 120) : null,
+    message: truncateMessage(message),
   })
 }
 
-export function endTurn(sessionId, cwd, { lastStepAt } = {}) {
+export const endTurn = (sessionId, cwd, { lastStepAt } = {}) => {
   const previous = readActivity(sessionId)
-  const entry = base(sessionId, cwd, previous)
+  const at = Date.now()
+
   return writeActivity({
-    ...entry,
+    v: ACTIVITY_VERSION,
+    session: sessionId,
+    cwd: resolveCwd(cwd, previous),
+    at,
     state: 'idle',
     tool: null,
-    since: entry.at,
-    lastStepAt: lastStepAt ?? entry.at,
+    since: at,
+    lastStepAt: lastStepAt ?? at,
     pendingSteps: 0,
   })
 }
 
-export function endSession(sessionId) {
-  clearActivity(sessionId)
-}
+export const endSession = (sessionId) => clearActivity(sessionId)

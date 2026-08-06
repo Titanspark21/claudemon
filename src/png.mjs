@@ -1,27 +1,27 @@
 import { inflateSync } from 'node:zlib'
+import { PNG_CHANNELS, PNG_SIGNATURE_BYTES } from './constants.mjs'
 
-export const SIGNATURE = Buffer.from([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-])
+export const SIGNATURE = Buffer.from(PNG_SIGNATURE_BYTES)
 
-const CHANNELS = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }
-
-function paeth(left, above, upperLeft) {
+const paeth = (left, above, upperLeft) => {
   const estimate = left + above - upperLeft
   const dLeft = Math.abs(estimate - left)
   const dAbove = Math.abs(estimate - above)
   const dUpperLeft = Math.abs(estimate - upperLeft)
+
   if (dLeft <= dAbove && dLeft <= dUpperLeft) return left
   if (dAbove <= dUpperLeft) return above
+
   return upperLeft
 }
 
-function unfilter(raw, width, height, channels, bitDepth) {
+const unfilter = (raw, width, height, channels, bitDepth) => {
   const bytesPerPixel = Math.max(1, Math.ceil((channels * bitDepth) / 8))
   const scanlineBytes = Math.ceil((width * channels * bitDepth) / 8)
   const out = Buffer.alloc(height * scanlineBytes)
 
   let rawOffset = 0
+
   for (let row = 0; row < height; row++) {
     const filter = raw[rawOffset++]
     const lineStart = row * scanlineBytes
@@ -35,6 +35,7 @@ function unfilter(raw, width, height, channels, bitDepth) {
         row > 0 && i >= bytesPerPixel ? out[prevStart + i - bytesPerPixel] : 0
 
       let restored
+
       switch (filter) {
         case 0:
           restored = value
@@ -54,21 +55,27 @@ function unfilter(raw, width, height, channels, bitDepth) {
         default:
           throw new Error(`unsupported PNG filter ${filter} on row ${row}`)
       }
+
       out[lineStart + i] = restored & 0xff
     }
+
     rawOffset += scanlineBytes
   }
+
   return { data: out, scanlineBytes }
 }
 
-function readPacked(line, index, bitDepth) {
+const readPacked = (line, index, bitDepth) => {
   const perByte = 8 / bitDepth
   const byte = line[Math.floor(index / perByte)]
   const shift = 8 - bitDepth * ((index % perByte) + 1)
+
   return (byte >> shift) & ((1 << bitDepth) - 1)
 }
 
-export function decodePng(buffer) {
+const sampleAt = (line, base, channel, stride) => line[base + channel * stride]
+
+export const decodePng = (buffer) => {
   if (!buffer.subarray(0, 8).equals(SIGNATURE)) throw new Error('not a PNG')
 
   let header = null
@@ -77,6 +84,7 @@ export function decodePng(buffer) {
   const idatChunks = []
 
   let offset = 8
+
   while (offset < buffer.length) {
     const length = buffer.readUInt32BE(offset)
     const type = buffer.toString('ascii', offset + 4, offset + 8)
@@ -106,7 +114,8 @@ export function decodePng(buffer) {
   if (!header) throw new Error('PNG has no IHDR')
   if (header.interlace) throw new Error('interlaced PNGs are not supported')
 
-  const channels = CHANNELS[header.colorType]
+  const channels = PNG_CHANNELS[header.colorType]
+
   if (!channels)
     throw new Error(`unsupported PNG colour type ${header.colorType}`)
 
@@ -135,28 +144,31 @@ export function decodePng(buffer) {
 
       if (colorType === 3) {
         const index = bitDepth === 8 ? line[x] : readPacked(line, x, bitDepth)
+
         r = palette[index * 3]
         g = palette[index * 3 + 1]
         b = palette[index * 3 + 2]
+
         if (transparency && index < transparency.length) a = transparency[index]
       } else if (bitDepth === 8 || bitDepth === 16) {
         const stride = bitDepth === 16 ? 2 : 1
         const base = x * channels * stride
-        const sampleAt = (channel) => line[base + channel * stride]
 
         if (colorType === 0) {
-          r = g = b = sampleAt(0)
+          r = g = b = sampleAt(line, base, 0, stride)
         } else if (colorType === 4) {
-          r = g = b = sampleAt(0)
-          a = sampleAt(1)
+          r = g = b = sampleAt(line, base, 0, stride)
+          a = sampleAt(line, base, 1, stride)
         } else {
-          r = sampleAt(0)
-          g = sampleAt(1)
-          b = sampleAt(2)
-          if (colorType === 6) a = sampleAt(3)
+          r = sampleAt(line, base, 0, stride)
+          g = sampleAt(line, base, 1, stride)
+          b = sampleAt(line, base, 2, stride)
+
+          if (colorType === 6) a = sampleAt(line, base, 3, stride)
         }
       } else {
         const sample = readPacked(line, x * channels, bitDepth)
+
         r = g = b = Math.round((sample / maxSample) * 255)
       }
 

@@ -1,38 +1,30 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { decodePng } from '../png.mjs'
-import { bg, colorEnabled, fg, reset } from './ansi.mjs'
+import { bg, COLOR_ENABLED, fg, RESET } from './ansi.mjs'
+import {
+  ALPHA_CUTOFF,
+  CANVAS_WIDTH_SLACK,
+  CELL_ASPECT,
+  DEFAULT_RESERVED_ROWS,
+  DEFAULT_SPRITE_COLS,
+  HALF_GLYPHS,
+  MIN_CANVAS_COLS,
+  MIN_SPRITE_COLS,
+  NATIVE_CANVAS_COLS,
+  QUADRANT_GLYPHS,
+  RENDER_CACHE_LIMIT,
+} from './constants.mjs'
 
-const UPPER_HALF = '▀'
-const LOWER_HALF = '▄'
+const quadrantGlyph = (mask) => QUADRANT_GLYPHS[mask]
 
-const CELL_ASPECT = 2
-
-// prettier-ignore
-const QUADRANT_GLYPHS = [
-  ' ', '▘', '▝', '▀',
-  '▖', '▌', '▞', '▛',
-  '▗', '▚', '▐', '▜',
-  '▄', '▙', '▟', '█',
-]
-
-function quadrantGlyph(mask) {
-  return QUADRANT_GLYPHS[mask]
-}
-
-function halfGlyph(mask) {
-  return [' ', UPPER_HALF, LOWER_HALF, '█'][mask]
-}
+const halfGlyph = (mask) => HALF_GLYPHS[mask]
 
 export const BLOCK_GRIDS = {
   half: { cols: 1, rows: 2, glyph: halfGlyph },
   quadrant: { cols: 2, rows: 2, glyph: quadrantGlyph },
 }
 
-export const NATIVE_CANVAS_COLS = 96
-
-const ALPHA_CUTOFF = 128
-
-function resample({ width, height, pixels }, targetWidth, targetHeight) {
+const resample = ({ width, height, pixels }, targetWidth, targetHeight) => {
   const out = new Uint8Array(targetWidth * targetHeight * 4)
   const tally = new Map()
 
@@ -45,6 +37,7 @@ function resample({ width, height, pixels }, targetWidth, targetHeight) {
       const x1 = Math.max(x0 + 1, Math.floor(((tx + 1) * width) / targetWidth))
 
       tally.clear()
+
       let opaque = 0
       let total = 0
       let best = 0
@@ -53,8 +46,11 @@ function resample({ width, height, pixels }, targetWidth, targetHeight) {
       for (let y = y0; y < y1; y++) {
         for (let x = x0; x < x1; x++) {
           const source = (y * width + x) * 4
+
           total++
+
           if (pixels[source + 3] <= ALPHA_CUTOFF) continue
+
           opaque++
 
           const colour =
@@ -62,7 +58,9 @@ function resample({ width, height, pixels }, targetWidth, targetHeight) {
             (pixels[source + 1] << 8) |
             pixels[source + 2]
           const count = (tally.get(colour) ?? 0) + 1
+
           tally.set(colour, count)
+
           if (count > bestCount) {
             best = colour
             bestCount = count
@@ -71,6 +69,7 @@ function resample({ width, height, pixels }, targetWidth, targetHeight) {
       }
 
       const target = (ty * targetWidth + tx) * 4
+
       if (opaque === 0) {
         out[target + 3] = 0
       } else {
@@ -85,25 +84,26 @@ function resample({ width, height, pixels }, targetWidth, targetHeight) {
   return { width: targetWidth, height: targetHeight, pixels: out }
 }
 
-function colourDistance(a, b) {
+const colourDistance = (a, b) => {
   const dr = a[0] - b[0]
   const dg = a[1] - b[1]
   const db = a[2] - b[2]
+
   return dr * dr + dg * dg + db * db
 }
 
-function twoColours(colours) {
-  if (colours.length === 0)
-    return { front: [0, 0, 0], back: null, belongsToFront: [] }
-
+const twoColours = (colours) => {
   const tally = new Map()
+
   for (const colour of colours) {
     const key = (colour[0] << 16) | (colour[1] << 8) | colour[2]
+
     tally.set(key, (tally.get(key) ?? 0) + 1)
   }
 
   let a = colours[0]
   let bestCount = 0
+
   for (const [key, count] of tally) {
     if (count > bestCount) {
       a = [(key >> 16) & 0xff, (key >> 8) & 0xff, key & 0xff]
@@ -112,20 +112,23 @@ function twoColours(colours) {
   }
 
   let b = null
+
   for (const c of colours) {
     if (b === null || colourDistance(c, a) > colourDistance(b, a)) b = c
   }
+
   if (colourDistance(a, b) === 0)
     return { front: a, back: null, belongsToFront: colours.map(() => true) }
 
   const toA = colours.map((c) => colourDistance(c, a) <= colourDistance(c, b))
   const countA = toA.filter(Boolean).length
+
   return countA >= colours.length - countA
     ? { front: a, back: b, belongsToFront: toA }
     : { front: b, back: a, belongsToFront: toA.map((x) => !x) }
 }
 
-export function blockRows(image, cols, grid = BLOCK_GRIDS.quadrant) {
+export const blockRows = (image, cols, grid = BLOCK_GRIDS.quadrant) => {
   const rows = Math.max(
     1,
     Math.round((cols * image.height) / (CELL_ASPECT * image.width)),
@@ -133,6 +136,7 @@ export function blockRows(image, cols, grid = BLOCK_GRIDS.quadrant) {
   const scaled = resample(image, cols * grid.cols, rows * grid.rows)
 
   const lines = []
+
   for (let row = 0; row < rows; row++) {
     let line = ''
     let styled = false
@@ -140,10 +144,12 @@ export function blockRows(image, cols, grid = BLOCK_GRIDS.quadrant) {
     for (let col = 0; col < cols; col++) {
       const colours = []
       const solid = []
+
       for (let y = 0; y < grid.rows; y++) {
         for (let x = 0; x < grid.cols; x++) {
           const at =
             ((row * grid.rows + y) * scaled.width + col * grid.cols + x) * 4
+
           if (scaled.pixels[at + 3] > ALPHA_CUTOFF) {
             solid.push(true)
             colours.push([
@@ -159,18 +165,21 @@ export function blockRows(image, cols, grid = BLOCK_GRIDS.quadrant) {
 
       if (colours.length === 0) {
         if (styled) {
-          line += reset
+          line += RESET
           styled = false
         }
+
         line += ' '
         continue
       }
 
-      if (!colorEnabled) {
+      if (!COLOR_ENABLED) {
         let mask = 0
+
         solid.forEach((on, index) => {
           if (on) mask |= 1 << index
         })
+
         line += grid.glyph(mask)
         continue
       }
@@ -180,9 +189,12 @@ export function blockRows(image, cols, grid = BLOCK_GRIDS.quadrant) {
       const opaque = colours.length === solid.length
       let mask = 0
       let seen = 0
+
       solid.forEach((on, index) => {
         if (!on) return
+
         const toFront = belongsToFront[seen++]
+
         if (toFront || !(opaque && back)) mask |= 1 << index
       })
 
@@ -191,21 +203,23 @@ export function blockRows(image, cols, grid = BLOCK_GRIDS.quadrant) {
       } else if (opaque) {
         line += fg(...front) + bg(...back) + grid.glyph(mask)
       } else {
-        line += reset + fg(...front) + grid.glyph(mask)
+        line += RESET + fg(...front) + grid.glyph(mask)
       }
+
       styled = true
     }
 
-    lines.push(styled ? line + reset : line)
+    lines.push(styled ? line + RESET : line)
   }
+
   return lines
 }
 
-export function halfBlockRows(image, cols) {
+export const halfBlockRows = (image, cols) => {
   return blockRows(image, cols, BLOCK_GRIDS.half)
 }
 
-export function cropToContent(image) {
+export const cropToContent = (image) => {
   let minX = image.width
   let minY = image.height
   let maxX = -1
@@ -221,7 +235,13 @@ export function cropToContent(image) {
     }
   }
 
-  if (maxX < 0) return { ...image, canvasFraction: 1 }
+  if (maxX < 0)
+    return {
+      width: image.width,
+      height: image.height,
+      pixels: image.pixels,
+      canvasFraction: 1,
+    }
 
   const width = maxX - minX + 1
   const height = maxY - minY + 1
@@ -229,61 +249,71 @@ export function cropToContent(image) {
 
   for (let y = 0; y < height; y++) {
     const from = ((minY + y) * image.width + minX) * 4
+
     pixels.set(image.pixels.subarray(from, from + width * 4), y * width * 4)
   }
 
   return { width, height, pixels, canvasFraction: width / image.width }
 }
 
-export const MIN_CANVAS_COLS = 16
-
-export function fitCanvasCols({ cols, rows }, reservedRows = 7, scale = 1) {
+export const fitCanvasCols = (
+  { cols, rows },
+  reservedRows = DEFAULT_RESERVED_ROWS,
+  scale = 1,
+) => {
   const byHeight = Math.max(MIN_CANVAS_COLS, (rows - reservedRows) * 2)
-  const byWidth = Math.max(MIN_CANVAS_COLS, cols - 4)
+  const byWidth = Math.max(MIN_CANVAS_COLS, cols - CANVAS_WIDTH_SLACK)
   const room = Math.min(NATIVE_CANVAS_COLS, byWidth, byHeight)
+
   return Math.max(MIN_CANVAS_COLS, Math.round(room * scale))
 }
 
 const renderCache = new Map()
 
-export function renderSprite(pngPath, options = {}) {
-  const { cols = 36 } = options
-  const key = `${pngPath}|${cols}`
-
-  const hit = renderCache.get(key)
-  if (hit) return hit
-
-  const rendered = renderSpriteUncached(pngPath, cols)
-  if (renderCache.size >= 64)
-    renderCache.delete(renderCache.keys().next().value)
-  renderCache.set(key, rendered)
-  return rendered
-}
-
-export function loadSprite(pngPath, options = {}) {
-  if (!existsSync(pngPath)) return null
-  try {
-    return renderSprite(pngPath, options)
-  } catch {
-    return null
-  }
-}
-
-export function placeSprite(lines, sprite, indent) {
-  for (const row of sprite.rows) lines.push(' '.repeat(indent) + row)
-  return sprite.rows.length
-}
-
-export function spriteHeight(sprite) {
-  return sprite.rows.length
-}
-
-function renderSpriteUncached(pngPath, cols) {
+const renderSpriteUncached = (pngPath, cols) => {
   const sprite = cropToContent(decodePng(readFileSync(pngPath)))
-  const targetCols = Math.max(4, Math.round(cols * sprite.canvasFraction))
+  const targetCols = Math.max(
+    MIN_SPRITE_COLS,
+    Math.round(cols * sprite.canvasFraction),
+  )
 
   return {
     rows: blockRows(sprite, targetCols),
     cols: targetCols,
   }
 }
+
+export const renderSprite = (pngPath, { cols = DEFAULT_SPRITE_COLS }) => {
+  const key = `${pngPath}|${cols}`
+
+  const hit = renderCache.get(key)
+
+  if (hit) return hit
+
+  const rendered = renderSpriteUncached(pngPath, cols)
+
+  if (renderCache.size >= RENDER_CACHE_LIMIT)
+    renderCache.delete(renderCache.keys().next().value)
+
+  renderCache.set(key, rendered)
+
+  return rendered
+}
+
+export const loadSprite = (pngPath, { cols }) => {
+  if (!existsSync(pngPath)) return null
+
+  try {
+    return renderSprite(pngPath, { cols })
+  } catch {
+    return null
+  }
+}
+
+export const placeSprite = (lines, sprite, indent) => {
+  for (const row of sprite.rows) lines.push(' '.repeat(indent) + row)
+
+  return sprite.rows.length
+}
+
+export const spriteHeight = (sprite) => sprite.rows.length

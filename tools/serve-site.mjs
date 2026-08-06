@@ -5,53 +5,58 @@ import { createServer } from 'node:http'
 import { dirname, extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { bold, dim, red } from '../src/ui/ansi.mjs'
+import {
+  CACHE_CONTROL,
+  CONTENT_TYPES,
+  DEFAULT_CONTENT_TYPE,
+  DEFAULT_OPEN_COMMAND,
+  DEFAULT_PORT,
+  MAX_PORT,
+  MIN_PORT,
+  OPEN_COMMANDS,
+  PLAIN_TEXT_CONTENT_TYPE,
+  PORT_ATTEMPTS,
+} from './constants.mjs'
 
 const SITE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'docs')
-
-const PORT_ATTEMPTS = 10
-
-const TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.ico': 'image/x-icon',
-  '.wav': 'audio/wav',
-  '.woff2': 'font/woff2',
-  '.txt': 'text/plain; charset=utf-8',
-}
 
 const args = process.argv.slice(2)
 const wantsBrowser = args.includes('--open')
 
-const portFlag = args.indexOf('--port')
-const port = Number(
-  portFlag >= 0 ? args[portFlag + 1] : (process.env.PORT ?? 8080),
-)
-if (!Number.isInteger(port) || port < 1 || port > 65535) {
+const requestedPort = (argv) => {
+  const flag = argv.indexOf('--port')
+
+  if (flag >= 0) return Number(argv[flag + 1])
+
+  return Number(process.env.PORT ?? DEFAULT_PORT)
+}
+
+const port = requestedPort(args)
+
+if (!Number.isInteger(port) || port < MIN_PORT || port > MAX_PORT) {
   console.error(
-    `${red('serve-site')} --port wants a number between 1 and 65535`,
+    `${red('serve-site')} --port wants a number between ${MIN_PORT} and ${MAX_PORT}`,
   )
   process.exit(1)
 }
 
-function send(res, status, body, type = 'text/plain; charset=utf-8') {
-  res.writeHead(status, { 'content-type': type, 'cache-control': 'no-store' })
+const send = (res, status, body, type = PLAIN_TEXT_CONTENT_TYPE) => {
+  res.writeHead(status, {
+    'content-type': type,
+    'cache-control': CACHE_CONTROL,
+  })
   res.end(body)
 }
 
-const server = createServer(async (req, res) => {
+const handleRequest = async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost')
-  let target = decodeURIComponent(pathname)
 
+  let target = decodeURIComponent(pathname)
   let filePath = join(SITE_DIR, normalize(target))
+
   if (filePath !== SITE_DIR && !filePath.startsWith(SITE_DIR + '/')) {
     console.log(dim(`  403 ${target}`))
+
     return send(res, 403, 'Forbidden\n')
   }
 
@@ -61,8 +66,10 @@ const server = createServer(async (req, res) => {
     if (!target.endsWith('/')) {
       res.writeHead(301, { location: target + '/' })
       console.log(dim(`  301 ${target}`))
+
       return res.end()
     }
+
     filePath = join(filePath, 'index.html')
     target += 'index.html'
     info = await stat(filePath).catch(() => null)
@@ -70,49 +77,61 @@ const server = createServer(async (req, res) => {
 
   if (!info?.isFile()) {
     console.log(dim(`  404 ${target}`))
+
     return send(res, 404, `Not found: ${target}\n`)
   }
 
   res.writeHead(200, {
     'content-type':
-      TYPES[extname(filePath).toLowerCase()] ?? 'application/octet-stream',
+      CONTENT_TYPES[extname(filePath).toLowerCase()] ?? DEFAULT_CONTENT_TYPE,
     'content-length': info.size,
-    'cache-control': 'no-store',
+    'cache-control': CACHE_CONTROL,
   })
+
   console.log(dim(`  200 ${target}`))
   createReadStream(filePath).pipe(res)
-})
-
-function open(url) {
-  const command =
-    process.platform === 'darwin'
-      ? 'open'
-      : process.platform === 'win32'
-        ? 'explorer'
-        : 'xdg-open'
-  spawn(command, [url], { stdio: 'ignore', detached: true }).unref()
 }
 
-server.on('listening', () => {
+const openCommand = () => {
+  return OPEN_COMMANDS[process.platform] ?? DEFAULT_OPEN_COMMAND
+}
+
+const open = (url) => {
+  spawn(openCommand(), [url], { stdio: 'ignore', detached: true }).unref()
+}
+
+const server = createServer(handleRequest)
+
+const handleListening = () => {
   const url = `http://localhost:${server.address().port}/`
+
   console.log(`${bold('claudemon')} landing at ${bold(url)}`)
   console.log(dim(`  serving ${SITE_DIR}`))
   console.log(dim('  ctrl-c to stop\n'))
-  if (wantsBrowser) open(url)
-})
 
-function listen(attempt) {
-  server.once('error', (error) => {
+  if (wantsBrowser) open(url)
+}
+
+server.on('listening', handleListening)
+
+const listenErrorHandler = (attempt) => {
+  return (error) => {
     if (error.code === 'EADDRINUSE' && attempt < PORT_ATTEMPTS - 1) {
       console.log(
         dim(`  ${port + attempt} is taken, trying ${port + attempt + 1}`),
       )
       listen(attempt + 1)
+
       return
     }
+
     console.error(`${red('serve-site')} ${error.message}`)
     process.exit(1)
-  })
+  }
+}
+
+const listen = (attempt) => {
+  server.once('error', listenErrorHandler(attempt))
 
   server.listen(port + attempt)
 }

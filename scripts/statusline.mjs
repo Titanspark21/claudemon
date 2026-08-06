@@ -1,5 +1,4 @@
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
 import { encounterTtlMs, loadConfig } from '../src/config.mjs'
 import { encounterExpiresAt, readEncounter } from '../src/queue.mjs'
 import { companionIsLive, readStatus } from '../src/status.mjs'
@@ -9,23 +8,29 @@ import {
   brightGreen,
   brightYellow,
   dim,
-  truncate,
 } from '../src/ui/ansi.mjs'
+import { truncate } from '../src/ui/text.mjs'
 import { money } from '../src/ui/widgets.mjs'
+import {
+  CALL_TO_ACTION,
+  ENCOUNTER_MARK,
+  KANTO_TOTAL,
+  LEAD_MARK,
+  MIN_TRUNCATE_WIDTH,
+  PROBE_RULE_WIDTH,
+  RULE_MARK,
+  SEPARATOR_MARK,
+  TRUNCATE_MARGIN,
+  WILD_FALLBACK_HEADLINE,
+  WRAPPED_TIMEOUT_MS,
+} from './constants.mjs'
+import { readStdinSync } from './stdin.mjs'
 
-const WRAPPED_TIMEOUT_MS = 1000
+const ignoreStdoutError = () => {}
 
-process.stdout.on('error', () => {})
+process.stdout.on('error', ignoreStdoutError)
 
-function readStdin() {
-  try {
-    return readFileSync(0, 'utf8')
-  } catch {
-    return ''
-  }
-}
-
-function wrappedOutput(command, stdin) {
+const wrappedOutput = (command, stdin) => {
   if (!command) return ''
   if (command.includes('claudemon')) return ''
 
@@ -36,74 +41,109 @@ function wrappedOutput(command, stdin) {
       encoding: 'utf8',
       timeout: WRAPPED_TIMEOUT_MS,
     })
+
     if (result.status !== 0 || !result.stdout) return ''
+
     return result.stdout.replace(/\n+$/, '')
   } catch {
     return ''
   }
 }
 
-function gameRow(config) {
-  const status = readStatus()
-  const live = companionIsLive(status)
+const encounterHeadline = (encounter) => {
+  if (!encounter.name) return WILD_FALLBACK_HEADLINE
 
-  const ttlMs = encounterTtlMs(config)
-  const encounter = readEncounter(ttlMs)
+  return `A wild ${bold(encounter.name.toUpperCase())} appeared!`
+}
 
-  if (encounter) {
-    const headline = encounter.name
-      ? `A wild ${bold(encounter.name.toUpperCase())} appeared!`
-      : 'A wild Pokemon appeared!'
+const callToAction = (live) => {
+  if (live) return brightGreen(CALL_TO_ACTION.live)
 
-    const call = live
-      ? brightGreen('in your claudemon tab')
-      : `${dim('run ')}${brightCyan('claudemon')}${dim(' in another tab')}`
+  return `${dim(CALL_TO_ACTION.runPrefix)}${brightCyan(CALL_TO_ACTION.command)}${dim(CALL_TO_ACTION.runSuffix)}`
+}
 
-    const expiresAt = encounterExpiresAt(encounter, ttlMs)
-    const left =
-      expiresAt == null
-        ? ''
-        : `  ${dim('·')}  ${dim(`${Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000))}s left`)}`
+const timeLeftLabel = (expiresAt) => {
+  if (expiresAt == null) return ''
 
-    return `${brightYellow('✦')} ${headline}${left}  ${dim('·')}  ${call}`
-  }
+  const seconds = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000))
 
-  if (!status?.lead) return ''
+  return `  ${dim(SEPARATOR_MARK)}  ${dim(`${seconds}s left`)}`
+}
 
+const encounterRow = (encounter, ttlMs, live) => {
+  const headline = encounterHeadline(encounter)
+  const left = timeLeftLabel(encounterExpiresAt(encounter, ttlMs))
+
+  return `${brightYellow(ENCOUNTER_MARK)} ${headline}${left}  ${dim(SEPARATOR_MARK)}  ${callToAction(live)}`
+}
+
+const leadRow = (status) => {
   const parts = [
     `${bold(status.lead.name.toUpperCase())} ${dim(`Lv${status.lead.level}`)}`,
   ]
+
   if (typeof status.balls === 'number') parts.push(`${status.balls} balls`)
   if (typeof status.money === 'number') parts.push(money(status.money))
   if (typeof status.caught === 'number')
-    parts.push(`${status.caught}/151 caught`)
+    parts.push(`${status.caught}/${KANTO_TOTAL} caught`)
 
-  return dim(`◉ ${parts.join('  ·  ')}`)
+  return dim(`${LEAD_MARK} ${parts.join(`  ${SEPARATOR_MARK}  `)}`)
 }
 
-function main() {
-  const stdin = readStdin()
+const gameRow = (config) => {
+  const status = readStatus()
+  const ttlMs = encounterTtlMs(config)
+  const encounter = readEncounter(ttlMs)
+
+  if (encounter) return encounterRow(encounter, ttlMs, companionIsLive(status))
+  if (!status?.lead) return ''
+
+  return leadRow(status)
+}
+
+const probeRowCount = (config) => {
+  if (config.probeRows != null) return Number(config.probeRows)
+
+  return Number(process.env.CLAUDEMON_PROBE_ROWS)
+}
+
+const terminalWidth = () => Number(process.env.COLUMNS) || 0
+
+const fitRow = (row, width) => {
+  if (width > MIN_TRUNCATE_WIDTH) return truncate(row, width - TRUNCATE_MARGIN)
+
+  return row
+}
+
+const main = () => {
+  const stdin = readStdinSync()
   const config = loadConfig()
 
-  const probeRows = Number(config.probeRows ?? process.env.CLAUDEMON_PROBE_ROWS)
+  const probeRows = probeRowCount(config)
+
   if (Number.isInteger(probeRows) && probeRows > 0) {
     const lines = []
+
     for (let row = 1; row <= probeRows; row++) {
       lines.push(
-        `${brightYellow(`row ${row}/${probeRows}`)} ${dim('─'.repeat(24))} claudemon probe`,
+        `${brightYellow(`row ${row}/${probeRows}`)} ${dim(RULE_MARK.repeat(PROBE_RULE_WIDTH))} claudemon probe`,
       )
     }
+
     process.stdout.write(`${lines.join('\n')}\n`)
+
     return
   }
 
   const above = wrappedOutput(config.wrappedStatusLine, stdin)
   const row = gameRow(config)
 
-  const width = Number(process.env.COLUMNS) || 0
+  const width = terminalWidth()
   const lines = []
+
   if (above) lines.push(above)
-  if (row) lines.push(width > 10 ? truncate(row, width - 2) : row)
+  if (row) lines.push(fitRow(row, width))
+
   if (lines.length > 0) process.stdout.write(`${lines.join('\n')}\n`)
 }
 

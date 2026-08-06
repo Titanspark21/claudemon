@@ -1,9 +1,12 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { HEARTBEAT_STALE_MS } from './constants.mjs'
 import { HOME, STATUS_FILE } from './paths.mjs'
+import {
+  transformRequestWriteStatus,
+  transformResponseStatus,
+} from './transformers.mjs'
 
-const HEARTBEAT_STALE_MS = 15_000
-
-export function readStatus() {
+const readStatusFile = () => {
   try {
     return JSON.parse(readFileSync(STATUS_FILE, 'utf8'))
   } catch {
@@ -11,17 +14,30 @@ export function readStatus() {
   }
 }
 
-export function writeStatus(status) {
+export const readStatus = () => transformResponseStatus(readStatusFile())
+
+export const writeStatus = ({ lead, balls, money, caught }) => {
   try {
     mkdirSync(HOME, { recursive: true })
-    const payload = JSON.stringify({ ...status, heartbeat: Date.now() })
+
+    const payload = JSON.stringify(
+      transformRequestWriteStatus({
+        lead,
+        balls,
+        money,
+        caught,
+        heartbeat: Date.now(),
+      }),
+    )
     const tmp = `${STATUS_FILE}.${process.pid}.tmp`
+
     writeFileSync(tmp, payload)
     renameSync(tmp, STATUS_FILE)
   } catch {}
 }
 
-export function companionIsLive(status) {
+export const companionIsLive = (status) => {
   if (!status?.heartbeat) return false
+
   return Date.now() - status.heartbeat < HEARTBEAT_STALE_MS
 }

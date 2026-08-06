@@ -1,83 +1,72 @@
 #!/usr/bin/env node
 
 import { mkdirSync, watch } from 'node:fs'
+import { basename } from 'node:path'
 import { createApp } from '../src/app.mjs'
 import { loadConfig } from '../src/config.mjs'
+import {
+  DATASET_MISSING_HINT,
+  DATASET_MISSING_MESSAGE,
+  FRAME_MS,
+  HEARTBEAT_MS,
+  POLL_MS,
+  TICK_MS,
+  UPDATE_POLL_MS,
+} from '../src/constants.mjs'
 import { isDataReady } from '../src/data.mjs'
-import { HOME } from '../src/paths.mjs'
+import { HOME, QUEUE_FILE } from '../src/paths.mjs'
 import { loadSave, publishStatus } from '../src/state.mjs'
 import { bold, brightYellow, dim } from '../src/ui/ansi.mjs'
 import { createScreen } from '../src/ui/screen.mjs'
 
-const HEARTBEAT_MS = 5000
-const POLL_MS = 2000
-
-const UPDATE_POLL_MS = 60_000
-
-const TICK_MS = 500
-
-const FRAME_MS = 60
-
-function bail(message, hint) {
+const bail = (message, hint) => {
   process.stderr.write(
     `\n  ${brightYellow('◓')} ${bold('claudemon')}\n\n  ${message}\n`,
   )
+
   if (hint) process.stderr.write(`  ${dim(hint)}\n`)
+
   process.stderr.write('\n')
   process.exit(1)
 }
 
-function main() {
-  if (!isDataReady()) {
-    bail(
-      'The Pokemon dataset is missing.',
-      'Run: node tools/fetch-data.mjs  (and node tools/fetch-sprites.mjs)',
-    )
-  }
+const main = () => {
+  if (!isDataReady()) bail(DATASET_MISSING_MESSAGE, DATASET_MISSING_HINT)
 
   mkdirSync(HOME, { recursive: true })
 
   const config = loadConfig()
   const save = loadSave()
-  const screen = createScreen()
+  const screen = createScreen({ input: process.stdin, output: process.stdout })
   const app = createApp({ screen, save, config })
 
-  screen.start()
-  screen.onResize(() => {
+  const handleResize = () => {
     screen.repaint()
     app.paint()
-  })
-  screen.onKey(app.handleKey)
+  }
 
-  app.pump()
-  app.refreshActivity()
-  app.paint()
-
-  if (app.save) publishStatus(app.save)
-
-  app.checkForUpdates({ atLaunch: true }).then((changed) => {
+  const handleUpdateChecked = (changed) => {
     if (changed) app.paint()
-  })
+  }
 
-  const heartbeat = setInterval(() => {
+  const tickHeartbeat = () => {
     if (app.save) publishStatus(app.save)
-  }, HEARTBEAT_MS)
+  }
 
-  try {
-    watch(HOME, (_event, filename) => {
-      if (filename !== 'queue.jsonl') return
-      if (app.pump()) app.paint()
-    })
-  } catch {}
+  const handleQueueChange = (_event, filename) => {
+    if (filename !== basename(QUEUE_FILE)) return
+    if (app.pump()) app.paint()
+  }
 
-  const poll = setInterval(() => {
+  const pollActivity = () => {
     const arrived = app.pump()
     const activityChanged = app.refreshActivity()
+
     if (arrived || activityChanged || app.activity.state === 'working')
       app.paint()
-  }, POLL_MS)
+  }
 
-  const tick = setInterval(() => {
+  const tickBlinkOrEncounter = () => {
     if (app.mode === 'starter' && app.setup.step === 'name') {
       app.setup.blink = !app.setup.blink
       app.paint()
@@ -88,20 +77,45 @@ function main() {
       app.pump()
       app.paint()
     }
-  }, TICK_MS)
+  }
 
-  const frames = setInterval(() => {
+  const tickFrames = () => {
     if (app.tickBattle() || app.tickScene() || app.tickUpdate()) app.paint()
-  }, FRAME_MS)
+  }
 
-  const updates = setInterval(() => {
+  const pollUpdates = () => {
     if (app.refreshUpdateNotice()) app.paint()
-    app.checkForUpdates().then((changed) => {
-      if (changed) app.paint()
-    })
-  }, UPDATE_POLL_MS)
 
-  for (const timer of [heartbeat, poll, tick, frames, updates]) timer.unref?.()
+    app.checkForUpdates().then(handleUpdateChecked)
+  }
+
+  screen.start()
+  screen.onResize(handleResize)
+  screen.onKey(app.handleKey)
+
+  app.pump()
+  app.refreshActivity()
+  app.paint()
+
+  if (app.save) publishStatus(app.save)
+
+  app.checkForUpdates({ atLaunch: true }).then(handleUpdateChecked)
+
+  const heartbeat = setInterval(tickHeartbeat, HEARTBEAT_MS)
+
+  try {
+    watch(HOME, handleQueueChange)
+  } catch {}
+
+  const poll = setInterval(pollActivity, POLL_MS)
+
+  const tick = setInterval(tickBlinkOrEncounter, TICK_MS)
+
+  const frames = setInterval(tickFrames, FRAME_MS)
+
+  const updates = setInterval(pollUpdates, UPDATE_POLL_MS)
+
+  for (const timer of [heartbeat, poll, tick, frames, updates]) timer.unref()
 
   process.stdin.resume()
 }

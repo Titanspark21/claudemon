@@ -1,39 +1,50 @@
 import { mkdirSync, writeFileSync, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { SPRITES_DIR, spriteFile } from '../src/paths.mjs'
-import { pool, progress } from './lib.mjs'
-
-const BASE =
-  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white'
-
-const CONCURRENCY = 8
-const KANTO = 151
+import { pool } from './pool.mjs'
+import { progress } from './progress.mjs'
+import {
+  CONCURRENCY,
+  KANTO,
+  SPRITE_BASE_URL,
+  SPRITE_MAX_ATTEMPTS,
+  SPRITE_RETRY_BACKOFF_MS,
+} from './constants.mjs'
 
 const SIDES = [
-  { name: 'front', url: (id) => `${BASE}/${id}.png` },
-  { name: 'back', url: (id) => `${BASE}/back/${id}.png` },
+  { name: 'front', url: (id) => `${SPRITE_BASE_URL}/${id}.png` },
+  { name: 'back', url: (id) => `${SPRITE_BASE_URL}/back/${id}.png` },
 ]
 
-async function download(url, destination) {
+const download = async (url, destination) => {
   if (existsSync(destination) && statSync(destination).size > 0) return 'cached'
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= SPRITE_MAX_ATTEMPTS; attempt++) {
     try {
       const response = await fetch(url)
+
       if (!response.ok) {
         if (response.status === 404) return 'missing'
+
         throw new Error(`HTTP ${response.status}`)
       }
+
       writeFileSync(destination, Buffer.from(await response.arrayBuffer()))
+
       return 'fetched'
     } catch (error) {
-      if (attempt === 3) throw error
-      await new Promise((resolve) => setTimeout(resolve, 250 * attempt))
+      if (attempt === SPRITE_MAX_ATTEMPTS) throw error
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, SPRITE_RETRY_BACKOFF_MS * attempt),
+      )
     }
   }
+
+  throw new Error(`${url}: gave up after ${SPRITE_MAX_ATTEMPTS} attempts`)
 }
 
-async function main() {
+const main = async () => {
   const requested = process.argv.slice(2).map(Number).filter(Number.isInteger)
   const ids =
     requested.length > 0
@@ -60,6 +71,7 @@ async function main() {
           `\n  ${job.side}/${job.id}.png failed: ${error.message}\n`,
         )
       }
+
       progress('sprites', ++done, jobs.length)
     },
     CONCURRENCY,

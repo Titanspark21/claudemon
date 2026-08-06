@@ -11,7 +11,7 @@ import {
   typeBadge,
 } from './widgets.mjs'
 
-export function monDetail(mon) {
+export const monDetail = (mon) => {
   const lines = []
 
   lines.push(
@@ -43,9 +43,11 @@ export function monDetail(mon) {
   lines.push('')
 
   lines.push(dim('Moves'))
+
   for (const slot of mon.moves) {
     const data = moveData(slot.move)
     const power = data.power ? `${data.power}` : '—'
+
     lines.push(
       `  ${padRight(data.name, 15)} ${typeBadge(data.type)} ${dim(`pow ${padRight(power, 4)} pp ${slot.pp}/${slot.maxPp}`)}`,
     )

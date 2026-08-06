@@ -2,21 +2,14 @@ import { readFileSync } from 'node:fs'
 import { dataFile } from './paths.mjs'
 
 let cache = null
-let pokedexCache = null
 
-function read(name) {
-  return JSON.parse(readFileSync(dataFile(name), 'utf8'))
-}
+const read = (name) => JSON.parse(readFileSync(dataFile(name), 'utf8'))
 
-export function loadPokedex() {
-  pokedexCache ??= read('pokedex.json')
-  return pokedexCache
-}
-
-export function loadData() {
+export const loadData = () => {
   if (cache) return cache
 
-  const pokedex = loadPokedex()
+  const pokedex = read('pokedex.json')
+
   cache = {
     pokedex,
     byId: new Map(pokedex.map((mon) => [mon.id, mon])),
@@ -24,26 +17,34 @@ export function loadData() {
     types: read('types.json'),
     growth: read('growth.json'),
   }
+
   return cache
 }
 
-export function isDataReady() {
+export const loadPokedex = () => loadData().pokedex
+
+export const isDataReady = () => {
   try {
     loadData()
+
     return true
   } catch {
     return false
   }
 }
 
-export function species(id) {
+export const species = (id) => {
   const mon = loadData().byId.get(id)
+
   if (!mon) throw new Error(`no Pokemon with id ${id}`)
+
   return mon
 }
 
-export function move(name) {
+export const move = (name) => {
   const found = loadData().moves[name]
+
   if (!found) throw new Error(`no move named ${name}`)
+
   return found
 }

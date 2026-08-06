@@ -17,49 +17,35 @@ import { logError } from '../src/log.mjs'
 import { offerEncounter, readEncounter } from '../src/queue.mjs'
 import { makeRng, randomSeed } from '../src/rng.mjs'
 import { readStatus } from '../src/status.mjs'
+import { DEFAULT_LEAD_LEVEL } from './constants.mjs'
+import { readStdin } from './stdin.mjs'
+import { transformResponseHookEvent } from './transformers.mjs'
 
-const STDIN_TIMEOUT_MS = 2000
-
-function readStdin() {
-  return new Promise((resolve) => {
-    let buffer = ''
-    let settled = false
-
-    const finish = () => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      resolve(buffer)
-    }
-
-    const timer = setTimeout(finish, STDIN_TIMEOUT_MS)
-
-    process.stdin.setEncoding('utf8')
-    process.stdin.on('data', (chunk) => {
-      buffer += chunk
-    })
-    process.stdin.on('end', finish)
-    process.stdin.on('error', finish)
-  })
+const stepClockOf = (previous, now) => {
+  return previous.lastStepAt ?? previous.since ?? now
 }
 
-function walkWhileWorking(sessionId, now) {
+const pendingStepsOf = (previous) => {
+  if (!Number.isInteger(previous.pendingSteps)) return 0
+
+  return Math.max(0, previous.pendingSteps)
+}
+
+const walkWhileWorking = (sessionId, now) => {
   const previous = readActivity(sessionId)
-  if (previous?.state !== 'working') return null
+
+  if (previous?.state !== 'working') return
 
   const config = loadConfig()
   const ttlMs = encounterTtlMs(config)
-  const { steps, taken } = stepsWhileWorking(
-    now - (previous.lastStepAt ?? previous.since ?? now),
-    config,
-  )
-  const pending = Number.isInteger(previous.pendingSteps)
-    ? Math.max(0, previous.pendingSteps)
-    : 0
-  if (steps === 0 && pending === 0) return null
+  const stepClockAt = stepClockOf(previous, now)
+  const { steps, taken } = stepsWhileWorking(now - stepClockAt, config)
+  const pending = pendingStepsOf(previous)
+
+  if (steps === 0 && pending === 0) return
 
   const walked = {
-    lastStepAt: (previous.lastStepAt ?? previous.since ?? now) + taken,
+    lastStepAt: stepClockAt + taken,
     pendingSteps: 0,
   }
 
@@ -73,21 +59,35 @@ function walkWhileWorking(sessionId, now) {
     leadLevel,
     rng: makeRng(randomSeed()),
     config,
-    species: loadSpeciesTable(leadLevel ?? 5),
+    species: loadSpeciesTable(leadLevel ?? DEFAULT_LEAD_LEVEL),
   })
 
   const [encounter] = encounters
-  if (encounter) offerEncounter({ ...encounter, session: sessionId }, ttlMs)
+
+  if (encounter)
+    offerEncounter(
+      {
+        v: encounter.v,
+        species: encounter.species,
+        name: encounter.name,
+        level: encounter.level,
+        seed: encounter.seed,
+        session: sessionId,
+      },
+      ttlMs,
+    )
 
   return walked
 }
 
-async function main() {
+const main = async () => {
   const raw = await readStdin()
+
   if (!raw.trim()) return
 
-  const payload = JSON.parse(raw)
-  const session = payload.session_id
+  const payload = transformResponseHookEvent(JSON.parse(raw))
+  const session = payload?.session_id
+
   if (!session) return
 
   const cwd = payload.cwd ?? null
@@ -96,7 +96,8 @@ async function main() {
   switch (event) {
     case 'PreToolUse': {
       const walked = walkWhileWorking(session, Date.now())
-      noteTool(session, cwd, payload.tool_name, walked ?? {})
+
+      noteTool(session, cwd, payload.tool_name, walked)
       break
     }
 
@@ -106,7 +107,8 @@ async function main() {
 
     case 'Stop': {
       const walked = walkWhileWorking(session, Date.now())
-      endTurn(session, cwd, walked ?? {})
+
+      endTurn(session, cwd, walked)
       break
     }
 

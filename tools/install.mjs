@@ -12,8 +12,8 @@ import {
 import { homedir } from 'node:os'
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { CONFIG_FILE, HOME, SPRITES_DIR } from '../src/paths.mjs'
-import { loadConfig } from '../src/config.mjs'
+import { HOME, SPRITES_DIR } from '../src/paths.mjs'
+import { loadConfig, saveConfig } from '../src/config.mjs'
 import { isDataReady } from '../src/data.mjs'
 import { LAUNCHERS, writeLauncher } from '../src/shim.mjs'
 import { VERSION } from '../src/version.mjs'
@@ -24,6 +24,10 @@ import {
   brightRed,
   brightYellow,
 } from '../src/ui/ansi.mjs'
+import {
+  transformRequestWriteSettings,
+  transformResponseSettings,
+} from './transformers.mjs'
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const settingsPath = join(homedir(), '.claude', 'settings.json')
@@ -34,41 +38,45 @@ const statusLineCommand = `"${statusLineLauncher.path}"`
 
 const uninstalling = process.argv.includes('--uninstall')
 
-function readJson(path, fallback) {
+const readSettingsDocument = () => {
   try {
-    return JSON.parse(readFileSync(path, 'utf8'))
+    return JSON.parse(readFileSync(settingsPath, 'utf8'))
   } catch {
-    return fallback
+    return {}
   }
 }
 
-function writeJson(path, value) {
-  mkdirSync(dirname(path), { recursive: true })
-  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`)
+const writeSettingsDocument = (document) => {
+  mkdirSync(dirname(settingsPath), { recursive: true })
+  writeFileSync(settingsPath, `${JSON.stringify(document, null, 2)}\n`)
 }
 
-function step(text) {
-  console.log(`  ${brightGreen('✔')} ${text}`)
+const writeStatusLineCommand = (document, command) => {
+  const { statusLine } = transformRequestWriteSettings({
+    statusLine: { type: 'command', command },
+  })
+
+  writeSettingsDocument({ ...document, statusLine })
 }
 
-function note(text) {
-  console.log(`  ${brightYellow('•')} ${text}`)
-}
+const step = (text) => console.log(`  ${brightGreen('✔')} ${text}`)
 
-function fail(text) {
-  console.log(`  ${brightRed('✘')} ${text}`)
-}
+const note = (text) => console.log(`  ${brightYellow('•')} ${text}`)
 
-function run(command, args, { stdio = 'pipe', timeout = 60_000 } = {}) {
+const fail = (text) => console.log(`  ${brightRed('✘')} ${text}`)
+
+const run = (command, args, stdio = 'pipe', timeout = 60_000) => {
   try {
     const stdout = execFileSync(command, args, {
       stdio,
       timeout,
       encoding: 'utf8',
     })
+
     return { ok: true, output: stdout ?? '' }
   } catch (error) {
     const output = `${error.stdout ?? ''}${error.stderr ?? ''}`.trim()
+
     return {
       ok: false,
       output,
@@ -78,39 +86,50 @@ function run(command, args, { stdio = 'pipe', timeout = 60_000 } = {}) {
   }
 }
 
-function installCommand() {
-  chmodSync(join(projectRoot, 'bin', 'claudemon'), 0o755)
-  chmodSync(join(projectRoot, 'scripts', 'run.sh'), 0o755)
-
-  if (exists(binTarget)) unlinkSync(binTarget)
-
-  for (const launcher of LAUNCHERS)
-    writeLauncher({ ...launcher, root: projectRoot })
-  step(`installed ${bold('claudemon')} at ${dim(binTarget)}`)
-}
-
-function exists(path) {
+const exists = (path) => {
   try {
     lstatSync(path)
+
     return true
   } catch {
     return false
   }
 }
 
-function removeCommand() {
+const installCommand = () => {
+  chmodSync(join(projectRoot, 'bin', 'claudemon'), 0o755)
+  chmodSync(join(projectRoot, 'scripts', 'run.sh'), 0o755)
+
+  if (exists(binTarget)) unlinkSync(binTarget)
+
+  for (const launcher of LAUNCHERS)
+    writeLauncher({
+      path: launcher.path,
+      target: launcher.target,
+      args: launcher.args,
+      root: projectRoot,
+    })
+
+  step(`installed ${bold('claudemon')} at ${dim(binTarget)}`)
+}
+
+const removeCommand = () => {
   let removed = false
+
   for (const { path } of LAUNCHERS) {
     if (!exists(path)) continue
+
     unlinkSync(path)
     removed = true
   }
+
   if (removed) step(`removed ${dim(binTarget)}`)
   else note('no claudemon command was installed')
 }
 
-function installStatusLine() {
-  const settings = readJson(settingsPath, {})
+const installStatusLine = () => {
+  const document = readSettingsDocument()
+  const settings = transformResponseSettings(document)
   const previous = settings.statusLine?.command ?? null
 
   if (previous === statusLineCommand) {
@@ -119,13 +138,9 @@ function installStatusLine() {
   }
 
   if (previous?.includes('claudemon')) {
-    settings.statusLine = {
-      ...settings.statusLine,
-      type: 'command',
-      command: statusLineCommand,
-    }
-    writeJson(settingsPath, settings)
+    writeStatusLineCommand(document, statusLineCommand)
     step('moved the status line onto a shim, so upgrades cannot break it')
+
     return
   }
 
@@ -134,17 +149,8 @@ function installStatusLine() {
     step(`backed up settings to ${dim(`${settingsPath}.claudemon-backup`)}`)
   }
 
-  const config = loadConfig()
-  config.wrappedStatusLine = previous
-  mkdirSync(HOME, { recursive: true })
-  writeJson(CONFIG_FILE, config)
-
-  settings.statusLine = {
-    ...settings.statusLine,
-    type: 'command',
-    command: statusLineCommand,
-  }
-  writeJson(settingsPath, settings)
+  saveConfig({ wrappedStatusLine: previous })
+  writeStatusLineCommand(document, statusLineCommand)
 
   step(
     previous
@@ -153,25 +159,30 @@ function installStatusLine() {
   )
 }
 
-function checkPath() {
+const checkPath = () => {
   const dir = dirname(binTarget)
-  if ((process.env.PATH ?? '').split(delimiter).includes(dir)) return true
+
+  if (process.env.PATH?.split(delimiter).includes(dir)) return true
 
   const rc = process.env.SHELL?.includes('bash') ? '~/.bashrc' : '~/.zshrc'
+
   note(`${dim(dir)} is not on your PATH, so the command will not be found yet`)
   console.log(
     `      Add it:  ${bold(`echo 'export PATH="$HOME/.local/bin:$PATH"' >> ${rc}`)}`,
   )
+
   return false
 }
 
-function pluginInstalled() {
-  const listed = run('claude', ['plugin', 'list'], { timeout: 30_000 })
+const pluginInstalled = () => {
+  const listed = run('claude', ['plugin', 'list'], 'pipe', 30_000)
+
   if (listed.missing) return 'no-claude'
+
   return listed.ok && listed.output.includes('claudemon@claudemon')
 }
 
-function installPlugin() {
+const installPlugin = () => {
   const before = pluginInstalled()
 
   if (before === 'no-claude') {
@@ -181,11 +192,13 @@ function installPlugin() {
     )
     console.log(`      ${bold(`claude plugin marketplace add ${projectRoot}`)}`)
     console.log(`      ${bold('claude plugin install claudemon@claudemon')}`)
+
     return false
   }
 
   if (before === true) {
     step('plugin already installed')
+
     return true
   }
 
@@ -200,56 +213,68 @@ function installPlugin() {
     console.log(
       `                    ${bold('claude plugin install claudemon@claudemon')}`,
     )
+
     return false
   }
 
   step(`installed the plugin ${dim('(claudemon@claudemon)')}`)
+
   return true
 }
 
-function fetchSprites() {
+const fetchSprites = () => {
   const front = join(SPRITES_DIR, 'front')
+
   if (existsSync(join(front, '1.png')) && existsSync(join(front, '151.png'))) {
     step('sprites already downloaded')
+
     return true
   }
 
   const fetched = run(
     process.execPath,
     [join(projectRoot, 'tools', 'fetch-sprites.mjs')],
-    {
-      stdio: 'inherit',
-      timeout: 180_000,
-    },
+    'inherit',
+    180_000,
   )
+
   if (!fetched.ok) {
     fail(
       'the sprites did not download — the game runs, but Pokemon will not be drawn',
     )
     console.log(`      Try again: ${bold('node tools/fetch-sprites.mjs')}`)
+
     return false
   }
 
   step('downloaded the sprites')
+
   return true
 }
 
-function uninstallStatusLine() {
-  const settings = readJson(settingsPath, {})
+const uninstallStatusLine = () => {
+  const document = readSettingsDocument()
+  const settings = transformResponseSettings(document)
+
   if (!settings.statusLine?.command?.includes('claudemon')) {
     note('status line was not ours, leaving it alone')
+
     return
   }
 
-  const config = readJson(CONFIG_FILE, {})
-  if (config.wrappedStatusLine) {
-    settings.statusLine = { type: 'command', command: config.wrappedStatusLine }
-    step(`restored your status line ${dim(`(${config.wrappedStatusLine})`)}`)
-  } else {
-    delete settings.statusLine
-    step('removed the status line setting')
+  const wrapped = loadConfig().wrappedStatusLine
+
+  if (wrapped) {
+    writeStatusLineCommand(document, wrapped)
+    step(`restored your status line ${dim(`(${wrapped})`)}`)
+
+    return
   }
-  writeJson(settingsPath, settings)
+
+  delete document.statusLine
+
+  writeSettingsDocument(document)
+  step('removed the status line setting')
 }
 
 const label = VERSION ? `claudemon ${dim(`v${VERSION}`)}` : 'claudemon'
@@ -267,6 +292,7 @@ if (uninstalling) {
   installStatusLine()
 
   const dataOk = isDataReady()
+
   if (dataOk) step('dataset ready')
   else fail(`the dataset is missing — run ${bold('node tools/fetch-data.mjs')}`)
 

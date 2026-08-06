@@ -1,37 +1,29 @@
-import { test } from 'vitest'
-import assert from 'node:assert/strict'
+import { expect, test } from 'vitest'
 import {
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const sandbox = mkdtempSync(join(tmpdir(), 'claudemon-app-'))
-const realData = join(
-  process.env.CLAUDEMON_HOME || join(homedir(), '.claudemon'),
-  'data',
-)
-if (existsSync(realData)) symlinkSync(realData, join(sandbox, 'data'))
-process.env.CLAUDEMON_HOME = sandbox
+import { useSandboxHome } from './sandboxHome.mjs'
+
+const sandbox = useSandboxHome('claudemon-app-')
 
 const { createApp } = await import('../src/app.mjs')
 const { endSession, writeActivity } = await import('../src/activity.mjs')
-const { DEFAULT_CONFIG, loadConfig, spriteScale } =
-  await import('../src/config.mjs')
+const { loadConfig, spriteScale } = await import('../src/config.mjs')
+const { DEFAULT_CONFIG } = await import('../src/constants.mjs')
 const { isDataReady } = await import('../src/data.mjs')
 const { clearEncounter, peekQueue, writeEncounter } =
   await import('../src/queue.mjs')
-const { loadSave } = await import('../src/state.mjs')
+const { createSave, loadSave } = await import('../src/state.mjs')
 const { createPokemon, makeMoveSlot } = await import('../src/pokemon.mjs')
 const { ballsInBag, countOf, itemsInBag, SHOP_STOCK } =
   await import('../src/shop.mjs')
-const { HIT_FRAMES } = await import('../src/ui/views/battle.mjs')
+const { HIT_FRAMES } = await import('../src/ui/constants.mjs')
 const { SETTINGS } = await import('../src/ui/views/options.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
 const { makeRng } = await import('../src/rng.mjs')
@@ -40,9 +32,10 @@ const { VERSION } = await import('../src/version.mjs')
 if (!isDataReady())
   throw new Error('dataset missing — run: node tools/fetch-data.mjs')
 
-function stubScreen() {
+const stubScreen = () => {
   let frames = 0
   let bells = 0
+
   return {
     size: () => ({ cols: 100, rows: 34 }),
     render: () => {
@@ -60,175 +53,406 @@ function stubScreen() {
   }
 }
 
-function newApp(save = null, options = {}) {
-  return createApp({
-    screen: stubScreen(),
-    save,
-    config: { ...DEFAULT_CONFIG },
-    ...options,
+const stubRun = () => {
+  let settle
+
+  const run = {
+    state: 'running',
+    from: '0.5.0',
+    to: null,
+    steps: [
+      {
+        id: 'plugin',
+        label: 'fetching',
+        done: 'fetched',
+        status: 'running',
+        detail: null,
+      },
+    ],
+  }
+  run.promise = new Promise((resolve) => {
+    settle = resolve
   })
+
+  run.finish = (state = 'done', to = '0.6.0') => {
+    run.state = state
+    run.to = state === 'done' ? to : null
+    run.steps[0].status = state === 'done' ? 'ok' : 'failed'
+
+    settle(run)
+
+    return new Promise((resolve) => setImmediate(resolve))
+  }
+
+  return run
 }
 
 const press = (app, name, char) => app.handleKey({ name, char })
 
-const openSetting = (app, key) => {
-  const index = SETTINGS.findIndex((setting) => setting.key === key)
-  assert.ok(index >= 0, `no such setting: ${key}`)
-  for (let i = 0; i < index; i++) press(app, 'down')
-}
 const type = (app, text) => {
   for (const char of text) press(app, char, char)
 }
 
-const walkHomeTo = (app, id) => {
-  const items = homeView.menuItems(app)
-  for (let step = 0; step < items.length; step++) {
-    if (homeView.menuItems(app)[app.homeSelection].id === id) return
-    press(app, 'right')
-  }
-  assert.fail(`the home cursor never reached ${id}`)
+const openSetting = (app, key) => {
+  const index = SETTINGS.findIndex((setting) => setting.key === key)
+
+  expect(index, `no such setting: ${key}`).toBeGreaterThanOrEqual(0)
+
+  for (let i = 0; i < index; i++) press(app, 'down')
 }
 
-function clearMessages(app, limit = 200) {
+const walkHomeTo = (app, id) => {
+  const items = homeView.menuItems(app)
+
+  for (let step = 0; step < items.length; step++) {
+    if (homeView.menuItems(app)[app.homeSelection].id === id) return
+
+    press(app, 'right')
+  }
+
+  throw new Error(`the home cursor never reached ${id}`)
+}
+
+const onHome = (app, id) => {
+  const index = homeView.menuItems(app).findIndex((item) => item.id === id)
+
+  expect(index, `no such home entry: ${id}`).toBeGreaterThanOrEqual(0)
+
+  app.homeSelection = index
+}
+
+const healEntry = (app) => {
+  return homeView.menuItems(app).find((item) => item.id === 'heal')
+}
+
+const clearMessages = (app, limit = 200) => {
   let steps = 0
+
   while (app.mode === 'battle' && app.battle?.message && steps++ < limit) {
     press(app, 'enter')
   }
-  assert.ok(steps < limit, 'messages never stopped')
+
+  expect(steps, 'messages never stopped').toBeLessThan(limit)
 }
 
-test('a first run asks for a name and a starter, then has a save', () => {
-  const app = newApp(null)
-  assert.equal(app.mode, 'starter')
-  assert.equal(app.setup.step, 'name')
+const secondsAgo = (seconds) => {
+  return new Date(Date.now() - seconds * 1000).toISOString()
+}
+
+const queueEncounter = (app, encounter) => {
+  writeEncounter({
+    v: 1,
+    species: encounter.species,
+    name: encounter.name,
+    level: encounter.level,
+    seed: encounter.seed,
+    at: encounter.at,
+  })
+
+  app.pump()
+}
+
+const duel = (app) => {
+  app.save.party[0] = createPokemon(4, 10, makeRng(11))
+
+  queueEncounter(app, { species: 10, name: 'Caterpie', level: 12, seed: 7 })
+  press(app, 'enter')
+  clearMessages(app)
+
+  return app.battle
+}
+
+const attack = (app) => {
+  press(app, 'enter')
+  press(app, 'enter')
+}
+
+const bench = (app, hp) => {
+  const mon = createPokemon(25, 9, makeRng(1))
+
+  mon.hp = hp
+  app.save.party.push(mon)
+
+  return mon
+}
+
+const useBattleItem = (app, key, target) => {
+  app.battle.selection = 1
+  press(app, 'enter')
+
+  expect(app.battle.menu).toBe('bag')
+
+  const index = app.battle.bagItems.indexOf(key)
+
+  expect(index, `${key} should be offered`).not.toBe(-1)
+
+  app.battle.selection = index
+  press(app, 'enter')
+
+  expect(app.battle.menu, 'choosing an item should ask who it is for').toBe(
+    'target',
+  )
+
+  app.battle.selection = target
+  press(app, 'enter')
+}
+
+const throwBall = (app, key, count = 1) => {
+  app.save.bag[key] = count
+
+  app.battle.selection = 1
+  press(app, 'enter')
+
+  expect(app.battle.menu).toBe('bag')
+
+  const index = app.battle.bagItems.indexOf(key)
+
+  expect(index, `${key} should be offered`).not.toBe(-1)
+
+  app.battle.selection = index
+  press(app, 'enter')
+}
+
+const playThrow = (app) => {
+  let frames = 0
+
+  while (app.battle?.ball && !app.battle.ball.done && frames++ < 200)
+    app.tickBattle()
+
+  expect(frames, 'the throw should end on its own').toBeLessThan(200)
+
+  return frames
+}
+
+const openBagOn = (app, key) => {
+  press(app, 'i')
+
+  expect(app.bagSelection, 'the bag should be open').not.toBe(null)
+
+  const index = itemsInBag(app.save).indexOf(key)
+
+  expect(index, `${key} should be in the bag`).not.toBe(-1)
+
+  app.bagSelection = index
+}
+
+const loseABattle = (app) => {
+  app.save.party.length = 1
+  app.save.party[0] = createPokemon(4, 5, makeRng(11))
+  app.save.party[0].hp = 1
+
+  queueEncounter(app, { species: 150, name: 'Mewtwo', level: 70, seed: 3 })
+  press(app, 'enter')
+
+  expect(app.mode, 'the fight started').toBe('battle')
+
+  let guard = 0
+  while (app.mode === 'battle' && guard++ < 80) {
+    if (app.battle.message) press(app, 'enter')
+    else if (app.battle.menu === 'fight') {
+      app.battle.selection = 0
+      press(app, 'enter')
+    } else {
+      app.battle.menu = 'main'
+      app.battle.selection = 0
+      press(app, 'enter')
+    }
+  }
+
+  expect(guard, 'the battle should have ended').toBeLessThan(80)
+  expect(app.mode, 'and sent you home').toBe('home')
+}
+
+const reportSession = (state, tool = null) => {
+  const now = Date.now()
+
+  writeActivity({
+    v: 1,
+    session: 'test-session',
+    state,
+    tool,
+    since: now,
+    at: now,
+  })
+}
+
+const runFrames = (app, count) => {
+  let moved = 0
+
+  for (let frame = 0; frame < count; frame++) {
+    if (app.tickScene()) moved++
+  }
+
+  return moved
+}
+
+const readToFanfare = (app, track) => {
+  let guard = 0
+
+  while (
+    app.battle?.message &&
+    !track.includes('start:victory') &&
+    guard++ < 40
+  ) {
+    press(app, 'enter')
+  }
+
+  expect(track, 'the fanfare never played').toContain('start:victory')
+}
+
+test('Should ask for a name and a starter on a first run, and end up with a save', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: null,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  expect(app.mode).toBe('starter')
+  expect(app.setup.step).toBe('name')
 
   type(app, 'Ash')
-  assert.equal(app.setup.name, 'Ash')
+  expect(app.setup.name).toBe('Ash')
 
   press(app, 'backspace')
   type(app, 'h')
-  assert.equal(app.setup.name, 'Ash')
+  expect(app.setup.name).toBe('Ash')
 
   press(app, 'enter')
-  assert.equal(app.setup.step, 'starter')
+  expect(app.setup.step).toBe('starter')
 
   press(app, 'right')
   press(app, 'enter')
 
-  assert.equal(app.mode, 'home')
-  assert.ok(app.save, 'a save should exist now')
-  assert.equal(app.save.trainer.name, 'Ash')
-  assert.equal(app.save.party.length, 1)
-  assert.equal(app.save.party[0].species, 7, 'Squirtle')
-  assert.ok(loadSave(), 'and it should be on disk')
+  expect(app.mode).toBe('home')
+  expect(app.save.trainer.name).toBe('Ash')
+  expect(app.save.party).toHaveLength(1)
+  expect(app.save.party[0].species, 'Squirtle').toBe(7)
+  expect(loadSave().trainer.name, 'and it should be on disk').toBe('Ash')
 })
 
-test('an empty name is not accepted', () => {
-  const app = newApp(null)
+test('Should keep asking for a name when the one given is empty', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: null,
+    config: { ...DEFAULT_CONFIG },
+  })
+
   press(app, 'enter')
-  assert.equal(app.setup.step, 'name', 'should still be asking')
+
+  expect(app.setup.step, 'should still be asking').toBe('name')
 })
 
-test('arrow keys never end up in the name', () => {
-  const app = newApp(null)
+test('Should keep arrow keys out of the name', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: null,
+    config: { ...DEFAULT_CONFIG },
+  })
+
   type(app, 'Bo')
   press(app, 'up')
   press(app, 'left')
-  assert.equal(app.setup.name, 'Bo')
+
+  expect(app.setup.name).toBe('Bo')
 })
 
-function startedGame(options = {}) {
-  const app = newApp(null, options)
-  type(app, 'Red')
-  press(app, 'enter')
-  press(app, 'enter')
-  return app
-}
-
-function queueEncounter(
-  app,
-  { species = 16, name = 'Pidgey', level = 3, seed = 99, at } = {},
-) {
-  writeEncounter({ v: 1, species, name, level, seed, ...(at ? { at } : {}) })
-  app.pump()
-}
-
-function agedEncounter(app, seconds, options = {}) {
-  queueEncounter(app, {
-    ...options,
-    at: new Date(Date.now() - seconds * 1000).toISOString(),
+test('Should bring an encounter to the home screen and count it as faced only once you enter it', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
   })
-}
 
-test('an encounter reaches the home screen and can be entered', () => {
-  const app = startedGame()
-  queueEncounter(app)
+  queueEncounter(app, { species: 16, name: 'Pidgey', level: 3, seed: 99 })
 
-  assert.ok(app.encounter, 'one is in the grass')
-  assert.ok(app.save.dex.seen.includes(16), 'meeting one counts as seeing it')
-  assert.equal(app.save.dex.faced[16] ?? 0, 0, 'but not yet as facing it')
+  expect(app.encounter, 'one is in the grass').toBeTruthy()
+  expect(app.save.dex.seen, 'meeting one counts as seeing it').toContain(16)
+  expect(app.save.dex.faced[16], 'but not yet as facing it').toBeUndefined()
 
   press(app, 'enter')
-  assert.equal(app.mode, 'battle')
-  assert.ok(app.battle, 'a battle should be running')
-  assert.equal(app.encounter, null, 'facing it consumes it')
-  assert.equal(app.save.dex.faced[16], 1, 'and it goes on the Pokedex tally')
+
+  expect(app.mode).toBe('battle')
+  expect(app.battle, 'a battle should be running').toBeTruthy()
+  expect(app.encounter, 'facing it consumes it').toBe(null)
+  expect(app.save.dex.faced[16], 'and it goes on the Pokedex tally').toBe(1)
 })
 
-test('an encounter that wandered off never reaches the tally', () => {
-  const app = startedGame()
-  agedEncounter(app, 5)
-  agedEncounter(app, 31, { seed: 41 })
+test('Should let an encounter nobody faced wander off once its window closes, met but never faced', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-  assert.equal(app.encounter, null, 'its window closed')
-  assert.ok(app.save.dex.seen.includes(16), 'you still met it')
-  assert.equal(
-    app.save.dex.faced[16] ?? 0,
-    0,
+  queueEncounter(app, {
+    species: 16,
+    name: 'Pidgey',
+    level: 3,
+    seed: 99,
+    at: secondsAgo(5),
+  })
+
+  expect(app.encounter, 'five seconds in, it is still there').toBeTruthy()
+
+  queueEncounter(app, {
+    species: 16,
+    name: 'Pidgey',
+    level: 3,
+    seed: 41,
+    at: secondsAgo(31),
+  })
+
+  expect(app.encounter, 'thirty-one seconds in, it has wandered off').toBe(null)
+  expect(app.save.dex.seen, 'you still met it').toContain(16)
+  expect(
+    app.save.dex.faced[16],
     'you just never stood in front of it',
+  ).toBeUndefined()
+  expect(homeView.menuItems(app)[0].id, 'and FIGHT has left the menu').toBe(
+    'dex',
   )
 })
 
-test('facing an encounter empties the slot, so it is never replayed', () => {
-  const app = startedGame()
-  queueEncounter(app)
-  assert.equal(peekQueue().length, 1, 'it stays in the file until you face it')
+test('Should empty the slot when you face an encounter, so it is never replayed', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  queueEncounter(app, { species: 16, name: 'Pidgey', level: 3, seed: 99 })
+
+  expect(peekQueue(), 'it stays in the file until you face it').toHaveLength(1)
 
   press(app, 'enter')
-  assert.deepEqual(peekQueue(), [], 'and the slot is free again once you do')
+
+  expect(peekQueue(), 'and the slot is free again once you do').toEqual([])
 })
 
-test('rereading the slot does not keep meeting the same Pokemon', () => {
-  const app = startedGame()
-  queueEncounter(app)
+test('Should not keep meeting the same Pokemon each time the slot is reread', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  queueEncounter(app, { species: 16, name: 'Pidgey', level: 3, seed: 99 })
   const held = app.encounter
 
-  assert.equal(app.pump(), false, 'nothing has changed')
-  assert.equal(app.encounter, held, 'and the same encounter is still on screen')
+  expect(app.pump(), 'nothing has changed').toBe(false)
+  expect(app.encounter, 'and the same encounter is still on screen').toBe(held)
 })
 
-test('an encounter nobody faced disappears once its window closes', () => {
-  const app = startedGame()
-  agedEncounter(app, 5)
-  assert.ok(app.encounter, 'five seconds in, it is still there')
+test('Should leave the cursor on the entry it was on when an encounter times out', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-  agedEncounter(app, 31, { seed: 41 })
-  assert.equal(
-    app.encounter,
-    null,
-    'thirty-one seconds in, it has wandered off',
-  )
-  assert.equal(
-    homeView.menuItems(app)[0].id,
-    'dex',
-    'and FIGHT has left the menu',
-  )
-})
+  queueEncounter(app, { species: 16, name: 'Pidgey', level: 3, seed: 99 })
 
-test('an encounter timing out leaves the cursor on the entry it was on', () => {
-  const app = startedGame()
-  queueEncounter(app)
-  assert.equal(app.homeSelection, 0, 'the cursor starts on FIGHT')
+  expect(app.homeSelection, 'the cursor starts on FIGHT').toBe(0)
 
   walkHomeTo(app, 'heal')
 
@@ -236,45 +460,63 @@ test('an encounter timing out leaves the cursor on the entry it was on', () => {
   app.pump()
 
   const items = homeView.menuItems(app)
-  assert.ok(
-    app.homeSelection < items.length,
-    'the cursor is still inside the menu',
+
+  expect(app.homeSelection, 'the cursor is still inside the menu').toBeLessThan(
+    items.length,
   )
-  assert.equal(
-    items[app.homeSelection].id,
+  expect(items[app.homeSelection].id, 'and still on the same entry').toBe(
     'heal',
-    'and still on the same entry',
   )
 
   press(app, 'enter')
-  assert.equal(
-    app.mode,
+
+  expect(app.mode, 'there was nothing to fight, so HEAL is what ran').toBe(
     'home',
-    'there was nothing to fight, so HEAL is what ran',
   )
-  assert.match(app.notice, /full health/i)
+  expect(app.notice).toMatch(/full health/i)
 })
 
-test('a cursor left past the end of the menu cannot fall off it', () => {
-  const app = startedGame()
+test('Should pull a cursor left past the end of the menu back inside it', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.homeSelection = 12
   press(app, 'left')
-  assert.ok(app.homeSelection < homeView.menuItems(app).length)
+
+  expect(app.homeSelection).toBeLessThan(homeView.menuItems(app).length)
 })
 
-test('the countdown says how long is left, and never goes negative', () => {
-  const app = startedGame()
-  agedEncounter(app, 8)
-  assert.match(homeView.countdownRow(app.encounter), /in 2[12]s/)
+test('Should say how long is left on the countdown, and never go negative', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-  assert.match(
-    homeView.countdownRow({ expiresAt: Date.now() - 5_000 }),
+  queueEncounter(app, {
+    species: 16,
+    name: 'Pidgey',
+    level: 3,
+    seed: 99,
+    at: secondsAgo(8),
+  })
+
+  expect(homeView.countdownRow(app.encounter)).toMatch(/in 2[12]s/)
+  expect(homeView.countdownRow({ expiresAt: Date.now() - 5_000 })).toMatch(
     /in 0s/,
   )
 })
 
-test('a battle can be fought to the end and returns you home', () => {
-  const app = startedGame()
+test('Should fight a battle to the end, return you home and put it on the tally', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   queueEncounter(app, { species: 10, name: 'Caterpie', level: 2, seed: 7 })
 
   press(app, 'enter')
@@ -295,15 +537,20 @@ test('a battle can be fought to the end and returns you home', () => {
     }
   }
 
-  assert.ok(guard < 60, 'the battle should have ended')
-  assert.equal(app.mode, 'home')
-  assert.equal(app.battle, null)
-  assert.equal(app.save.stats.battles, 1)
-  assert.ok(loadSave().stats.battles === 1, 'and it should be saved')
+  expect(guard, 'the battle should have ended').toBeLessThan(60)
+  expect(app.mode).toBe('home')
+  expect(app.battle).toBe(null)
+  expect(app.save.stats.battles).toBe(1)
+  expect(loadSave().stats.battles, 'and it should be saved').toBe(1)
 })
 
-test('a Master Ball catch adds the Pokemon and closes the battle', () => {
-  const app = startedGame()
+test('Should add the Pokemon and close the battle when a Master Ball holds', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.save.bag['master-ball'] = 1
   queueEncounter(app, { species: 25, name: 'Pikachu', level: 6, seed: 5 })
 
@@ -312,29 +559,33 @@ test('a Master Ball catch adds the Pokemon and closes the battle', () => {
 
   app.battle.selection = 1
   press(app, 'enter')
-  assert.equal(app.battle.menu, 'bag')
+  expect(app.battle.menu).toBe('bag')
 
   const index = app.battle.bagItems.indexOf('master-ball')
-  assert.notEqual(index, -1, 'the Master Ball should be offered')
+
+  expect(index, 'the Master Ball should be offered').not.toBe(-1)
+
   app.battle.selection = index
   press(app, 'enter')
 
   let guard = 0
   while (app.mode === 'battle' && guard++ < 40) press(app, 'enter')
 
-  assert.equal(app.mode, 'home')
-  assert.ok(
-    app.save.dex.caught.includes(25),
-    'Pikachu should be in the Pokedex',
-  )
-  assert.ok(
-    app.save.party.some((mon) => mon.species === 25),
+  expect(app.mode).toBe('home')
+  expect(app.save.dex.caught, 'Pikachu should be in the Pokedex').toContain(25)
+  expect(
+    app.save.party.map((mon) => mon.species),
     'and on the team',
-  )
+  ).toContain(25)
 })
 
-test('running away ends the battle without a catch', () => {
-  const app = startedGame()
+test('Should end the battle without a catch when you run away', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   queueEncounter(app, { species: 10, name: 'Caterpie', level: 2, seed: 3 })
 
   press(app, 'enter')
@@ -350,12 +601,17 @@ test('running away ends the battle without a catch', () => {
     }
   }
 
-  assert.equal(app.mode, 'home')
-  assert.ok(!app.save.dex.caught.includes(10))
+  expect(app.mode).toBe('home')
+  expect(app.save.dex.caught).not.toContain(10)
 })
 
-test('a Pokemon that was swapped out still earns the experience', () => {
-  const app = startedGame()
+test('Should pay a Pokemon that was swapped out the full experience, not a share', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const starter = app.save.party[0]
   const backup = createPokemon(25, 20, makeRng(1))
   backup.moves = [makeMoveSlot('thunder-shock')]
@@ -369,17 +625,16 @@ test('a Pokemon that was swapped out still earns the experience', () => {
 
   app.battle.selection = 2
   press(app, 'enter')
-  assert.equal(app.battle.menu, 'party')
+  expect(app.battle.menu).toBe('party')
   app.battle.selection = 1
   press(app, 'enter')
   clearMessages(app)
 
-  assert.equal(
+  expect(
     app.battle.state.player.mon,
-    backup,
     'the backup is the one out there now',
-  )
-  assert.equal(starter.exp, before.starter, 'nothing is paid out mid-battle')
+  ).toBe(backup)
+  expect(starter.exp, 'nothing is paid out mid-battle').toBe(before.starter)
 
   let guard = 0
   while (app.mode === 'battle' && guard++ < 60) {
@@ -394,201 +649,217 @@ test('a Pokemon that was swapped out still earns the experience', () => {
     }
   }
 
-  assert.ok(guard < 60, 'the battle should have ended')
-  assert.ok(backup.exp > before.backup, 'the one that finished it earns')
-  assert.ok(starter.exp > before.starter, 'and so does the one that opened it')
-  assert.equal(
-    starter.exp - before.starter,
-    backup.exp - before.backup,
-    'the full amount each, not a share',
+  expect(guard, 'the battle should have ended').toBeLessThan(60)
+  expect(backup.exp, 'the one that finished it earns').toBeGreaterThan(
+    before.backup,
   )
+  expect(starter.exp, 'and so does the one that opened it').toBeGreaterThan(
+    before.starter,
+  )
+  expect(
+    starter.exp - before.starter,
+    'the full amount each, not a share',
+  ).toBe(backup.exp - before.backup)
 })
 
-test('a battle cannot start with a fainted team', () => {
-  const app = startedGame()
+test('Should refuse to start a battle with a fainted team, however it is reached', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   for (const mon of app.save.party) mon.hp = 0
 
-  queueEncounter(app)
+  queueEncounter(app, { species: 16, name: 'Pidgey', level: 3, seed: 99 })
   const fight = homeView.menuItems(app).find((item) => item.id === 'fight')
-  assert.equal(
-    fight.disabled,
+
+  expect(fight.disabled, 'FIGHT is greyed out with nobody to send out').toBe(
     true,
-    'FIGHT is greyed out with nobody to send out',
   )
 
   press(app, 'enter')
-  assert.equal(app.mode, 'home', 'should refuse and stay put')
-  assert.ok(
+
+  expect(app.mode, 'should refuse and stay put').toBe('home')
+  expect(
     app.encounter,
     'the encounter is still there, for what is left of its window',
-  )
+  ).toBeTruthy()
 
   app.startNextBattle()
-  assert.equal(app.mode, 'home', 'and the rule holds reached straight through')
-  assert.match(app.notice, /fainted/i)
+
+  expect(app.mode, 'and the rule holds reached straight through').toBe('home')
+  expect(app.notice).toMatch(/fainted/i)
 })
 
-function duel(app) {
-  app.save.party[0] = createPokemon(4, 10, makeRng(11))
-  queueEncounter(app, { species: 10, name: 'Caterpie', level: 12, seed: 7 })
-  press(app, 'enter')
-  clearMessages(app)
-  return app.battle
-}
+test('Should play a turn out one blow at a time', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-function attack(app) {
-  press(app, 'enter')
-  press(app, 'enter')
-}
-
-test('a turn is played out one blow at a time', () => {
-  const app = startedGame()
   const battle = duel(app)
 
   const foeMax = battle.state.foe.mon.stats.hp
   const playerHp = battle.hp.player
-  assert.equal(battle.hp.foe, foeMax, 'nothing has happened yet')
+
+  expect(battle.hp.foe, 'nothing has happened yet').toBe(foeMax)
 
   attack(app)
 
-  assert.ok(
-    battle.state.player.mon.hp < playerHp,
+  expect(
+    battle.state.player.mon.hp,
     'the foe has already hit back, in the state',
-  )
-
-  assert.ok(
-    battle.hpTarget.foe < foeMax,
+  ).toBeLessThan(playerHp)
+  expect(
+    battle.hpTarget.foe,
     'the foe is taking the hit being announced',
-  )
-  assert.equal(
-    battle.hpTarget.player,
+  ).toBeLessThan(foeMax)
+  expect(battle.hpTarget.player, 'and its reply has not been shown yet').toBe(
     playerHp,
-    'and its reply has not been shown yet',
   )
 
   let guard = 0
   while (battle.hpTarget.player === playerHp && guard++ < 20)
     press(app, 'enter')
 
-  assert.ok(guard < 20, "the foe's blow should land on a later beat")
-  assert.equal(battle.hpTarget.player, battle.state.player.mon.hp)
+  expect(guard, "the foe's blow should land on a later beat").toBeLessThan(20)
+  expect(battle.hpTarget.player).toBe(battle.state.player.mon.hp)
 })
 
-test('taking a hit puts the effect on whoever took it', () => {
-  const app = startedGame()
+test('Should put the hit effect on whoever took the blow', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const battle = duel(app)
-  assert.equal(battle.effect, null, 'nothing is being hit yet')
+
+  expect(battle.effect, 'nothing is being hit yet').toBe(null)
 
   attack(app)
-  assert.deepEqual(battle.effect, { side: 'foe', frame: 0 })
+
+  expect(battle.effect).toEqual({ side: 'foe', frame: 0 })
 
   let guard = 0
   while (battle.effect?.side !== 'player' && guard++ < 20) press(app, 'enter')
-  assert.equal(
+
+  expect(
     battle.effect?.side,
-    'player',
     'and it moves to you when the foe hits back',
-  )
+  ).toBe('player')
 })
 
-test('the hit effect runs out on its own', () => {
-  const app = startedGame()
+test('Should run the hit effect out on its own', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const battle = duel(app)
   attack(app)
 
   for (let frame = 0; frame < HIT_FRAMES.length; frame++) {
-    assert.ok(battle.effect, `frame ${frame} should still be on screen`)
+    expect(
+      battle.effect,
+      `frame ${frame} should still be on screen`,
+    ).toBeTruthy()
     app.tickBattle()
   }
-  assert.equal(battle.effect, null)
+
+  expect(battle.effect).toBe(null)
 })
 
-test('a bar drains towards where the turn left it', () => {
-  const app = startedGame()
+test('Should drain a bar towards where the turn left it, over more than one frame', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const battle = duel(app)
   attack(app)
 
   const target = battle.hpTarget.foe
-  assert.ok(battle.hp.foe > target, 'it starts from where the bar was')
+
+  expect(battle.hp.foe, 'it starts from where the bar was').toBeGreaterThan(
+    target,
+  )
 
   let guard = 0
   while (battle.hp.foe !== target && guard++ < 200) app.tickBattle()
 
-  assert.ok(guard < 200, 'it should settle')
-  assert.ok(guard > 1, 'and take more than one frame getting there')
-  assert.equal(battle.hp.foe, target)
+  expect(guard, 'it should settle').toBeLessThan(200)
+  expect(guard, 'and take more than one frame getting there').toBeGreaterThan(1)
+  expect(battle.hp.foe).toBe(target)
 })
 
-test('the bars tell the truth again by the time you choose', () => {
-  const app = startedGame()
+test('Should have the bars telling the truth again by the time you choose', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const battle = duel(app)
   attack(app)
 
   let guard = 0
   while (battle.menu !== 'main' && guard++ < 30) press(app, 'enter')
 
-  assert.ok(guard < 30, 'the turn should hand the menu back')
-  assert.equal(battle.hp.foe, battle.state.foe.mon.hp)
-  assert.equal(battle.hp.player, battle.state.player.mon.hp)
+  expect(guard, 'the turn should hand the menu back').toBeLessThan(30)
+  expect(battle.hp.foe).toBe(battle.state.foe.mon.hp)
+  expect(battle.hp.player).toBe(battle.state.player.mon.hp)
 })
 
-test('a potion fills the bar rather than jumping it', () => {
-  const app = startedGame()
+test('Should fill the bar with a potion rather than jumping it', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const battle = duel(app)
   battle.state.player.mon.hp = 5
 
   battle.selection = 1
   press(app, 'enter')
-  assert.equal(battle.menu, 'bag')
-  assert.equal(battle.hp.player, 5, 'opening a menu catches the bar up')
+
+  expect(battle.menu).toBe('bag')
+  expect(battle.hp.player, 'opening a menu catches the bar up').toBe(5)
 
   const index = battle.bagItems.indexOf('potion')
-  assert.notEqual(index, -1, 'a potion should be offered')
+
+  expect(index, 'a potion should be offered').not.toBe(-1)
+
   battle.selection = index
   press(app, 'enter')
 
-  assert.equal(battle.menu, 'target', 'and then ask who it is for')
+  expect(battle.menu, 'and then ask who it is for').toBe('target')
+
   battle.selection = 0
   press(app, 'enter')
 
   let guard = 0
   while (battle.hpTarget.player === 5 && guard++ < 10) press(app, 'enter')
 
-  assert.ok(guard < 10, 'the heal should reach the bar')
-  assert.ok(
-    battle.hpTarget.player > battle.hp.player,
+  expect(guard, 'the heal should reach the bar').toBeLessThan(10)
+  expect(
+    battle.hpTarget.player,
     'as something to animate towards',
-  )
+  ).toBeGreaterThan(battle.hp.player)
 })
 
-function useBattleItem(app, key, target) {
-  app.battle.selection = 1
-  press(app, 'enter')
-  assert.equal(app.battle.menu, 'bag')
+test('Should bring a fainted team-mate back at half health mid-battle, ready to be sent straight out', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-  const index = app.battle.bagItems.indexOf(key)
-  assert.notEqual(index, -1, `${key} should be offered`)
-  app.battle.selection = index
-  press(app, 'enter')
-
-  assert.equal(
-    app.battle.menu,
-    'target',
-    'choosing an item should ask who it is for',
-  )
-  app.battle.selection = target
-  press(app, 'enter')
-}
-
-function bench(app, hp) {
-  const mon = createPokemon(25, 9, makeRng(1))
-  mon.hp = hp
-  app.save.party.push(mon)
-  return mon
-}
-
-test('a revive brings a fainted team-mate back mid-battle', () => {
-  const app = startedGame()
   const fallen = bench(app, 0)
   const battle = duel(app)
   app.save.bag.revive = 1
@@ -596,58 +867,57 @@ test('a revive brings a fainted team-mate back mid-battle', () => {
   useBattleItem(app, 'revive', 1)
   clearMessages(app)
 
-  assert.ok(fallen.hp > 0, 'it is back on its feet')
-  assert.equal(fallen.hp, Math.floor(fallen.stats.hp / 2), 'at half health')
-  assert.equal(countOf(app.save, 'revive'), 0, 'and the revive was spent')
-  assert.equal(
+  expect(fallen.hp, 'it is back on its feet, at half health').toBe(
+    Math.floor(fallen.stats.hp / 2),
+  )
+  expect(countOf(app.save, 'revive'), 'and the revive was spent').toBe(0)
+  expect(
     battle.state.player.mon.species,
-    4,
     'the Charmander is still the one out there',
-  )
-})
-
-test('a Pokemon revived mid-battle can be sent straight back out', () => {
-  const app = startedGame()
-  const fallen = bench(app, 0)
-  const battle = duel(app)
-  app.save.bag.revive = 1
-
-  useBattleItem(app, 'revive', 1)
-  clearMessages(app)
+  ).toBe(4)
 
   battle.selection = 2
   press(app, 'enter')
-  assert.equal(battle.menu, 'party')
+  expect(battle.menu).toBe('party')
   battle.selection = 1
   press(app, 'enter')
   clearMessages(app)
 
-  assert.equal(
-    battle.state.player.mon,
+  expect(battle.state.player.mon, 'until you send the revived one out').toBe(
     fallen,
-    'the one you just revived is out',
   )
 })
 
-test('a potion reaches a team-mate on the bench', () => {
-  const app = startedGame()
+test('Should reach a team-mate on the bench with a potion, and say who it was for', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const hurt = bench(app, 1)
   const battle = duel(app)
 
   useBattleItem(app, 'potion', 1)
 
-  assert.match(
-    battle.message ?? '',
-    /PIKACHU/,
-    'the message says who it was for',
-  )
+  expect(battle.message, 'the message says who it was for').toMatch(/PIKACHU/)
+
   clearMessages(app)
-  assert.ok(hurt.hp > 1, 'and the one on the bench is the one that was healed')
-  assert.equal(battle.state.player.mon.species, 4, 'not the one on the field')
+
+  expect(
+    hurt.hp,
+    'and the one on the bench is the one that was healed',
+  ).toBeGreaterThan(1)
+  expect(battle.state.player.mon.species, 'not the one on the field').toBe(4)
 })
 
-test('an item that would do nothing costs neither the item nor the turn', () => {
-  const app = startedGame()
+test('Should charge neither the item nor the turn for an item that would do nothing', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   bench(app, 0)
   const battle = duel(app)
   app.save.bag.revive = 1
@@ -655,18 +925,23 @@ test('an item that would do nothing costs neither the item nor the turn', () => 
 
   useBattleItem(app, 'revive', 0)
 
-  assert.match(battle.message ?? '', /no effect/i)
+  expect(battle.message).toMatch(/no effect/i)
+
   clearMessages(app)
-  assert.equal(countOf(app.save, 'revive'), 1, 'the revive is still in the bag')
-  assert.equal(
-    battle.state.turn,
+
+  expect(countOf(app.save, 'revive'), 'the revive is still in the bag').toBe(1)
+  expect(battle.state.turn, 'and the foe never got a free hit out of it').toBe(
     turn,
-    'and the foe never got a free hit out of it',
   )
 })
 
-test('backing out of the target list returns to the item you were holding', () => {
-  const app = startedGame()
+test('Should return to the item you were holding when you back out of the target list', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const battle = duel(app)
   app.save.bag['super-potion'] = 1
 
@@ -675,199 +950,196 @@ test('backing out of the target list returns to the item you were holding', () =
   const index = battle.bagItems.indexOf('super-potion')
   battle.selection = index
   press(app, 'enter')
-  assert.equal(battle.menu, 'target')
+
+  expect(battle.menu).toBe('target')
 
   press(app, 'escape')
-  assert.equal(battle.menu, 'bag', 'the target list is a step inside the bag')
-  assert.equal(battle.selection, index, 'on the item you were about to use')
-  assert.equal(battle.bagItem, null, 'and nothing is left waiting for a target')
+
+  expect(battle.menu, 'the target list is a step inside the bag').toBe('bag')
+  expect(battle.selection, 'on the item you were about to use').toBe(index)
+  expect(battle.bagItem, 'and nothing is left waiting for a target').toBe(null)
 
   press(app, 'escape')
-  assert.equal(battle.menu, 'main')
+
+  expect(battle.menu).toBe('main')
 })
 
-test('the frame timer does nothing outside a battle', () => {
-  assert.equal(startedGame().tickBattle(), false)
+test('Should do nothing on the frame timer outside a battle', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  expect(app.tickBattle()).toBe(false)
 })
 
-function throwBall(app, key, count = 1) {
-  app.save.bag[key] = count
+test('Should animate a thrown ball instead of just announcing it, and spend it', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-  app.battle.selection = 1
-  press(app, 'enter')
-  assert.equal(app.battle.menu, 'bag')
-
-  const index = app.battle.bagItems.indexOf(key)
-  assert.notEqual(index, -1, `${key} should be offered`)
-  app.battle.selection = index
-  press(app, 'enter')
-}
-
-function playThrow(app) {
-  let frames = 0
-  while (app.battle?.ball && !app.battle.ball.done && frames++ < 200)
-    app.tickBattle()
-  assert.ok(frames < 200, 'the throw should end on its own')
-  return frames
-}
-
-test('a thrown ball is animated instead of just announced', () => {
-  const app = startedGame()
   const battle = duel(app)
 
-  throwBall(app, 'poke-ball')
+  throwBall(app, 'poke-ball', 2)
 
-  assert.match(battle.message, /threw a Poké Ball/i)
-  assert.deepEqual(battle.ball, {
+  expect(battle.message).toMatch(/threw a Poké Ball/i)
+  expect(battle.ball).toEqual({
     shakes: 2,
     caught: false,
     frame: 0,
     done: false,
   })
+  expect(
+    countOf(app.save, 'poke-ball'),
+    'the one in the air is out of the bag',
+  ).toBe(1)
 })
 
-test('the throw plays out on the frame timer and then reads the result', () => {
-  const app = startedGame()
+test('Should play the throw out on the frame timer and then read the result', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const battle = duel(app)
   throwBall(app, 'poke-ball')
 
   const thrown = battle.message
   const frames = playThrow(app)
 
-  assert.ok(frames > 10, 'a throw is worth more than a frame or two')
-  assert.equal(battle.ball, null, 'the ball opened and went away')
-  assert.match(
-    battle.message,
-    /almost had it/i,
-    'and the verdict followed on its own',
+  expect(frames, 'a throw is worth more than a frame or two').toBeGreaterThan(
+    10,
   )
-  assert.notEqual(battle.message, thrown)
+  expect(battle.ball, 'the ball opened and went away').toBe(null)
+  expect(battle.message, 'and the verdict followed on its own').toMatch(
+    /almost had it/i,
+  )
+  expect(battle.message).not.toBe(thrown)
 })
 
-test('a key gets past the throw rather than being swallowed by it', () => {
-  const app = startedGame()
+test('Should let a key get past the throw rather than swallowing it', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const battle = duel(app)
   throwBall(app, 'poke-ball')
   const thrown = battle.message
 
   press(app, 'enter')
-  assert.equal(battle.ball, null, 'the first key ends the throw')
-  assert.equal(battle.message, thrown, 'without skipping what it was saying')
+
+  expect(battle.ball, 'the first key ends the throw').toBe(null)
+  expect(battle.message, 'without skipping what it was saying').toBe(thrown)
 
   press(app, 'enter')
-  assert.notEqual(battle.message, thrown, 'and the next one reads on')
+
+  expect(battle.message, 'and the next one reads on').not.toBe(thrown)
 })
 
-test('a ball that holds stays shut, and stops costing frames', () => {
-  const app = startedGame()
+test('Should keep a ball that holds shut, spend the last one and stop costing frames', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const battle = duel(app)
-  throwBall(app, 'master-ball')
-
-  assert.equal(battle.ball.caught, true, 'a Master Ball never fails')
-  playThrow(app)
-
-  assert.ok(
-    battle.ball?.done,
-    'the ball is still lying there with the Caterpie in it',
-  )
-  assert.equal(app.tickBattle(), false, 'and there is nothing left to animate')
-  assert.match(battle.message, /caught/i)
-})
-
-test('a thrown ball is spent, whether it holds or not', () => {
-  const app = startedGame()
-  duel(app)
-
-  throwBall(app, 'poke-ball', 2)
-  assert.equal(
-    countOf(app.save, 'poke-ball'),
-    1,
-    'the one in the air is out of the bag',
-  )
-})
-
-test('the last ball leaves the bag, so a Master Ball is not a Pokedex', () => {
-  const app = startedGame()
-  duel(app)
   app.save.bag = { potion: 1 }
 
   throwBall(app, 'master-ball')
 
-  assert.equal(countOf(app.save, 'master-ball'), 0)
-  assert.deepEqual(ballsInBag(app.save), [], 'nothing left to throw')
+  expect(battle.ball.caught, 'a Master Ball never fails').toBe(true)
+
+  playThrow(app)
+
+  expect(
+    battle.ball?.done,
+    'the ball is still lying there with the Caterpie in it',
+  ).toBe(true)
+  expect(app.tickBattle(), 'and there is nothing left to animate').toBe(false)
+  expect(battle.message).toMatch(/caught/i)
+  expect(countOf(app.save, 'master-ball')).toBe(0)
+  expect(ballsInBag(app.save), 'nothing left to throw').toEqual([])
 })
 
-test('mashing through a throw still ends the battle', () => {
-  const app = startedGame()
+test('Should still end the battle when you mash through a throw', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const battle = duel(app)
   throwBall(app, 'master-ball')
 
   let guard = 0
   while (app.mode === 'battle' && guard++ < 40) press(app, 'enter')
 
-  assert.ok(guard < 40, 'a throw is skippable, not a wall')
-  assert.equal(app.mode, 'home')
-  assert.ok(app.save.dex.caught.includes(battle.state.foe.mon.species))
+  expect(guard, 'a throw is skippable, not a wall').toBeLessThan(40)
+  expect(app.mode).toBe('home')
+  expect(app.save.dex.caught).toContain(battle.state.foe.mon.species)
 })
 
-function reportSession(state, extra = {}) {
-  const now = Date.now()
-  writeActivity({
-    v: 1,
-    session: 'test-session',
-    state,
-    tool: null,
-    since: now,
-    at: now,
-    ...extra,
+test('Should pick up what Claude Code is doing, and only redraw when it changes', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
   })
-}
 
-test('the companion picks up what Claude Code is doing', () => {
-  const app = startedGame()
-  assert.equal(app.activity.state, 'unknown', 'nothing is reporting yet')
+  expect(app.activity.state, 'nothing is reporting yet').toBe('unknown')
 
-  reportSession('working', { tool: 'Bash' })
-  assert.equal(
-    app.refreshActivity(),
-    true,
-    'the row would read differently now',
-  )
-  assert.equal(app.activity.state, 'working')
-  assert.equal(app.activity.tool, 'Bash')
+  reportSession('working', 'Bash')
 
-  assert.equal(
-    app.refreshActivity(),
+  expect(app.refreshActivity(), 'the row would read differently now').toBe(true)
+  expect(app.activity.state).toBe('working')
+  expect(app.activity.tool).toBe('Bash')
+
+  expect(app.refreshActivity(), 'and nothing changed the second time').toBe(
     false,
-    'and nothing changed the second time',
   )
+
   endSession('test-session')
 })
 
-test('the companion rings when Claude hands the keyboard back', () => {
-  const app = startedGame()
+test('Should ring when Claude hands the keyboard back, and when it is blocked on you', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-  reportSession('working', { tool: 'Bash' })
+  reportSession('working', 'Bash')
   app.refreshActivity()
-  assert.equal(app.screen.bellCount(), 0, 'starting work is not worth a bell')
+
+  expect(app.screen.bellCount(), 'starting work is not worth a bell').toBe(0)
 
   reportSession('idle')
   app.refreshActivity()
-  assert.equal(app.screen.bellCount(), 1, 'finishing is')
+
+  expect(app.screen.bellCount(), 'finishing is').toBe(1)
 
   app.refreshActivity()
-  assert.equal(app.screen.bellCount(), 1)
 
-  reportSession('working', { tool: 'Edit' })
+  expect(app.screen.bellCount()).toBe(1)
+
+  reportSession('working', 'Edit')
   app.refreshActivity()
   reportSession('waiting')
   app.refreshActivity()
-  assert.equal(app.screen.bellCount(), 2, 'and so is being blocked on you')
+
+  expect(app.screen.bellCount(), 'and so is being blocked on you').toBe(2)
 
   endSession('test-session')
 })
 
-test('the bell can be turned off', () => {
+test('Should stay quiet when the bell is turned off', () => {
   const app = createApp({
     screen: stubScreen(),
     save: null,
@@ -879,324 +1151,375 @@ test('the bell can be turned off', () => {
   reportSession('idle')
   app.refreshActivity()
 
-  assert.equal(app.screen.bellCount(), 0)
+  expect(app.screen.bellCount()).toBe(0)
+
   endSession('test-session')
 })
 
-function runFrames(app, count) {
-  let moved = 0
-  for (let frame = 0; frame < count; frame++) {
-    if (app.tickScene()) moved++
-  }
-  return moved
-}
+test('Should keep everybody standing still until Claude is working', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-test('nobody walks until Claude is working', () => {
-  const app = startedGame()
-  assert.equal(app.scene.step, 0)
-
-  assert.equal(runFrames(app, 20), 0, 'standing still costs no redraws')
-  assert.equal(app.scene.step, 0)
+  expect(app.scene.step).toBe(0)
+  expect(runFrames(app, 20), 'standing still costs no redraws').toBe(0)
+  expect(app.scene.step).toBe(0)
 
   reportSession('idle')
   app.refreshActivity()
-  assert.equal(
+
+  expect(
     runFrames(app, 20),
-    0,
     'and an idle session is someone stood in the grass',
-  )
-  assert.equal(app.scene.step, 0)
+  ).toBe(0)
+  expect(app.scene.step).toBe(0)
 
   endSession('test-session')
 })
 
-test('the walk moves on while Claude works, and stops when it stops', () => {
-  const app = startedGame()
-  reportSession('working', { tool: 'Bash' })
+test('Should move the walk on while Claude works, and leave it where it got to when the work stops', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  reportSession('working', 'Bash')
   app.refreshActivity()
 
   const moved = runFrames(app, 20)
-  assert.ok(moved > 0, 'something should have moved')
-  assert.ok(moved < 20, 'but a step is worth more than one frame')
-  assert.equal(app.scene.step, moved, 'every frame that moved is a step')
+
+  expect(moved, 'something should have moved').toBeGreaterThan(0)
+  expect(moved, 'but a step is worth more than one frame').toBeLessThan(20)
+  expect(app.scene.step, 'every frame that moved is a step').toBe(moved)
 
   reportSession('idle')
   app.refreshActivity()
   const stopped = app.scene.step
   runFrames(app, 20)
-  assert.equal(app.scene.step, stopped, 'and they stay where they got to')
+
+  expect(app.scene.step, 'and they stay where they got to').toBe(stopped)
 
   endSession('test-session')
 })
 
-test('the walk does not run underneath a battle', () => {
-  const app = startedGame()
-  reportSession('working', { tool: 'Bash' })
+test('Should not run the walk underneath a battle', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  reportSession('working', 'Bash')
   app.refreshActivity()
 
   queueEncounter(app, { species: 10, name: 'Caterpie', level: 2, seed: 7 })
   press(app, 'enter')
-  assert.equal(app.mode, 'battle')
 
-  assert.equal(
+  expect(app.mode).toBe('battle')
+  expect(
     runFrames(app, 20),
-    0,
     'there is no grass on screen to walk through',
-  )
+  ).toBe(0)
+
   endSession('test-session')
 })
 
-test('the home menu opens each screen and comes back', () => {
-  const app = startedGame()
+test('Should open each screen from the home menu and come back', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-  for (const mode of ['dex', 'team', 'shop']) {
-    app.openHomeSelection(mode)
-    assert.equal(app.mode, mode, `${mode} should open`)
+  expect(homeView.menuItems(app).map((item) => item.id)).toEqual([
+    'dex',
+    'team',
+    'shop',
+    'heal',
+    'options',
+    'quit',
+  ])
+
+  for (const mode of ['dex', 'team', 'shop', 'options']) {
+    walkHomeTo(app, mode)
+    press(app, 'enter')
+
+    expect(app.mode, `${mode} should open`).toBe(mode)
+
     press(app, 'escape')
-    assert.equal(app.mode, 'home', `${mode} should close again`)
+
+    expect(app.mode, `${mode} should close again`).toBe('home')
   }
 })
 
-test('healing at home restores the team', () => {
-  const app = startedGame()
+test('Should restore the team when you heal at home', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.save.party[0].hp = 1
   app.save.party[0].status = 'poison'
 
   app.openHomeSelection('heal')
 
-  assert.equal(app.save.party[0].hp, app.save.party[0].stats.hp)
-  assert.equal(app.save.party[0].status, null)
+  expect(app.save.party[0].hp).toBe(app.save.party[0].stats.hp)
+  expect(app.save.party[0].status).toBe(null)
 })
 
-const onHome = (app, id) => {
-  const index = homeView.menuItems(app).findIndex((item) => item.id === id)
-  assert.ok(index >= 0, `no such home entry: ${id}`)
-  app.homeSelection = index
-}
+test('Should make healing wait until Claude stops working', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-const healEntry = (app) =>
-  homeView.menuItems(app).find((item) => item.id === 'heal')
-
-test('healing waits until Claude stops working', () => {
-  const app = startedGame()
   app.save.party[0].hp = 1
 
-  reportSession('working', { tool: 'Edit' })
+  reportSession('working', 'Edit')
   app.refreshActivity()
-  assert.equal(
+
+  expect(
     healEntry(app).disabled,
-    true,
     'HEAL is greyed out while Claude has the keyboard',
-  )
+  ).toBe(true)
 
   onHome(app, 'heal')
   press(app, 'enter')
-  assert.equal(app.save.party[0].hp, 1, 'and the key on it does nothing')
+
+  expect(app.save.party[0].hp, 'and the key on it does nothing').toBe(1)
 
   app.openHomeSelection('heal')
-  assert.equal(
+
+  expect(
     app.save.party[0].hp,
-    1,
     'the rule holds even reached straight through',
-  )
-  assert.match(app.notice, /working/i)
+  ).toBe(1)
+  expect(app.notice).toMatch(/working/i)
 
   reportSession('waiting')
   app.refreshActivity()
-  assert.ok(
-    !healEntry(app).disabled,
+
+  expect(
+    healEntry(app).disabled,
     'HEAL comes back the moment the work stops',
-  )
+  ).toBeFalsy()
 
   press(app, 'enter')
-  assert.equal(app.save.party[0].hp, app.save.party[0].stats.hp, 'and it heals')
+
+  expect(app.save.party[0].hp, 'and it heals').toBe(app.save.party[0].stats.hp)
+
   endSession('test-session')
 })
 
-test('a machine with no activity hook can still heal', () => {
-  const app = startedGame()
+test('Should still heal on a machine with no activity hook at all', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.save.party[0].hp = 1
 
-  assert.equal(app.activity.state, 'unknown', 'nothing is reporting at all')
-  assert.ok(!healEntry(app).disabled)
+  expect(app.activity.state, 'nothing is reporting at all').toBe('unknown')
+  expect(healEntry(app).disabled).toBeFalsy()
 
   onHome(app, 'heal')
   press(app, 'enter')
-  assert.equal(app.save.party[0].hp, app.save.party[0].stats.hp)
+
+  expect(app.save.party[0].hp).toBe(app.save.party[0].stats.hp)
 })
 
-function loseABattle(app) {
-  app.save.party.length = 1
-  app.save.party[0] = createPokemon(4, 5, makeRng(11))
-  app.save.party[0].hp = 1
+test('Should make a blackout wait for Claude too, and say on screen why', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-  queueEncounter(app, { species: 150, name: 'Mewtwo', level: 70, seed: 3 })
-  press(app, 'enter')
-  assert.equal(app.mode, 'battle', 'the fight started')
-
-  let guard = 0
-  while (app.mode === 'battle' && guard++ < 80) {
-    if (app.battle.message) press(app, 'enter')
-    else if (app.battle.menu === 'fight') {
-      app.battle.selection = 0
-      press(app, 'enter')
-    } else {
-      app.battle.menu = 'main'
-      app.battle.selection = 0
-      press(app, 'enter')
-    }
-  }
-  assert.ok(guard < 80, 'the battle should have ended')
-  assert.equal(app.mode, 'home', 'and sent you home')
-}
-
-test('a blackout is a rest too, so it waits for Claude as well', () => {
-  const app = startedGame()
-
-  reportSession('working', { tool: 'Bash' })
+  reportSession('working', 'Bash')
   app.refreshActivity()
   loseABattle(app)
 
-  assert.equal(app.save.party[0].hp, 0, 'nobody got up')
-  assert.equal(
-    homeView.menuItems(app).find((item) => item.id === 'heal').disabled,
-    true,
-  )
-  assert.match(
-    homeView.restRow(app),
+  expect(app.save.party[0].hp, 'nobody got up').toBe(0)
+  expect(healEntry(app).disabled).toBe(true)
+  expect(homeView.restRow(app), 'and the screen says why').toMatch(
     /team is down/i,
-    'and the screen says why',
   )
 
   reportSession('idle')
   app.refreshActivity()
   app.openHomeSelection('heal')
-  assert.equal(
-    app.save.party[0].hp,
+
+  expect(app.save.party[0].hp, 'the rest comes when Claude stops').toBe(
     app.save.party[0].stats.hp,
-    'the rest comes when Claude stops',
   )
+
   endSession('test-session')
 })
 
-test('a blackout with nobody working still picks the team back up', () => {
-  const app = startedGame()
-  assert.equal(app.activity.state, 'unknown', 'nothing is reporting at all')
+test('Should pick the team back up after a blackout when nobody is working', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  expect(app.activity.state, 'nothing is reporting at all').toBe('unknown')
 
   loseABattle(app)
-  assert.equal(
-    app.save.party[0].hp,
+
+  expect(app.save.party[0].hp, 'you scurried back to safety').toBe(
     app.save.party[0].stats.hp,
-    'you scurried back to safety',
   )
 })
 
-test('the screen says why HEAL is greyed out, and only when that helps', () => {
-  const app = startedGame()
-  assert.equal(
-    homeView.restRow(app),
+test('Should say why HEAL is greyed out, and only when saying so helps', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  expect(homeView.restRow(app), 'nothing is blocked and nothing is hurt').toBe(
     '',
-    'nothing is blocked and nothing is hurt',
   )
 
   reportSession('working')
   app.refreshActivity()
-  assert.equal(
+
+  expect(
     homeView.restRow(app),
-    '',
     'a team at full health was not reaching for it',
-  )
+  ).toBe('')
 
   app.save.party[0].hp = 1
-  assert.match(homeView.restRow(app), /rest/i, 'a hurt team is owed the reason')
+
+  expect(homeView.restRow(app), 'a hurt team is owed the reason').toMatch(
+    /rest/i,
+  )
 
   app.save.party[0].hp = app.save.party[0].stats.hp
   app.save.party[0].moves[0].pp = 0
-  assert.match(
+
+  expect(
     homeView.restRow(app),
-    /rest/i,
     'and so is one with nothing left to throw',
-  )
+  ).toMatch(/rest/i)
 
   reportSession('idle')
   app.refreshActivity()
-  assert.equal(homeView.restRow(app), '', 'it goes away with the work')
+
+  expect(homeView.restRow(app), 'it goes away with the work').toBe('')
+
   endSession('test-session')
 })
 
-test('buying in the shop moves money and stock', () => {
-  const app = startedGame()
+test('Should move money and stock when you buy in the shop', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.openHomeSelection('shop')
   const before = app.save.money
 
   app.shopSelection = 0
   press(app, 'enter')
 
-  assert.ok(app.save.money < before, 'money should be spent')
-  assert.match(app.shopMessage, /Bought/)
+  expect(app.save.money, 'money should be spent').toBeLessThan(before)
+  expect(app.shopMessage).toMatch(/Bought/)
 })
 
-test('the shop refuses politely when you are broke', () => {
-  const app = startedGame()
+test('Should refuse politely when you are too broke for the shop', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.save.money = 0
   app.openHomeSelection('shop')
 
   app.shopSelection = 0
   press(app, 'enter')
 
-  assert.equal(app.save.money, 0)
-  assert.match(app.shopMessage, /afford/i)
+  expect(app.save.money).toBe(0)
+  expect(app.shopMessage).toMatch(/afford/i)
 })
 
-test('choosing a team member makes it the lead', () => {
-  const app = startedGame()
+test('Should make the team member you choose the lead', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.save.party.push(createPokemon(25, 9, makeRng(1)))
 
   app.openHomeSelection('team')
   press(app, 'down')
   press(app, 'enter')
 
-  assert.equal(app.save.party[0].species, 25)
+  expect(app.save.party[0].species).toBe(25)
 })
 
-test('the box takes one off the team and hands it back', () => {
-  const app = startedGame()
+test('Should take one off the team into the box and hand it back again', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.save.party.push(createPokemon(25, 9, makeRng(1)))
 
   app.openHomeSelection('team')
   press(app, 'down')
   press(app, 'd')
 
-  assert.equal(app.save.party.length, 1, 'it left the team')
-  assert.equal(app.save.box.length, 1)
-  assert.match(app.boxMessage, /went to the box/)
-  assert.equal(app.teamSelection, 0, 'and the cursor followed it off the end')
-  assert.equal(
-    loadSave().box.length,
-    1,
+  expect(app.save.party, 'it left the team').toHaveLength(1)
+  expect(app.save.box).toHaveLength(1)
+  expect(app.boxMessage).toMatch(/went to the box/)
+  expect(app.teamSelection, 'and the cursor followed it off the end').toBe(0)
+  expect(
+    loadSave().box,
     'the swap is on disk, not just on screen',
-  )
+  ).toHaveLength(1)
 
   press(app, 'b')
-  assert.equal(app.mode, 'box')
+
+  expect(app.mode).toBe('box')
 
   press(app, 'enter')
-  assert.equal(app.save.box.length, 0, 'and came back out')
-  assert.equal(app.save.party.length, 2)
-  assert.equal(app.save.party[1].species, 25)
+
+  expect(app.save.box, 'and came back out').toHaveLength(0)
+  expect(app.save.party).toHaveLength(2)
+  expect(app.save.party[1].species).toBe(25)
 
   press(app, 'escape')
-  assert.equal(app.mode, 'team', 'the box belongs to the team screen')
+
+  expect(app.mode, 'the box belongs to the team screen').toBe('team')
 })
 
-test('the box refuses a full team, and the team keeps its last Pokemon', () => {
-  const app = startedGame()
+test('Should refuse a full team, and keep the team its last Pokemon', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.openHomeSelection('team')
 
   press(app, 'd')
-  assert.equal(app.save.party.length, 1)
-  assert.equal(app.save.box.length, 0)
-  assert.match(app.boxMessage, /last Pok/)
+
+  expect(app.save.party).toHaveLength(1)
+  expect(app.save.box).toHaveLength(0)
+  expect(app.boxMessage).toMatch(/last Pok/)
 
   for (let i = 1; i < 6; i++)
     app.save.party.push(createPokemon(16, 5, makeRng(i)))
@@ -1205,22 +1528,18 @@ test('the box refuses a full team, and the team keeps its last Pokemon', () => {
   app.openBox()
   press(app, 'enter')
 
-  assert.equal(app.save.box.length, 1, 'it stayed in the box')
-  assert.equal(app.save.party.length, 6)
-  assert.match(app.boxMessage, /full/)
+  expect(app.save.box, 'it stayed in the box').toHaveLength(1)
+  expect(app.save.party).toHaveLength(6)
+  expect(app.boxMessage).toMatch(/full/)
 })
 
-const openBagOn = (app, key) => {
-  press(app, 'i')
-  assert.notEqual(app.bagSelection, null, 'the bag should be open')
+test('Should use a potion out of a battle, on whoever needs it', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-  const index = itemsInBag(app.save).indexOf(key)
-  assert.notEqual(index, -1, `${key} should be in the bag`)
-  app.bagSelection = index
-}
-
-test('a potion can be used out of a battle, on whoever needs it', () => {
-  const app = startedGame()
   const benched = createPokemon(25, 9, makeRng(1))
   benched.hp = 1
   app.save.party.push(benched)
@@ -1232,31 +1551,36 @@ test('a potion can be used out of a battle, on whoever needs it', () => {
   const potions = countOf(app.save, 'potion')
   press(app, 'enter')
 
-  assert.equal(
-    benched.hp,
+  expect(benched.hp, 'the bench got the potion').toBe(
     Math.min(benched.stats.hp, 21),
-    'the bench got the potion',
   )
-  assert.equal(countOf(app.save, 'potion'), potions - 1)
-  assert.equal(app.bagSelection, null, 'and the bag closed again')
-  assert.equal(app.mode, 'team', 'without leaving the team screen')
-  assert.equal(
+  expect(countOf(app.save, 'potion')).toBe(potions - 1)
+  expect(app.bagSelection, 'and the bag closed again').toBe(null)
+  expect(app.mode, 'without leaving the team screen').toBe('team')
+  expect(
     countOf(loadSave(), 'potion'),
-    potions - 1,
     'spent on disk, not just on screen',
-  )
+  ).toBe(potions - 1)
 })
 
-test('a stone bought in the shop evolves somebody and fills in the Pokedex', () => {
-  const app = startedGame()
+test('Should evolve somebody with a stone bought in the shop, and fill in the Pokedex', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.save.party.push(createPokemon(25, 20, makeRng(4)))
   app.save.money = 5000
 
   app.openHomeSelection('shop')
   app.shopSelection = SHOP_STOCK.indexOf('thunder-stone')
-  assert.notEqual(app.shopSelection, -1, 'the shop sells the Thunder Stone')
+
+  expect(app.shopSelection, 'the shop sells the Thunder Stone').not.toBe(-1)
+
   press(app, 'enter')
-  assert.equal(countOf(app.save, 'thunder-stone'), 1, 'bought')
+
+  expect(countOf(app.save, 'thunder-stone'), 'bought').toBe(1)
 
   press(app, 'escape')
   app.openHomeSelection('team')
@@ -1264,18 +1588,23 @@ test('a stone bought in the shop evolves somebody and fills in the Pokedex', () 
   openBagOn(app, 'thunder-stone')
   press(app, 'enter')
 
-  assert.equal(app.save.party[1].species, 26, 'Pikachu is a Raichu now')
-  assert.equal(countOf(app.save, 'thunder-stone'), 0, 'and the stone is gone')
-  assert.match(app.bagMessage, /RAICHU/)
-  assert.ok(
-    app.save.dex.caught.includes(26),
+  expect(app.save.party[1].species, 'Pikachu is a Raichu now').toBe(26)
+  expect(countOf(app.save, 'thunder-stone'), 'and the stone is gone').toBe(0)
+  expect(app.bagMessage).toMatch(/RAICHU/)
+  expect(
+    app.save.dex.caught,
     'an evolution you raised is an entry you earned',
-  )
-  assert.equal(loadSave().party[1].species, 26, 'and it is on disk')
+  ).toContain(26)
+  expect(loadSave().party[1].species, 'and it is on disk').toBe(26)
 })
 
-test('a stone teaches what the new form knows at the level it arrived at', () => {
-  const app = startedGame()
+test('Should teach what the new form knows at the level it arrived at', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const shellder = createPokemon(90, 50, makeRng(4))
   shellder.moves = shellder.moves.slice(0, 2)
   app.save.party.push(shellder)
@@ -1286,24 +1615,27 @@ test('a stone teaches what the new form knows at the level it arrived at', () =>
   openBagOn(app, 'water-stone')
   press(app, 'enter')
 
-  assert.equal(shellder.species, 91, 'a Cloyster')
-  assert.ok(
-    shellder.moves.some((slot) => slot.move === 'spike-cannon'),
+  expect(shellder.species, 'a Cloyster').toBe(91)
+  expect(
+    shellder.moves.map((slot) => slot.move),
     'and it learned it',
-  )
-  assert.match(
-    [].concat(app.bagMessage).join(' '),
+  ).toContain('spike-cannon')
+  expect([].concat(app.bagMessage).join(' '), 'and said so').toMatch(
     /learned Spike Cannon/i,
-    'and said so',
   )
-  assert.ok(
-    loadSave().party[1].moves.some((slot) => slot.move === 'spike-cannon'),
+  expect(
+    loadSave().party[1].moves.map((slot) => slot.move),
     'on disk, not just on screen',
-  )
+  ).toContain('spike-cannon')
 })
 
-test('a stone that cannot fit the move keeps the four it has and says why', () => {
-  const app = startedGame()
+test('Should keep the four moves it knows and say why when the new one cannot fit', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const shellder = createPokemon(90, 50, makeRng(4))
   app.save.party.push(shellder)
   app.save.bag['water-stone'] = 1
@@ -1314,20 +1646,25 @@ test('a stone that cannot fit the move keeps the four it has and says why', () =
   openBagOn(app, 'water-stone')
   press(app, 'enter')
 
-  assert.equal(shellder.species, 91, 'it still evolves')
-  assert.deepEqual(
+  expect(shellder.species, 'it still evolves').toBe(91)
+  expect(
     shellder.moves.map((slot) => slot.move),
-    before,
     'and keeps its moves',
-  )
+  ).toEqual(before)
 
   const said = [].concat(app.bagMessage).join(' ')
-  assert.match(said, /Spike Cannon/i)
-  assert.match(said, /kept the four it knows/)
+
+  expect(said).toMatch(/Spike Cannon/i)
+  expect(said).toMatch(/kept the four it knows/)
 })
 
-test('the wrong stone is refused, kept, and leaves the bag open', () => {
-  const app = startedGame()
+test('Should refuse the wrong stone, keep it, and leave the bag open', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.save.party.push(createPokemon(25, 20, makeRng(4)))
   app.save.bag['fire-stone'] = 1
 
@@ -1336,153 +1673,209 @@ test('the wrong stone is refused, kept, and leaves the bag open', () => {
   openBagOn(app, 'fire-stone')
   press(app, 'enter')
 
-  assert.equal(app.save.party[1].species, 25, 'Pikachu is unmoved')
-  assert.equal(
-    countOf(app.save, 'fire-stone'),
-    1,
-    'a wasted stone is not spent',
-  )
-  assert.match(app.bagMessage, /no effect/i)
-  assert.notEqual(
+  expect(app.save.party[1].species, 'Pikachu is unmoved').toBe(25)
+  expect(countOf(app.save, 'fire-stone'), 'a wasted stone is not spent').toBe(1)
+  expect(app.bagMessage).toMatch(/no effect/i)
+  expect(
     app.bagSelection,
-    null,
     'and you are still in the bag, on another item',
-  )
+  ).not.toBe(null)
 })
 
-test('a ball in the bag says so rather than doing nothing', () => {
-  const app = startedGame()
+test('Should say a ball needs the grass rather than doing nothing with it', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.openHomeSelection('team')
   openBagOn(app, 'poke-ball')
 
   press(app, 'enter')
 
-  assert.match(app.bagMessage, /grass/i)
-  assert.equal(countOf(app.save, 'poke-ball'), 5, 'and it stays in the bag')
+  expect(app.bagMessage).toMatch(/grass/i)
+  expect(countOf(app.save, 'poke-ball'), 'and it stays in the bag').toBe(5)
 })
 
-test('the bag keeps the team keys to itself, then hands them back', () => {
-  const app = startedGame()
+test('Should keep the team keys to itself while the bag is open, then hand them back', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.save.party.push(createPokemon(25, 9, makeRng(1)))
 
   app.openHomeSelection('team')
   openBagOn(app, 'potion')
 
   press(app, 'd')
-  assert.equal(app.save.party.length, 2, 'nothing left the team')
+
+  expect(app.save.party, 'nothing left the team').toHaveLength(2)
+
   press(app, 'b')
-  assert.equal(app.mode, 'team', 'and the box did not open either')
+
+  expect(app.mode, 'and the box did not open either').toBe('team')
 
   press(app, 'escape')
-  assert.equal(app.bagSelection, null, 'the first one puts the bag away')
-  assert.equal(app.mode, 'team')
+
+  expect(app.bagSelection, 'the first one puts the bag away').toBe(null)
+  expect(app.mode).toBe('team')
 
   press(app, 'escape')
-  assert.equal(app.mode, 'home', 'the second one leaves')
+
+  expect(app.mode, 'the second one leaves').toBe('home')
 })
 
-test('an empty bag says so instead of opening on nothing', () => {
-  const app = startedGame()
+test('Should say the bag is empty instead of opening it on nothing', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.save.bag = {}
 
   app.openHomeSelection('team')
   press(app, 'i')
 
-  assert.equal(app.bagSelection, null, 'it stayed shut')
-  assert.match(app.bagMessage, /empty/i)
-  assert.equal(app.mode, 'team')
+  expect(app.bagSelection, 'it stayed shut').toBe(null)
+  expect(app.bagMessage).toMatch(/empty/i)
+  expect(app.mode).toBe('team')
 })
 
-test('the Pokedex scrolls without falling off either end', () => {
-  const app = startedGame()
+test('Should scroll the Pokedex without falling off either end', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.openHomeSelection('dex')
 
   press(app, 'up')
-  assert.equal(app.dexSelection, 150, 'wraps to the last entry')
+
+  expect(app.dexSelection, 'wraps to the last entry').toBe(150)
 
   press(app, 'down')
-  assert.equal(app.dexSelection, 0, 'and back to the first')
+
+  expect(app.dexSelection, 'and back to the first').toBe(0)
 
   for (let i = 0; i < 200; i++) press(app, 'down')
-  assert.ok(app.dexSelection >= 0 && app.dexSelection < 151)
+
+  expect(app.dexSelection).toBeGreaterThanOrEqual(0)
+  expect(app.dexSelection).toBeLessThan(151)
 })
 
-test('the OPTION screen offers nothing that could stop a sprite drawing at all', () => {
-  const app = startedGame()
+test('Should offer nothing on the OPTION screen that could stop a sprite drawing at all', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.openHomeSelection('options')
 
-  assert.equal(app.mode, 'options')
-  const keys = SETTINGS.map((setting) => setting.key)
-  assert.ok(!keys.includes('spriteMode'), 'no choice of renderer')
-  assert.ok(!keys.includes('blockGrid'), 'and no choice of grid')
-  assert.deepEqual(
-    keys,
-    ['spriteScale', 'sound', 'bell', 'updateCheck'],
-    'only what is left',
-  )
+  expect(app.mode).toBe('options')
+  expect(
+    SETTINGS.map((setting) => setting.key),
+    'no renderer, no grid, only what is left',
+  ).toEqual(['spriteScale', 'sound', 'bell', 'updateCheck'])
 })
 
-test('SOUND is one switch for every noise the game makes, and it sticks', () => {
-  const app = startedGame()
+test('Should make SOUND one switch for every noise the game makes, and make it stick', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.openHomeSelection('options')
   openSetting(app, 'sound')
 
-  assert.equal(app.config.sound !== false, true, 'on by default')
+  expect(app.config.sound, 'on by default').toBe(true)
 
   press(app, 'right')
-  assert.equal(app.config.sound, false)
-  assert.equal(loadConfig().sound, false, 'and it survives the process')
+
+  expect(app.config.sound).toBe(false)
+  expect(loadConfig().sound, 'and it survives the process').toBe(false)
 
   press(app, 'right')
-  assert.equal(app.config.sound, true, 'two values, so it comes straight back')
+
+  expect(app.config.sound, 'two values, so it comes straight back').toBe(true)
 })
 
-test('moving on the home menu makes a noise, and SOUND OFF stops all of them', () => {
+test('Should make a noise moving on the home menu, and none anywhere once SOUND is off', () => {
   const played = []
-  const app = startedGame({ playSound: (name) => played.push(name) })
+  const playSound = (name) => played.push(name)
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playSound,
+  })
 
   press(app, 'right')
-  assert.deepEqual(played, ['cursor'], 'the cursor moved and was heard')
+
+  expect(played, 'the cursor moved and was heard').toEqual(['cursor'])
 
   app.openHomeSelection('options')
   openSetting(app, 'sound')
   played.length = 0
   press(app, 'right')
 
-  assert.deepEqual(played, [], 'nothing once it is off')
+  expect(played, 'nothing once it is off').toEqual([])
 
   press(app, 'escape')
   press(app, 'left')
   press(app, 'right')
-  assert.deepEqual(played, [], 'and nothing anywhere else either')
+
+  expect(played, 'and nothing anywhere else either').toEqual([])
 })
 
-function musicalGame(track = []) {
-  const app = startedGame({
-    playMusic: (name) => track.push(`start:${name}`),
-    endMusic: () => track.push('stop'),
+test('Should sound different opening a menu entry from walking past it', () => {
+  const played = []
+  const playSound = (name) => played.push(name)
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playSound,
   })
-  return app
-}
 
-test('the battle theme starts with the battle and stops when it ends', () => {
+  press(app, 'right')
+  press(app, 'enter')
+
+  expect(played).toEqual(['cursor', 'select'])
+  expect(app.mode, 'and it still opened the screen').toBe('team')
+})
+
+test('Should start the battle theme with the battle and stop it when the battle ends', () => {
   const track = []
-  const app = musicalGame(track)
+  const playMusic = (name) => track.push(`start:${name}`)
+  const endMusic = () => track.push('stop')
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playMusic,
+    endMusic,
+  })
+
   queueEncounter(app, { species: 10, name: 'Caterpie', level: 2, seed: 3 })
 
   press(app, 'enter')
-  assert.deepEqual(
-    track,
-    ['start:battle'],
-    'it is playing before the first message',
-  )
+
+  expect(track, 'it is playing before the first message').toEqual([
+    'start:battle',
+  ])
 
   clearMessages(app)
-  assert.deepEqual(
-    track,
-    ['start:battle'],
-    'and it does not restart on every keypress',
-  )
+
+  expect(track, 'and it does not restart on every keypress').toEqual([
+    'start:battle',
+  ])
 
   let guard = 0
   while (app.mode === 'battle' && guard++ < 40) {
@@ -1494,29 +1887,25 @@ test('the battle theme starts with the battle and stops when it ends', () => {
     }
   }
 
-  assert.equal(app.mode, 'home')
-  assert.deepEqual(
-    track,
-    ['start:battle', 'stop'],
-    'running is one of the ways it ends',
-  )
+  expect(app.mode).toBe('home')
+  expect(track, 'running is one of the ways it ends').toEqual([
+    'start:battle',
+    'stop',
+  ])
 })
 
-function readToFanfare(app, track) {
-  let guard = 0
-  while (
-    app.battle?.message &&
-    !track.includes('start:victory') &&
-    guard++ < 40
-  ) {
-    press(app, 'enter')
-  }
-  assert.ok(track.includes('start:victory'), 'the fanfare never played')
-}
-
-test('winning hands the battle theme over to the fanfare, on the line that says so', () => {
+test('Should hand the battle theme over to the fanfare on the line that says you won', () => {
   const track = []
-  const app = musicalGame(track)
+  const playMusic = (name) => track.push(`start:${name}`)
+  const endMusic = () => track.push('stop')
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playMusic,
+    endMusic,
+  })
+
   const ace = createPokemon(25, 20, makeRng(1))
   ace.moves = [makeMoveSlot('thunder-shock')]
   app.save.party[0] = ace
@@ -1524,39 +1913,45 @@ test('winning hands the battle theme over to the fanfare, on the line that says 
 
   press(app, 'enter')
   clearMessages(app)
-  assert.deepEqual(
-    track,
-    ['start:battle'],
-    'the theme is still under the fight',
-  )
+
+  expect(track, 'the theme is still under the fight').toEqual(['start:battle'])
 
   attack(app)
-  assert.deepEqual(track, ['start:battle'], 'and under the blow that ends it')
+
+  expect(track, 'and under the blow that ends it').toEqual(['start:battle'])
 
   readToFanfare(app, track)
-  assert.match(
-    app.battle.message,
+
+  expect(app.battle.message, 'it turns over as the news arrives').toMatch(
     /fainted/i,
-    'it turns over as the news arrives',
   )
-  assert.deepEqual(
-    track,
-    ['start:battle', 'start:victory'],
-    'one track replacing the other',
-  )
+  expect(track, 'one track replacing the other').toEqual([
+    'start:battle',
+    'start:victory',
+  ])
 
   clearMessages(app)
-  assert.equal(app.mode, 'home')
-  assert.deepEqual(
-    track,
-    ['start:battle', 'start:victory', 'stop'],
-    'and the fanfare does not follow you home',
-  )
+
+  expect(app.mode).toBe('home')
+  expect(track, 'and the fanfare does not follow you home').toEqual([
+    'start:battle',
+    'start:victory',
+    'stop',
+  ])
 })
 
-test('a catch gets the same fanfare, because it is the same win', () => {
+test('Should give a catch the same fanfare, because it is the same win', () => {
   const track = []
-  const app = musicalGame(track)
+  const playMusic = (name) => track.push(`start:${name}`)
+  const endMusic = () => track.push('stop')
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playMusic,
+    endMusic,
+  })
+
   app.save.bag['master-ball'] = 1
   queueEncounter(app, { species: 25, name: 'Pikachu', level: 6, seed: 5 })
 
@@ -1568,51 +1963,77 @@ test('a catch gets the same fanfare, because it is the same win', () => {
   app.battle.selection = app.battle.bagItems.indexOf('master-ball')
   press(app, 'enter')
 
-  assert.deepEqual(
-    track,
-    ['start:battle'],
-    'nothing has been decided on screen yet',
-  )
+  expect(track, 'nothing has been decided on screen yet').toEqual([
+    'start:battle',
+  ])
 
   readToFanfare(app, track)
-  assert.match(app.battle.message, /caught/i, 'it waits for the ball to hold')
+
+  expect(app.battle.message, 'it waits for the ball to hold').toMatch(/caught/i)
 
   clearMessages(app)
-  assert.equal(app.mode, 'home')
-  assert.deepEqual(track, ['start:battle', 'start:victory', 'stop'])
+
+  expect(app.mode).toBe('home')
+  expect(track).toEqual(['start:battle', 'start:victory', 'stop'])
 })
 
-test('losing is not a victory, whatever else it is', () => {
+test('Should not treat losing as a victory, whatever else it is', () => {
   const track = []
-  const app = musicalGame(track)
+  const playMusic = (name) => track.push(`start:${name}`)
+  const endMusic = () => track.push('stop')
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playMusic,
+    endMusic,
+  })
 
   loseABattle(app)
 
-  assert.deepEqual(track, ['start:battle', 'stop'], 'no fanfare for a blackout')
+  expect(track, 'no fanfare for a blackout').toEqual(['start:battle', 'stop'])
 })
 
-test('SOUND OFF is silent in a battle too, and switching it off cuts the music', () => {
+test('Should stay silent in a battle with SOUND OFF, and cut the music the moment it is switched off', () => {
   const track = []
-  const app = musicalGame(track)
+  const playMusic = (name) => track.push(`start:${name}`)
+  const endMusic = () => track.push('stop')
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playMusic,
+    endMusic,
+  })
 
   app.openHomeSelection('options')
   openSetting(app, 'sound')
   press(app, 'right')
-  assert.equal(app.config.sound, false)
-  assert.deepEqual(track, ['stop'], 'the switch stops whatever was playing')
+
+  expect(app.config.sound).toBe(false)
+  expect(track, 'the switch stops whatever was playing').toEqual(['stop'])
 
   press(app, 'escape')
   track.length = 0
   queueEncounter(app, { species: 10, name: 'Caterpie', level: 2, seed: 3 })
   press(app, 'enter')
 
-  assert.equal(app.mode, 'battle', 'the battle still starts')
-  assert.deepEqual(track, [], 'it just does not come with music')
+  expect(app.mode, 'the battle still starts').toBe('battle')
+  expect(track, 'it just does not come with music').toEqual([])
 })
 
-test('quitting mid-battle takes the music with it', () => {
+test('Should take the music with it when you quit mid-battle', () => {
   const track = []
-  const app = musicalGame(track)
+  const playMusic = (name) => track.push(`start:${name}`)
+  const endMusic = () => track.push('stop')
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playMusic,
+    endMusic,
+  })
+
   queueEncounter(app, { species: 10, name: 'Caterpie', level: 2, seed: 3 })
   press(app, 'enter')
 
@@ -1624,41 +2045,41 @@ test('quitting mid-battle takes the music with it', () => {
     process.exit = exit
   }
 
-  assert.deepEqual(
-    track,
-    ['start:battle', 'stop'],
-    'the player does not outlive the game',
-  )
+  expect(track, 'the player does not outlive the game').toEqual([
+    'start:battle',
+    'stop',
+  ])
 })
 
-test('opening a menu entry sounds different from walking past it', () => {
-  const played = []
-  const app = startedGame({ playSound: (name) => played.push(name) })
+test('Should hand room back with SIZE, and wrap rather than running off the end', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
 
-  press(app, 'right')
-  press(app, 'enter')
-  assert.deepEqual(played, ['cursor', 'select'])
-  assert.equal(app.mode, 'team', 'and it still opened the screen')
-})
-
-test('SIZE hands room back, and wraps rather than running off the end', () => {
-  const app = startedGame()
   app.openHomeSelection('options')
 
   openSetting(app, 'spriteScale')
   press(app, 'right')
 
-  assert.equal(app.config.spriteScale, 0.8)
-  assert.equal(app.spriteScale, 0.8, 'the views are drawing at the new size')
-  assert.equal(loadConfig().spriteScale, 0.8)
+  expect(app.config.spriteScale).toBe(0.8)
+  expect(app.spriteScale, 'the views are drawing at the new size').toBe(0.8)
+  expect(loadConfig().spriteScale).toBe(0.8)
 
   press(app, 'left')
   press(app, 'left')
-  assert.equal(app.spriteScale, 0.5, 'wrapped round to the smallest')
+
+  expect(app.spriteScale, 'wrapped round to the smallest').toBe(0.5)
 })
 
-test('a setting that cannot be written is not pretended to have stuck', () => {
-  const app = startedGame()
+test('Should not pretend a setting that cannot be written has stuck', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.openHomeSelection('options')
   openSetting(app, 'spriteScale')
   const before = app.config.spriteScale
@@ -1671,16 +2092,12 @@ test('a setting that cannot be written is not pretended to have stuck', () => {
   try {
     press(app, 'right')
 
-    assert.equal(app.config.spriteScale, before, 'the config is left alone')
-    assert.equal(
-      app.spriteScale,
+    expect(app.config.spriteScale, 'the config is left alone').toBe(before)
+    expect(app.spriteScale, 'and so is the screen it would have changed').toBe(
       before,
-      'and so is the screen it would have changed',
     )
-    assert.match(
-      app.optionsMessage,
+    expect(app.optionsMessage, 'which the screen says out loud').toMatch(
       /could not save/i,
-      'which the screen says out loud',
     )
   } finally {
     rmSync(path, { recursive: true })
@@ -1688,176 +2105,189 @@ test('a setting that cannot be written is not pretended to have stuck', () => {
   }
 })
 
-test('UPDATE cycles through the three times a check can happen, and saves each', () => {
-  const app = startedGame()
+test('Should cycle UPDATE through the three times a check can happen, and save each', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   app.openHomeSelection('options')
   openSetting(app, 'updateCheck')
 
-  assert.equal(app.config.updateCheck, true)
+  expect(app.config.updateCheck).toBe(true)
 
   press(app, 'right')
-  assert.equal(app.config.updateCheck, 'launch')
-  assert.equal(
-    loadConfig().updateCheck,
-    'launch',
-    'and it survives the process',
-  )
+
+  expect(app.config.updateCheck).toBe('launch')
+  expect(loadConfig().updateCheck, 'and it survives the process').toBe('launch')
 
   press(app, 'right')
-  assert.equal(
-    app.config.updateCheck,
+
+  expect(app.config.updateCheck, 'off is still on the end of the list').toBe(
     false,
-    'off is still on the end of the list',
   )
 
   press(app, 'right')
-  assert.equal(app.config.updateCheck, true, 'and it wraps back round to daily')
+
+  expect(app.config.updateCheck, 'and it wraps back round to daily').toBe(true)
 })
 
-test('a hand-edited sprite scale cannot leave a Pokemon too small to see', () => {
-  assert.equal(spriteScale({ spriteScale: 0 }), 0.4)
-  assert.equal(spriteScale({ spriteScale: -3 }), 0.4)
-  assert.equal(spriteScale({ spriteScale: 12 }), 1)
-  assert.equal(
-    spriteScale({ spriteScale: 'large' }),
-    DEFAULT_CONFIG.spriteScale,
-  )
+test('Should never let a hand-edited sprite scale leave a Pokemon too small to see', () => {
+  expect(spriteScale({ spriteScale: 0 })).toBe(0.4)
+  expect(spriteScale({ spriteScale: -3 })).toBe(0.4)
+  expect(spriteScale({ spriteScale: 12 })).toBe(1)
+  expect(spriteScale({ spriteScale: 'large' })).toBe(DEFAULT_CONFIG.spriteScale)
 })
 
-test('OPTION is on the home menu, and opening it does not disturb the others', () => {
-  const app = startedGame()
-  assert.deepEqual(
-    homeView.menuItems(app).map((item) => item.id),
-    ['dex', 'team', 'shop', 'heal', 'options', 'quit'],
-  )
-
-  walkHomeTo(app, 'options')
-  press(app, 'enter')
-  assert.equal(app.mode, 'options')
-
-  press(app, 'escape')
-  assert.equal(app.mode, 'home')
-})
-
-function stubRun() {
-  let settle
-  const run = {
-    state: 'running',
-    from: '0.5.0',
-    to: null,
-    steps: [
-      {
-        id: 'plugin',
-        label: 'fetching',
-        done: 'fetched',
-        status: 'running',
-        detail: null,
-      },
-    ],
-  }
-  run.promise = new Promise((resolve) => {
-    settle = resolve
-  })
-  run.finish = (state = 'done', to = '0.6.0') => {
-    run.state = state
-    run.to = state === 'done' ? to : null
-    run.steps[0].status = state === 'done' ? 'ok' : 'failed'
-    settle(run)
-    return new Promise((resolve) => setImmediate(resolve))
-  }
-  return run
-}
-
-function gameWithUpdate() {
+test('Should do nothing on [u] unless there is an update to fetch', () => {
   const run = stubRun()
-  const app = startedGame({ makeUpdateRun: () => run })
-  return { app, run }
-}
-
-test('[u] does nothing at all unless there is an update to fetch', () => {
-  const { app } = gameWithUpdate()
+  const makeUpdateRun = () => run
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    makeUpdateRun,
+  })
 
   app.updateNotice = null
   press(app, 'u')
-  assert.equal(app.mode, 'home', 'no notice, no screen')
+
+  expect(app.mode, 'no notice, no screen').toBe('home')
 
   app.updateNotice = { kind: 'stale', version: '0.6.0' }
   press(app, 'u')
-  assert.equal(app.mode, 'home')
+
+  expect(app.mode).toBe('home')
 })
 
-test('[u] opens the update screen when a version is on offer', () => {
-  const { app } = gameWithUpdate()
+test('Should open the update screen on [u] when a version is on offer', () => {
+  const run = stubRun()
+  const makeUpdateRun = () => run
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    makeUpdateRun,
+  })
+
   app.updateNotice = { kind: 'available', version: '0.6.0' }
 
   press(app, 'u')
-  assert.equal(app.mode, 'update')
-  assert.equal(app.update.state, 'running')
+
+  expect(app.mode).toBe('update')
+  expect(app.update.state).toBe('running')
 })
 
-test('an update in flight cannot be walked away from', async () => {
-  const { app, run } = gameWithUpdate()
+test('Should not let an update in flight be walked away from', async () => {
+  const run = stubRun()
+  const makeUpdateRun = () => run
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    makeUpdateRun,
+  })
+
   app.updateNotice = { kind: 'available', version: '0.6.0' }
   press(app, 'u')
 
   for (const key of ['escape', 'q', 'enter', 'left']) press(app, key)
-  assert.equal(app.mode, 'update', 'a child process is mid-flight')
+
+  expect(app.mode, 'a child process is mid-flight').toBe('update')
 
   await run.finish()
   press(app, 'escape')
-  assert.equal(app.mode, 'home')
-  assert.equal(app.update, null, 'and the run is done with')
+
+  expect(app.mode).toBe('home')
+  expect(app.update, 'and the run is done with').toBe(null)
 })
 
-test('a second [u] does not start a second update over the first', () => {
-  const { app } = gameWithUpdate()
+test('Should not start a second update over the first', () => {
+  const run = stubRun()
+  const makeUpdateRun = () => run
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    makeUpdateRun,
+  })
+
   app.updateNotice = { kind: 'available', version: '0.6.0' }
 
   press(app, 'u')
   const first = app.update
   app.startUpdate()
-  assert.equal(app.update, first)
+
+  expect(app.update).toBe(first)
 })
 
-test('a finished update leaves the home screen asking for a relaunch', async () => {
-  const { app, run } = gameWithUpdate()
+test('Should leave the home screen asking for a relaunch once the update finishes', async () => {
+  const run = stubRun()
+  const makeUpdateRun = () => run
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    makeUpdateRun,
+  })
+
   app.updateNotice = { kind: 'available', version: '0.6.0' }
   press(app, 'u')
 
   await run.finish('done', '0.6.0')
-  assert.notEqual(app.updateNotice?.kind, 'available')
+
+  expect(app.updateNotice?.kind).not.toBe('available')
 })
 
-test('the spinner only turns while a step is running', () => {
-  const { app, run } = gameWithUpdate()
+test('Should only turn the spinner while a step is running', () => {
+  const run = stubRun()
+  const makeUpdateRun = () => run
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    makeUpdateRun,
+  })
+
   app.updateNotice = { kind: 'available', version: '0.6.0' }
   press(app, 'u')
 
   const before = app.updateFrame
   let moved = false
   for (let frame = 0; frame < 12; frame++) moved = app.tickUpdate() || moved
-  assert.ok(moved, 'it turned')
-  assert.ok(app.updateFrame > before)
+
+  expect(moved, 'it turned').toBe(true)
+  expect(app.updateFrame).toBeGreaterThan(before)
 
   run.state = 'done'
   const settled = app.updateFrame
-  for (let frame = 0; frame < 12; frame++) assert.equal(app.tickUpdate(), false)
-  assert.equal(app.updateFrame, settled, 'a settled screen costs no redraw')
+  for (let frame = 0; frame < 12; frame++) expect(app.tickUpdate()).toBe(false)
+
+  expect(app.updateFrame, 'a settled screen costs no redraw').toBe(settled)
 })
 
-test('the home screen carries the version, and the notice only when there is one', () => {
-  const app = startedGame()
+test('Should carry the version on the home screen, and the notice only when there is one', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
   const size = { cols: 100, rows: 34 }
 
   app.updateNotice = null
   const quiet = homeView.draw(app, size).lines
-  assert.ok(
-    quiet.some((line) => line.includes(`v${VERSION}`)),
-    'the version is on screen',
-  )
-  assert.equal(quiet.filter((line) => line.includes('is out')).length, 0)
+
+  expect(quiet.join('\n'), 'the version is on screen').toContain(`v${VERSION}`)
+  expect(quiet.join('\n'), 'and nothing is on offer').not.toContain('is out')
 
   app.updateNotice = { kind: 'available', version: '9.9.9' }
   const loud = homeView.draw(app, size).lines
-  assert.ok(loud.some((line) => line.includes('9.9.9') && line.includes('[u]')))
+  const notice = loud.find((line) => line.includes('9.9.9'))
+
+  expect(
+    notice,
+    'the notice names the version and the key that fetches it',
+  ).toContain('[u]')
 })

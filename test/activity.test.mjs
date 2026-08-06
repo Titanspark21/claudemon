@@ -1,17 +1,17 @@
-import { test } from 'vitest'
-import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { expect, test } from 'vitest'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const sandbox = mkdtempSync(join(tmpdir(), 'claudemon-activity-'))
+
 process.env.CLAUDEMON_HOME = sandbox
 
+const { STALE_MS } = await import('../src/constants.mjs')
 const {
-  STALE_MS,
   beginTurn,
   endSession,
   endTurn,
@@ -23,32 +23,38 @@ const {
   summariseActivity,
   writeActivity,
 } = await import('../src/activity.mjs')
-const { DEFAULT_CONFIG } = await import('../src/config.mjs')
-const { stripAnsi } = await import('../src/ui/ansi.mjs')
-const { stepsFromPrompt, stepsWhileWorking } =
-  await import('../src/encounter.mjs')
+const { stripAnsi } = await import('../src/ui/text.mjs')
 const { activityRow } = await import('../src/ui/views/home.mjs')
 
-function runHook(
-  script,
-  payload,
-  { home = mkdtempSync(join(tmpdir(), 'claudemon-hook-')), config } = {},
-) {
-  if (config) writeFileSync(join(home, 'config.json'), JSON.stringify(config))
+const freshHome = () => mkdtempSync(join(tmpdir(), 'claudemon-home-'))
 
+const writeConfig = (home, config) => {
+  writeFileSync(join(home, 'config.json'), JSON.stringify(config))
+}
+
+const runHook = (home, script, payload) => {
+  return execFileSync(process.execPath, [join(root, 'scripts', script)], {
+    input: JSON.stringify(payload),
+    encoding: 'utf8',
+    env: { ...process.env, CLAUDEMON_HOME: home },
+  })
+}
+
+const runStatusLine = (home) => {
   const stdout = execFileSync(
     process.execPath,
-    [join(root, 'scripts', script)],
+    [join(root, 'scripts', 'statusline.mjs')],
     {
-      input: JSON.stringify(payload),
+      input: '{}',
       encoding: 'utf8',
       env: { ...process.env, CLAUDEMON_HOME: home },
     },
   )
-  return { home, stdout }
+
+  return stripAnsi(stdout)
 }
 
-function queueIn(home) {
+const queueIn = (home) => {
   try {
     return readFileSync(join(home, 'queue.jsonl'), 'utf8')
       .split('\n')
@@ -59,7 +65,7 @@ function queueIn(home) {
   }
 }
 
-function sessionIn(home, id) {
+const sessionIn = (home, id) => {
   try {
     return JSON.parse(
       readFileSync(join(home, 'sessions', `${id}.json`), 'utf8'),
@@ -69,207 +75,252 @@ function sessionIn(home, id) {
   }
 }
 
-function promptThenWork(
-  session,
-  { prompt = 'x'.repeat(120), event = 'PreToolUse', ...options } = {},
-) {
-  const { home } = runHook(
-    'on-prompt.mjs',
-    {
-      session_id: session,
-      cwd: '/tmp',
-      hook_event_name: 'UserPromptSubmit',
-      prompt,
-    },
-    options,
-  )
+const rewindSession = (home, id, ms) => {
+  const session = sessionIn(home, id)
 
-  runHook(
-    'on-activity.mjs',
-    {
-      session_id: session,
-      cwd: '/tmp',
-      hook_event_name: event,
-      tool_name: 'Read',
-    },
-    { home },
+  writeFileSync(
+    join(home, 'sessions', `${id}.json`),
+    JSON.stringify({
+      ...session,
+      since: session.since - ms,
+      lastStepAt: session.lastStepAt - ms,
+    }),
   )
-  return home
 }
 
-test('a submitted prompt buys a walk rather than taking one', () => {
-  const { home } = runHook(
-    'on-prompt.mjs',
-    {
-      session_id: 'aaa',
-      cwd: '/tmp',
-      hook_event_name: 'UserPromptSubmit',
-      prompt: 'x'.repeat(120),
-    },
-    { config: { encounterChance: 1 } },
-  )
+test('Should buy the turn a walk rather than take one the instant a prompt is submitted', () => {
+  const home = freshHome()
 
-  assert.equal(
-    queueIn(home).length,
-    0,
+  writeConfig(home, { encounterChance: 1 })
+  runHook(home, 'on-prompt.mjs', {
+    session_id: 'aaa',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
+    prompt: 'x'.repeat(120),
+  })
+
+  const session = sessionIn(home, 'aaa')
+
+  expect(
+    queueIn(home),
     'nothing appears in the same instant you press enter',
+  ).toHaveLength(0)
+  expect(session.pendingSteps, 'three steps, owed to the turn').toBe(3)
+  expect(session.state, 'and the session is working from here on').toBe(
+    'working',
   )
-  assert.equal(
-    sessionIn(home, 'aaa').pendingSteps,
-    3,
-    'three steps, owed to the turn',
-  )
+  expect(session.tool).toBeNull()
 })
 
-test('the walk a prompt bought is taken once Claude gets going', () => {
-  const home = promptThenWork('aaa1', { config: { encounterChance: 1 } })
+test('Should take the walk a prompt bought once Claude gets going', () => {
+  const home = freshHome()
+
+  writeConfig(home, { encounterChance: 1 })
+  runHook(home, 'on-prompt.mjs', {
+    session_id: 'aaa1',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
+    prompt: 'x'.repeat(120),
+  })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'aaa1',
+    cwd: '/tmp',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Read',
+  })
 
   const queued = queueIn(home)
-  assert.equal(
-    queued.length,
-    1,
+
+  expect(
+    queued,
     'three steps, but only ever one Pokemon in the grass',
-  )
-  assert.ok(queued[0].name && queued[0].level >= 2, 'and it is a real one')
-  assert.equal(queued[0].session, 'aaa1')
-  assert.ok(
-    !Number.isNaN(Date.parse(queued[0].at)),
-    'stamped, so it can time out',
-  )
-  assert.equal(
+  ).toHaveLength(1)
+  expect(queued[0].name, 'and it is a real one').toBeTruthy()
+  expect(queued[0].level).toBeGreaterThanOrEqual(2)
+  expect(queued[0].session).toBe('aaa1')
+  expect(Date.parse(queued[0].at), 'stamped, so it can time out').not.toBeNaN()
+  expect(
     sessionIn(home, 'aaa1').pendingSteps,
-    0,
     'and the walk is spent, not owed twice',
-  )
+  ).toBe(0)
 })
 
-test('a turn that never touches a tool still takes the walk it bought', () => {
-  const home = promptThenWork('aaa4', {
-    event: 'Stop',
-    config: { encounterChance: 1 },
+test('Should still take the walk it bought when the turn never touches a tool', () => {
+  const home = freshHome()
+
+  writeConfig(home, { encounterChance: 1 })
+  runHook(home, 'on-prompt.mjs', {
+    session_id: 'aaa4',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
+    prompt: 'x'.repeat(120),
+  })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'aaa4',
+    cwd: '/tmp',
+    hook_event_name: 'Stop',
   })
 
-  assert.equal(queueIn(home).length, 1)
-  assert.equal(sessionIn(home, 'aaa4').pendingSteps, 0)
+  expect(queueIn(home)).toHaveLength(1)
+  expect(sessionIn(home, 'aaa4').pendingSteps).toBe(0)
 })
 
-test('a prompt does not stack a second Pokemon behind the first', () => {
-  const home = promptThenWork('aaa2', {
+test('Should not stack a second Pokemon behind the first however many prompts arrive', () => {
+  const home = freshHome()
+  const submitted = {
+    session_id: 'aaa2',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
     prompt: 'x'.repeat(400),
-    config: { encounterChance: 1 },
-  })
-
-  const first = queueIn(home)
-  assert.equal(first.length, 1)
-
-  for (let prompt = 0; prompt < 5; prompt++) {
-    promptThenWork('aaa2', { prompt: 'x'.repeat(400), home })
+  }
+  const toolCall = {
+    session_id: 'aaa2',
+    cwd: '/tmp',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Read',
   }
 
-  assert.deepEqual(queueIn(home), first, 'five more prompts changed nothing')
+  writeConfig(home, { encounterChance: 1 })
+  runHook(home, 'on-prompt.mjs', submitted)
+  runHook(home, 'on-activity.mjs', toolCall)
+
+  const first = queueIn(home)
+
+  expect(first).toHaveLength(1)
+
+  for (let prompt = 0; prompt < 5; prompt++) {
+    runHook(home, 'on-prompt.mjs', submitted)
+    runHook(home, 'on-activity.mjs', toolCall)
+  }
+
+  expect(queueIn(home), 'five more prompts changed nothing').toEqual(first)
 })
 
-test('an encounter nobody faced is replaced once it has timed out', () => {
-  const home = promptThenWork('aaa3', {
-    config: { encounterChance: 1, encounterTtlSeconds: 30 },
-  })
+test('Should replace an encounter nobody faced once it has timed out', () => {
+  const home = freshHome()
+  const submitted = {
+    session_id: 'aaa3',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
+    prompt: 'x'.repeat(120),
+  }
+  const toolCall = {
+    session_id: 'aaa3',
+    cwd: '/tmp',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Read',
+  }
+
+  writeConfig(home, { encounterChance: 1, encounterTtlSeconds: 30 })
+  runHook(home, 'on-prompt.mjs', submitted)
+  runHook(home, 'on-activity.mjs', toolCall)
 
   const [stale] = queueIn(home)
-  assert.ok(stale)
+
+  expect(stale).toBeDefined()
 
   writeFileSync(
     join(home, 'queue.jsonl'),
     `${JSON.stringify({ ...stale, at: new Date(Date.now() - 31_000).toISOString() })}\n`,
   )
 
-  promptThenWork('aaa3', { home })
+  runHook(home, 'on-prompt.mjs', submitted)
+  runHook(home, 'on-activity.mjs', toolCall)
 
   const queued = queueIn(home)
-  assert.equal(
-    queued.length,
+
+  expect(queued, 'the stale entry is replaced, not queued behind').toHaveLength(
     1,
-    'the stale entry is replaced, not queued behind',
   )
-  assert.notEqual(queued[0].at, stale.at, 'and it is a fresh encounter')
+  expect(queued[0].at, 'and it is a fresh encounter').not.toBe(stale.at)
 })
 
-test('the walk a prompt bought is only ever taken once', () => {
-  const home = promptThenWork('aaa5', {
+test('Should only ever take the walk a prompt bought once', () => {
+  const home = freshHome()
+
+  writeConfig(home, { encounterChance: 1 })
+  runHook(home, 'on-prompt.mjs', {
+    session_id: 'aaa5',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
     prompt: 'x'.repeat(400),
-    config: { encounterChance: 1 },
   })
-  assert.equal(queueIn(home).length, 1)
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'aaa5',
+    cwd: '/tmp',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Read',
+  })
+
+  expect(queueIn(home)).toHaveLength(1)
 
   writeFileSync(join(home, 'queue.jsonl'), '')
-  runHook(
-    'on-activity.mjs',
-    { session_id: 'aaa5', hook_event_name: 'PreToolUse', tool_name: 'Bash' },
-    { home },
-  )
-
-  assert.equal(queueIn(home).length, 0, 'the second tool call walks nowhere')
-
-  runHook(
-    'on-activity.mjs',
-    { session_id: 'aaa5', hook_event_name: 'Stop' },
-    { home },
-  )
-  assert.equal(queueIn(home).length, 0, 'and neither does the end of the turn')
-})
-
-test('submitting a prompt marks the session as working', () => {
-  const { home } = runHook(
-    'on-prompt.mjs',
-    {
-      session_id: 'bbb',
-      cwd: '/tmp',
-      hook_event_name: 'UserPromptSubmit',
-      prompt: 'hello',
-    },
-    { config: { encounterChance: 0 } },
-  )
-
-  const session = sessionIn(home, 'bbb')
-  assert.equal(session.state, 'working')
-  assert.equal(session.tool, null)
-})
-
-test('an empty prompt still starts the turn but walks nowhere', () => {
-  const home = promptThenWork('ccc', {
-    prompt: '   ',
-    config: { encounterChance: 1 },
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'aaa5',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Bash',
   })
 
-  assert.equal(sessionIn(home, 'ccc').state, 'working')
-  assert.equal(
-    queueIn(home).length,
-    0,
+  expect(queueIn(home), 'the second tool call walks nowhere').toHaveLength(0)
+
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'aaa5',
+    hook_event_name: 'Stop',
+  })
+
+  expect(queueIn(home), 'and neither does the end of the turn').toHaveLength(0)
+})
+
+test('Should start the turn but walk nowhere when the prompt is blank', () => {
+  const home = freshHome()
+
+  writeConfig(home, { encounterChance: 1 })
+  runHook(home, 'on-prompt.mjs', {
+    session_id: 'ccc',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
+    prompt: '   ',
+  })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'ccc',
+    cwd: '/tmp',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Read',
+  })
+
+  expect(sessionIn(home, 'ccc').state).toBe('working')
+  expect(
+    queueIn(home),
     'no steps bought, so the tool call has nothing to spend',
-  )
+  ).toHaveLength(0)
 })
 
-test('the hook says nothing on stdout, whatever happens', () => {
-  const { stdout } = runHook(
-    'on-prompt.mjs',
-    {
-      session_id: 'ddd',
-      hook_event_name: 'UserPromptSubmit',
-      prompt: 'x'.repeat(400),
-    },
-    { config: { encounterChance: 1 } },
-  )
+test('Should say nothing on stdout, whatever the prompt', () => {
+  const home = freshHome()
 
-  assert.equal(stdout, '')
+  writeConfig(home, { encounterChance: 1 })
+
+  const stdout = runHook(home, 'on-prompt.mjs', {
+    session_id: 'ddd',
+    hook_event_name: 'UserPromptSubmit',
+    prompt: 'x'.repeat(400),
+  })
+
+  expect(stdout).toBe('')
 })
 
-test('a payload the hook cannot make sense of is survivable', () => {
+test('Should survive a payload the hook cannot make sense of', () => {
+  const home = freshHome()
+
   for (const payload of [{}, { session_id: 'eee' }, { prompt: 42 }]) {
-    assert.doesNotThrow(() => runHook('on-prompt.mjs', payload))
+    expect(() => runHook(home, 'on-prompt.mjs', payload)).not.toThrow()
   }
 })
 
-test('a tool call records what Claude is running', () => {
-  const { home } = runHook('on-activity.mjs', {
+test('Should record what Claude is running when a tool call comes in', () => {
+  const home = freshHome()
+
+  runHook(home, 'on-activity.mjs', {
     session_id: 'fff',
     cwd: '/tmp',
     hook_event_name: 'PreToolUse',
@@ -277,284 +328,208 @@ test('a tool call records what Claude is running', () => {
   })
 
   const session = sessionIn(home, 'fff')
-  assert.equal(session.state, 'working')
-  assert.equal(session.tool, 'Bash')
+
+  expect(session.state).toBe('working')
+  expect(session.tool).toBe('Bash')
 })
 
-test('a notification means Claude is stuck waiting on you', () => {
-  const { home } = runHook('on-activity.mjs', {
+test('Should mark the session as stuck waiting on you when a notification arrives', () => {
+  const home = freshHome()
+
+  runHook(home, 'on-activity.mjs', {
     session_id: 'ggg',
     hook_event_name: 'Notification',
     message: 'Claude needs your permission to use Bash',
   })
 
   const session = sessionIn(home, 'ggg')
-  assert.equal(session.state, 'waiting')
-  assert.match(session.message, /permission/)
+
+  expect(session.state).toBe('waiting')
+  expect(session.message).toMatch(/permission/)
 })
 
-test('stopping ends the turn', () => {
-  const { home } = runHook('on-activity.mjs', {
-    session_id: 'hhh',
-    hook_event_name: 'Stop',
-  })
-  assert.equal(sessionIn(home, 'hhh').state, 'idle')
+test('Should end the turn and walk nowhere when a session stops without having worked', () => {
+  const home = freshHome()
+  const stopped = { session_id: 'hhh', hook_event_name: 'Stop' }
+
+  writeConfig(home, { encounterChance: 1, workStepSeconds: 20 })
+  runHook(home, 'on-activity.mjs', stopped)
+
+  expect(sessionIn(home, 'hhh').state).toBe('idle')
+  expect(queueIn(home)).toHaveLength(0)
+
+  runHook(home, 'on-activity.mjs', stopped)
+
+  expect(
+    queueIn(home),
+    'an idle session walks nowhere however often it stops',
+  ).toHaveLength(0)
 })
 
-test('ending a session takes its file with it', () => {
-  const { home } = runHook('on-activity.mjs', {
+test('Should take the session file with it when the session ends', () => {
+  const home = freshHome()
+
+  runHook(home, 'on-activity.mjs', {
     session_id: 'iii',
     hook_event_name: 'PreToolUse',
     tool_name: 'Read',
   })
-  assert.ok(sessionIn(home, 'iii'))
 
-  runHook(
-    'on-activity.mjs',
-    { session_id: 'iii', hook_event_name: 'SessionEnd' },
-    { home },
-  )
-  assert.equal(sessionIn(home, 'iii'), null)
+  expect(sessionIn(home, 'iii').state).toBe('working')
+
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'iii',
+    hook_event_name: 'SessionEnd',
+  })
+
+  expect(sessionIn(home, 'iii')).toBeNull()
 })
 
-test('time spent working walks you through the grass', () => {
-  const { home } = runHook(
-    'on-activity.mjs',
-    {
-      session_id: 'jjj',
-      hook_event_name: 'PreToolUse',
-      tool_name: 'Bash',
-    },
-    { config: { encounterChance: 1, workStepSeconds: 20 } },
-  )
+test('Should walk you through the grass for the time spent working', () => {
+  const home = freshHome()
 
-  assert.equal(queueIn(home).length, 0, 'no time has passed yet')
+  writeConfig(home, { encounterChance: 1, workStepSeconds: 20 })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'jjj',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Bash',
+  })
 
-  const session = sessionIn(home, 'jjj')
-  writeFileSync(
-    join(home, 'sessions', 'jjj.json'),
-    JSON.stringify({
-      ...session,
-      since: session.since - 120_000,
-      lastStepAt: session.lastStepAt - 120_000,
-    }),
-  )
+  expect(queueIn(home), 'no time has passed yet').toHaveLength(0)
 
-  runHook(
-    'on-activity.mjs',
-    { session_id: 'jjj', hook_event_name: 'Stop' },
-    { home },
-  )
+  rewindSession(home, 'jjj', 120_000)
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'jjj',
+    hook_event_name: 'Stop',
+  })
 
   const queued = queueIn(home)
-  assert.equal(
-    queued.length,
-    1,
+
+  expect(
+    queued,
     'two minutes of waiting turns up one Pokemon, not six',
-  )
-  assert.ok(queued[0].name, 'and it is a real one')
-  assert.equal(sessionIn(home, 'jjj').state, 'idle')
+  ).toHaveLength(1)
+  expect(queued[0].name, 'and it is a real one').toBeTruthy()
 })
 
-test('a long turn does not bank a queue of battles for later', () => {
-  const { home } = runHook(
-    'on-activity.mjs',
-    {
-      session_id: 'mmm',
-      hook_event_name: 'PreToolUse',
-      tool_name: 'Bash',
-    },
-    { config: { encounterChance: 1, workStepSeconds: 20 } },
-  )
+test('Should not bank a queue of battles for later over a long turn', () => {
+  const home = freshHome()
+
+  writeConfig(home, { encounterChance: 1, workStepSeconds: 20 })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'mmm',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Bash',
+  })
 
   for (let call = 0; call < 10; call++) {
-    const session = sessionIn(home, 'mmm')
-    writeFileSync(
-      join(home, 'sessions', 'mmm.json'),
-      JSON.stringify({
-        ...session,
-        since: session.since - 120_000,
-        lastStepAt: session.lastStepAt - 120_000,
-      }),
-    )
-    runHook(
-      'on-activity.mjs',
-      { session_id: 'mmm', hook_event_name: 'PreToolUse', tool_name: 'Read' },
-      { home },
-    )
+    rewindSession(home, 'mmm', 120_000)
+    runHook(home, 'on-activity.mjs', {
+      session_id: 'mmm',
+      hook_event_name: 'PreToolUse',
+      tool_name: 'Read',
+    })
   }
 
-  assert.equal(queueIn(home).length, 1)
+  expect(
+    queueIn(home),
+    'ten long tool calls, still one Pokemon in the grass',
+  ).toHaveLength(1)
 })
 
-test('time spent stopped is not cashed in by the next tool call', () => {
-  const { home } = runHook(
-    'on-activity.mjs',
-    {
-      session_id: 'lll',
-      hook_event_name: 'Notification',
-      message: 'permission?',
-    },
-    { config: { encounterChance: 1, workStepSeconds: 20 } },
-  )
+test('Should not cash in the time spent stopped on the next tool call', () => {
+  const home = freshHome()
 
-  const session = sessionIn(home, 'lll')
-  writeFileSync(
-    join(home, 'sessions', 'lll.json'),
-    JSON.stringify({
-      ...session,
-      since: session.since - 1_800_000,
-      lastStepAt: session.lastStepAt - 1_800_000,
-    }),
-  )
+  writeConfig(home, { encounterChance: 1, workStepSeconds: 20 })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'lll',
+    hook_event_name: 'Notification',
+    message: 'permission?',
+  })
+  rewindSession(home, 'lll', 1_800_000)
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'lll',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Bash',
+  })
 
-  runHook(
-    'on-activity.mjs',
-    { session_id: 'lll', hook_event_name: 'PreToolUse', tool_name: 'Bash' },
-    { home },
-  )
-  assert.equal(queueIn(home).length, 0)
+  expect(
+    queueIn(home),
+    'half an hour waiting on you is not half an hour of walking',
+  ).toHaveLength(0)
 
-  runHook(
-    'on-activity.mjs',
-    { session_id: 'lll', hook_event_name: 'Stop' },
-    { home },
-  )
-  assert.equal(
-    queueIn(home).length,
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'lll',
+    hook_event_name: 'Stop',
+  })
+
+  expect(queueIn(home), 'the clock restarted with the tool call').toHaveLength(
     0,
-    'the clock restarted with the tool call',
   )
 })
 
-test('an idle session does not walk anywhere', () => {
-  const { home } = runHook(
-    'on-activity.mjs',
-    {
-      session_id: 'kkk',
-      hook_event_name: 'Stop',
-    },
-    { config: { encounterChance: 1, workStepSeconds: 20 } },
-  )
+test('Should say what is waiting in the status line and how long is left of it', () => {
+  const home = freshHome()
 
-  runHook(
-    'on-activity.mjs',
-    { session_id: 'kkk', hook_event_name: 'Stop' },
-    { home },
-  )
-  assert.equal(queueIn(home).length, 0)
-})
-
-function runStatusLine(home, payload = {}) {
-  const stdout = execFileSync(
-    process.execPath,
-    [join(root, 'scripts', 'statusline.mjs')],
-    {
-      input: JSON.stringify(payload),
-      encoding: 'utf8',
-      env: { ...process.env, CLAUDEMON_HOME: home },
-    },
-  )
-  return stripAnsi(stdout)
-}
-
-test('the status line says what is waiting and how long is left of it', () => {
-  const home = mkdtempSync(join(tmpdir(), 'claudemon-bar-'))
-  writeFileSync(
-    join(home, 'config.json'),
-    JSON.stringify({ encounterTtlSeconds: 30 }),
-  )
+  writeConfig(home, { encounterTtlSeconds: 30 })
   writeFileSync(
     join(home, 'queue.jsonl'),
-    `${JSON.stringify({ v: 1, species: 16, name: 'Pidgey', level: 4, at: new Date(Date.now() - 9_000).toISOString() })}\n`,
+    `${JSON.stringify({
+      v: 1,
+      species: 16,
+      name: 'Pidgey',
+      level: 4,
+      at: new Date(Date.now() - 9_000).toISOString(),
+    })}\n`,
   )
 
   const row = runStatusLine(home)
-  assert.match(row, /A wild PIDGEY appeared!/)
-  assert.match(row, /2[01]s left/)
-  assert.match(row, /claudemon/, 'and where to go about it')
+
+  expect(row).toMatch(/A wild PIDGEY appeared!/)
+  expect(row).toMatch(/2[01]s left/)
+  expect(row, 'and where to go about it').toMatch(/claudemon/)
 })
 
-test('the status line drops the encounter once its window has closed', () => {
-  const home = mkdtempSync(join(tmpdir(), 'claudemon-bar-'))
-  writeFileSync(
-    join(home, 'config.json'),
-    JSON.stringify({ encounterTtlSeconds: 30 }),
-  )
+test('Should drop the encounter from the status line once its window has closed', () => {
+  const home = freshHome()
+
+  writeConfig(home, { encounterTtlSeconds: 30 })
   writeFileSync(
     join(home, 'queue.jsonl'),
-    `${JSON.stringify({ v: 1, species: 16, name: 'Pidgey', level: 4, at: new Date(Date.now() - 31_000).toISOString() })}\n`,
+    `${JSON.stringify({
+      v: 1,
+      species: 16,
+      name: 'Pidgey',
+      level: 4,
+      at: new Date(Date.now() - 31_000).toISOString(),
+    })}\n`,
   )
 
-  assert.doesNotMatch(runStatusLine(home), /appeared/)
+  expect(runStatusLine(home)).not.toMatch(/appeared/)
 })
 
-test('a prompt is always at least one step and never more than the cap', () => {
-  assert.equal(stepsFromPrompt(1, DEFAULT_CONFIG), 1)
-  assert.equal(stepsFromPrompt(40, DEFAULT_CONFIG), 1)
-  assert.equal(stepsFromPrompt(41, DEFAULT_CONFIG), 2)
-  assert.equal(
-    stepsFromPrompt(100_000, DEFAULT_CONFIG),
-    DEFAULT_CONFIG.maxSteps,
-  )
-})
-
-test('working time only pays out whole steps, and banks the rest', () => {
-  const config = { ...DEFAULT_CONFIG, workStepSeconds: 20 }
-
-  assert.deepEqual(stepsWhileWorking(19_000, config), { steps: 0, taken: 0 })
-  assert.deepEqual(stepsWhileWorking(20_000, config), {
-    steps: 1,
-    taken: 20_000,
-  })
-
-  assert.deepEqual(stepsWhileWorking(35_000, config), {
-    steps: 1,
-    taken: 20_000,
-  })
-})
-
-test('working time past the cap is dropped rather than banked', () => {
-  const config = { ...DEFAULT_CONFIG, workStepSeconds: 20, maxSteps: 8 }
-  const { steps, taken } = stepsWhileWorking(60 * 60_000, config)
-
-  assert.equal(steps, 8)
-  assert.equal(
-    taken,
-    60 * 60_000,
-    'the whole hour is spent, not banked into a swarm',
-  )
-})
-
-test('turning workStepSeconds off stops the clock walking', () => {
-  assert.deepEqual(
-    stepsWhileWorking(10 * 60_000, { ...DEFAULT_CONFIG, workStepSeconds: 0 }),
-    {
-      steps: 0,
-      taken: 0,
-    },
-  )
-})
-
-test('a session that says nothing for long enough is assumed dead', () => {
+test('Should call it unknown, not idle, when nothing is reporting or everything has gone quiet', () => {
   const now = Date.now()
-  const sessions = [
-    { session: 'a', state: 'working', at: now - STALE_MS - 1, since: now },
-  ]
+  const silent = {
+    session: 'a',
+    state: 'working',
+    at: now - STALE_MS - 1,
+    since: now,
+  }
 
-  assert.equal(summariseActivity(sessions, now).state, 'unknown')
-})
-
-test('nothing reporting is unknown, not idle', () => {
-  assert.deepEqual(summariseActivity([]), {
+  expect(summariseActivity([])).toEqual({
     state: 'unknown',
     tool: null,
     since: null,
     sessions: 0,
   })
+  expect(
+    summariseActivity([silent], now).state,
+    'a session that says nothing for long enough is assumed dead',
+  ).toBe('unknown')
 })
 
-test('needing you outranks working, and working outranks idle', () => {
+test('Should rank needing you over working, and working over idle', () => {
   const now = Date.now()
   const idle = { session: 'a', state: 'idle', at: now - 300, since: now - 300 }
   const working = {
@@ -571,15 +546,12 @@ test('needing you outranks working, and working outranks idle', () => {
     since: now - 1_000,
   }
 
-  assert.equal(summariseActivity([idle], now).state, 'idle')
-  assert.equal(summariseActivity([idle, working], now).state, 'working')
-  assert.equal(
-    summariseActivity([idle, working, waiting], now).state,
-    'waiting',
-  )
+  expect(summariseActivity([idle], now).state).toBe('idle')
+  expect(summariseActivity([idle, working], now).state).toBe('working')
+  expect(summariseActivity([idle, working, waiting], now).state).toBe('waiting')
 })
 
-test('the summary describes the session that is actually moving', () => {
+test('Should describe the session that is actually moving', () => {
   const now = Date.now()
   const stale = {
     session: 'a',
@@ -597,34 +569,39 @@ test('the summary describes the session that is actually moving', () => {
   }
 
   const summary = summariseActivity([stale, fresh], now)
-  assert.equal(summary.tool, 'Bash')
-  assert.equal(summary.sessions, 2)
+
+  expect(summary.tool).toBe('Bash')
+  expect(summary.sessions).toBe(2)
 })
 
-test('transitions keep the clock running across a turn but reset it between turns', () => {
+test('Should keep the clock running across a turn and reset it between turns', () => {
   const first = beginTurn('trans', '/tmp')
   const tool = noteTool('trans', '/tmp', 'Grep')
 
-  assert.equal(
-    tool.since,
+  expect(tool.since, 'a tool call is the same turn, still ticking').toBe(
     first.since,
-    'a tool call is the same turn, still ticking',
   )
 
   const done = endTurn('trans', '/tmp')
-  assert.ok(done.since >= first.since, 'stopping starts a new clock')
-  assert.equal(done.state, 'idle')
+
+  expect(done.since, 'stopping starts a new clock').toBeGreaterThanOrEqual(
+    first.since,
+  )
+  expect(done.state).toBe('idle')
 
   const waiting = noteWaiting('trans', '/tmp', 'permission')
-  assert.equal(waiting.state, 'waiting')
-  assert.equal(readActivity('trans').state, 'waiting')
+
+  expect(waiting.state).toBe('waiting')
+  expect(readActivity('trans').state).toBe('waiting')
 
   endSession('trans')
-  assert.equal(readActivity('trans'), null)
+
+  expect(readActivity('trans')).toBeNull()
 })
 
-test('sessions are read back freshest first, and the ancient ones are pruned', () => {
+test('Should read sessions back freshest first and prune the ancient ones', () => {
   const now = Date.now()
+
   writeActivity({
     v: 1,
     session: 'old',
@@ -648,59 +625,66 @@ test('sessions are read back freshest first, and the ancient ones are pruned', (
   })
 
   const live = readSessions(now)
-  assert.deepEqual(
-    live.map((entry) => entry.session),
-    ['newest', 'recent'],
-    'the old one is already stale',
-  )
 
-  assert.equal(pruneSessions(now), 1, 'and gets deleted')
-  assert.equal(readActivity('old'), null)
+  expect(
+    live.map((entry) => entry.session),
+    'the old one is already stale',
+  ).toEqual(['newest', 'recent'])
+  expect(pruneSessions(now), 'and gets deleted').toBe(1)
+  expect(readActivity('old')).toBeNull()
 
   for (const id of ['recent', 'newest']) endSession(id)
 })
 
-test('the activity row says nothing when nothing is reporting', () => {
-  assert.equal(
+test('Should say nothing in the activity row when nothing is reporting', () => {
+  expect(
     activityRow({ state: 'unknown', tool: null, since: null, sessions: 0 }),
-    '',
-  )
-  assert.equal(activityRow(null), '')
+  ).toBe('')
+  expect(activityRow(null)).toBe('')
 })
 
-test('the activity row names the tool and how long it has been at it', () => {
+test('Should name the tool in the activity row and how long Claude has been at it', () => {
   const now = Date.now()
   const row = activityRow(
     { state: 'working', tool: 'Bash', since: now - 74_000, sessions: 1 },
     now,
   )
 
-  assert.match(row, /Claude is working/)
-  assert.match(row, /Bash/)
-  assert.match(row, /1m14s/)
+  expect(row).toMatch(/Claude is working/)
+  expect(row).toMatch(/Bash/)
+  expect(row).toMatch(/1m14s/)
 })
 
-test('the activity row shouts when Claude is blocked on you', () => {
+test('Should shout in the activity row when Claude is blocked on you', () => {
   const now = Date.now()
-  assert.match(
-    activityRow({ state: 'waiting', tool: null, since: now, sessions: 1 }, now),
-    /needs you/,
+  const row = activityRow(
+    { state: 'waiting', tool: null, since: now, sessions: 1 },
+    now,
   )
-  assert.match(
-    activityRow({ state: 'idle', tool: null, since: now, sessions: 1 }, now),
-    /idle/,
-  )
+
+  expect(row).toMatch(/needs you/)
 })
 
-test('a second busy tab is counted, not hidden', () => {
+test('Should call the activity row idle once Claude has stopped', () => {
   const now = Date.now()
-  assert.match(
-    activityRow(
-      { state: 'working', tool: 'Edit', since: now, sessions: 3 },
-      now,
-    ),
-    /\+2/,
+  const row = activityRow(
+    { state: 'idle', tool: null, since: now, sessions: 1 },
+    now,
   )
+
+  expect(row).toMatch(/idle/)
 })
 
-process.on('exit', () => rmSync(sandbox, { recursive: true, force: true }))
+test('Should count a second busy tab rather than hide it', () => {
+  const now = Date.now()
+  const row = activityRow(
+    { state: 'working', tool: 'Edit', since: now, sessions: 3 },
+    now,
+  )
+
+  expect(row).toMatch(/\+2/)
+})
+
+const cleanUpSandbox = () => rmSync(sandbox, { recursive: true, force: true })
+
+process.on('exit', cleanUpSandbox)
