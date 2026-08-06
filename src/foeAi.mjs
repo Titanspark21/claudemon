@@ -3,6 +3,7 @@ import { FOE_AI_SCORES } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
 import { chance } from './rng.mjs'
 import { effectiveness } from './typechart.mjs'
+import { isMoveDisabled } from './volatile.mjs'
 
 const scoreFoeMove = (move, playerTypes) => {
   if (move.damageClass === 'status') return FOE_AI_SCORES.status
@@ -21,6 +22,7 @@ export const pickFoeMove = (battle) => {
 
   battle.foe.mon.moves.forEach((slot, index) => {
     if (slot.pp <= 0) return
+    if (isMoveDisabled(battle.foe, index)) return
 
     const score = scoreFoeMove(moveData(slot.move), playerTypes)
 

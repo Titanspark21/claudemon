@@ -34,6 +34,10 @@ const aPokemon = (speciesId, level) => {
   return created
 }
 
+const textsOf = (events) => {
+  return events.filter((event) => event.text).map((event) => event.text)
+}
+
 const playSixTurns = (battle) => {
   const log = []
 
@@ -556,6 +560,300 @@ test('Should leave an immune target with nothing at all', () => {
   expect(events.some((event) => event.text?.includes("doesn't affect"))).toBe(
     true,
   )
+})
+
+test('Should hurt the user with a recoil move instead of healing it', () => {
+  const attacker = aPokemon(143, 50)
+
+  attacker.moves = [{ move: 'double-edge', pp: 15, maxPp: 15 }]
+  attacker.hp = attacker.stats.hp - 20
+
+  const battle = createBattle({
+    playerMon: attacker,
+    wildMon: aPokemon(143, 50),
+    seed: 5,
+  })
+  const before = attacker.hp
+
+  const events = submitAction(battle, { type: 'move', index: 0 })
+
+  expect(attacker.hp, 'recoil should cost the user HP').toBeLessThan(before)
+  expect(events.some((event) => event.text?.includes('hit by recoil'))).toBe(
+    true,
+  )
+})
+
+test('Should heal the user with a draining move and say the target lost the energy', () => {
+  const attacker = aPokemon(1, 40)
+
+  attacker.moves = [{ move: 'absorb', pp: 25, maxPp: 25 }]
+  attacker.hp = 10
+
+  const battle = createBattle({
+    playerMon: attacker,
+    wildMon: aPokemon(16, 5),
+    seed: 9,
+  })
+
+  const events = submitAction(battle, { type: 'move', index: 0 })
+  const drained = events.find((event) =>
+    event.text?.includes('had its energy drained'),
+  )
+
+  expect(attacker.hp).toBeGreaterThan(10)
+  expect(drained.text).toBe('the wild Pidgey had its energy drained!')
+})
+
+test('Should keep a Pokemon asleep on the turn the sleep lands instead of letting it shrug it off', () => {
+  const attacker = aPokemon(25, 40)
+
+  attacker.moves = [{ move: 'sleep-powder', pp: 15, maxPp: 15 }]
+
+  const battle = createBattle({
+    playerMon: attacker,
+    wildMon: aPokemon(16, 5),
+    seed: 1,
+  })
+  const before = battle.player.mon.hp
+
+  const events = submitAction(battle, { type: 'move', index: 0 })
+  const texts = textsOf(events)
+
+  expect(texts).toContain('the wild Pidgey fell asleep!')
+  expect(texts).toContain('the wild Pidgey is fast asleep.')
+  expect(texts.some((text) => text.includes('woke up'))).toBe(false)
+  expect(battle.foe.mon.status).toBe('sleep')
+  expect(battle.player.mon.hp, 'the sleeper should lose its turn').toBe(before)
+})
+
+test('Should hold a sleeping Pokemon for a few turns and let it act the turn it wakes', () => {
+  const player = aPokemon(143, 40)
+  const foe = aPokemon(16, 40)
+
+  player.moves = [{ move: 'tackle', pp: 35, maxPp: 35 }]
+  player.status = 'sleep'
+  player.statusTurns = 3
+  foe.moves = [{ move: 'growl', pp: 40, maxPp: 40 }]
+
+  const battle = createBattle({ playerMon: player, wildMon: foe, seed: 5 })
+  const rounds = []
+
+  for (let turn = 0; turn < 4; turn++) {
+    rounds.push(textsOf(submitAction(battle, { type: 'move', index: 0 })))
+  }
+
+  expect(
+    rounds
+      .slice(0, 3)
+      .every((texts) => texts.includes('Snorlax is fast asleep.')),
+  ).toBe(true)
+  expect(rounds[3]).toContain('Snorlax woke up!')
+  expect(rounds[3]).toContain('Snorlax used Tackle!')
+  expect(player.status).toBe(null)
+  expect(player.moves[0].pp, 'a slept turn costs no PP').toBe(34)
+})
+
+test('Should hold a frozen Pokemon until it thaws out', () => {
+  const player = aPokemon(143, 40)
+  const foe = aPokemon(16, 40)
+
+  player.moves = [{ move: 'tackle', pp: 35, maxPp: 35 }]
+  player.status = 'freeze'
+  foe.moves = [{ move: 'growl', pp: 40, maxPp: 40 }]
+
+  const battle = createBattle({ playerMon: player, wildMon: foe, seed: 2 })
+  const rounds = []
+
+  for (let turn = 0; turn < 5; turn++) {
+    rounds.push(textsOf(submitAction(battle, { type: 'move', index: 0 })))
+  }
+
+  expect(
+    rounds
+      .slice(0, 4)
+      .every((texts) => texts.includes('Snorlax is frozen solid!')),
+  ).toBe(true)
+  expect(rounds[4]).toContain('Snorlax thawed out!')
+  expect(rounds[4]).toContain('Snorlax used Tackle!')
+  expect(player.status).toBe(null)
+})
+
+test('Should confuse the foe with Confuse Ray without touching its health', () => {
+  const attacker = aPokemon(94, 40)
+
+  attacker.moves = [{ move: 'confuse-ray', pp: 10, maxPp: 10 }]
+
+  const battle = createBattle({
+    playerMon: attacker,
+    wildMon: aPokemon(143, 40),
+    seed: 1,
+  })
+  const before = battle.foe.mon.hp
+
+  const events = submitAction(battle, { type: 'move', index: 0 })
+
+  expect(battle.foe.volatile.confusion).toBeGreaterThan(0)
+  expect(battle.foe.mon.hp).toBe(before)
+  expect(
+    events.some((event) => event.text === 'the wild Snorlax became confused!'),
+  ).toBe(true)
+})
+
+test('Should make the foe lose its turn when a flinching hit lands first', () => {
+  const attacker = aPokemon(25, 40)
+  const foe = aPokemon(143, 40)
+
+  attacker.moves = [{ move: 'bite', pp: 25, maxPp: 25 }]
+  foe.moves = [{ move: 'tackle', pp: 35, maxPp: 35 }]
+
+  const battle = createBattle({ playerMon: attacker, wildMon: foe, seed: 3 })
+  const before = battle.player.mon.hp
+
+  const events = submitAction(battle, { type: 'move', index: 0 })
+
+  expect(
+    events.some((event) => event.text?.includes('flinched and could not move')),
+  ).toBe(true)
+  expect(battle.player.mon.hp, 'the flinched foe never swung').toBe(before)
+  expect(foe.moves[0].pp, 'a flinched move costs no PP').toBe(35)
+})
+
+test('Should trap the player with Wrap and block the escape while it holds', () => {
+  const player = aPokemon(143, 40)
+  const foe = aPokemon(25, 40)
+
+  player.moves = [{ move: 'tackle', pp: 35, maxPp: 35 }]
+  foe.moves = [{ move: 'wrap', pp: 20, maxPp: 20 }]
+
+  const battle = createBattle({ playerMon: player, wildMon: foe, seed: 1 })
+
+  submitAction(battle, { type: 'move', index: 0 })
+
+  expect(battle.player.volatile.trap.move).toBe('Wrap')
+
+  const escape = submitAction(battle, { type: 'run' })
+
+  expect(escape.some((event) => event.text === "Can't escape!")).toBe(true)
+  expect(battle.over).toBe(false)
+})
+
+test('Should disable one of the player moves and refuse to run it while it lasts', () => {
+  const player = aPokemon(143, 40)
+  const foe = aPokemon(96, 40)
+
+  player.moves = [
+    { move: 'tackle', pp: 35, maxPp: 35 },
+    { move: 'headbutt', pp: 15, maxPp: 15 },
+  ]
+  foe.moves = [{ move: 'disable', pp: 20, maxPp: 20 }]
+
+  const battle = createBattle({ playerMon: player, wildMon: foe, seed: 1 })
+
+  submitAction(battle, { type: 'move', index: 0 })
+
+  expect(battle.player.volatile.disable.index).toBe(1)
+
+  const events = submitAction(battle, { type: 'move', index: 1 })
+
+  expect(
+    events.some((event) => event.text === "Snorlax's Headbutt is disabled!"),
+  ).toBe(true)
+  expect(player.moves[1].pp, 'a disabled move costs no PP').toBe(15)
+})
+
+test('Should seed the player with Leech Seed and start sapping it', () => {
+  const player = aPokemon(143, 40)
+  const foe = aPokemon(1, 40)
+
+  player.moves = [{ move: 'tackle', pp: 35, maxPp: 35 }]
+  foe.moves = [{ move: 'leech-seed', pp: 10, maxPp: 10 }]
+
+  const battle = createBattle({ playerMon: player, wildMon: foe, seed: 1 })
+
+  const events = submitAction(battle, { type: 'move', index: 0 })
+
+  expect(battle.player.volatile.leechSeed).toBe(true)
+  expect(
+    events.some((event) =>
+      event.text?.includes("Snorlax's health is sapped by Leech Seed!"),
+    ),
+  ).toBe(true)
+})
+
+test('Should score a recoil double knockout as a win, not a loss', () => {
+  const player = aPokemon(143, 50)
+
+  player.moves = [{ move: 'double-edge', pp: 15, maxPp: 15 }]
+  player.hp = 2
+
+  const battle = createBattle({
+    playerMon: player,
+    wildMon: aPokemon(16, 5),
+    seed: 5,
+  })
+
+  const texts = textsOf(submitAction(battle, { type: 'move', index: 0 }))
+
+  expect(texts).toContain('the wild Pidgey fainted!')
+  expect(texts).toContain('Snorlax fainted!')
+  expect(
+    battle.outcome,
+    'the foe went down to the hit, the user to recoil',
+  ).toBe('win')
+  expect(battle.rewards.exp).toBeGreaterThan(0)
+})
+
+test('Should let Leech Seed sap a fainted Pokemon without bringing it back', () => {
+  const player = aPokemon(143, 40)
+  const foe = aPokemon(1, 40)
+
+  player.moves = [{ move: 'growl', pp: 40, maxPp: 40 }]
+  player.status = 'poison'
+  player.hp = 1
+  foe.moves = [{ move: 'growl', pp: 40, maxPp: 40 }]
+
+  const battle = createBattle({ playerMon: player, wildMon: foe, seed: 1 })
+
+  battle.foe.volatile.leechSeed = true
+
+  submitAction(battle, { type: 'move', index: 0 })
+
+  expect(player.hp, 'the poison knocked it out and it stays out').toBe(0)
+  expect(battle.outcome).toBe('loss')
+})
+
+test('Should keep the sleep counter running when confusion lands on a sleeping foe', () => {
+  const player = aPokemon(94, 40)
+  const foe = aPokemon(143, 40)
+
+  player.moves = [{ move: 'confuse-ray', pp: 10, maxPp: 10 }]
+  foe.moves = [{ move: 'tackle', pp: 35, maxPp: 35 }]
+  foe.status = 'sleep'
+  foe.statusTurns = 3
+
+  const battle = createBattle({ playerMon: player, wildMon: foe, seed: 1 })
+
+  submitAction(battle, { type: 'move', index: 0 })
+
+  expect(battle.foe.volatile.confusion).toBeGreaterThan(0)
+  expect(foe.statusTurns, 'confusion must not stall the sleep').toBe(2)
+})
+
+test('Should fall back to Struggle when the only move left is disabled', () => {
+  const player = aPokemon(143, 40)
+  const foe = aPokemon(16, 40)
+
+  player.moves = [{ move: 'tackle', pp: 35, maxPp: 35 }]
+  foe.moves = [{ move: 'tackle', pp: 35, maxPp: 35 }]
+
+  const battle = createBattle({ playerMon: player, wildMon: foe, seed: 1 })
+
+  battle.foe.volatile.disable = { index: 0, turn: 0, turns: 5 }
+
+  const texts = textsOf(submitAction(battle, { type: 'move', index: 0 }))
+
+  expect(texts).toContain('the wild Pidgey used Struggle!')
+  expect(texts.some((text) => text.includes('is disabled'))).toBe(false)
 })
 
 test('Should ignore an action once the battle is over', () => {

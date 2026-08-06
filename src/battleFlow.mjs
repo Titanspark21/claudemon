@@ -20,6 +20,7 @@ import {
 } from './state.mjs'
 import { ballSteps } from './ui/ball.mjs'
 import { HIT_FRAMES } from './ui/constants.mjs'
+import { isMoveDisabled } from './volatile.mjs'
 
 const liveHp = (state) => {
   return { player: state.player.mon.hp, foe: state.foe.mon.hp }
@@ -285,6 +286,11 @@ const chooseMove = (ctx) => {
 
   if (slot.pp <= 0) {
     queueMessages(ctx, [BATTLE_MESSAGES.noPp])
+    return
+  }
+
+  if (isMoveDisabled(battle.state.player, battle.selection)) {
+    queueMessages(ctx, [BATTLE_MESSAGES.disabled])
     return
   }
 

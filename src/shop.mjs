@@ -2,6 +2,7 @@ import { BALLS, ITEM_MESSAGES, ITEMS, PARTY_ITEM_KINDS } from './constants.mjs'
 import {
   displayName,
   evolveInto,
+  hpFraction,
   isFainted,
   speciesName,
   stoneEvolution,
@@ -97,8 +98,9 @@ export const useItem = (save, key, mon) => {
   if (item.kind === 'revive') {
     if (!isFainted(mon)) return { ok: false, message: ITEM_MESSAGES.noEffect }
 
-    mon.hp = Math.max(1, Math.floor(mon.stats.hp / 2))
+    mon.hp = hpFraction(mon, 2)
     mon.status = null
+    mon.statusTurns = 0
     removeItem(save, key)
 
     return { ok: true, message: ITEM_MESSAGES.revived }

@@ -1,19 +1,15 @@
 import {
-  AILMENT_IMMUNE_TYPES,
   BALLS,
   CATCH_COMPLAINTS,
   CRIT_CHANCE,
-  CRIT_MULTIPLIER,
-  DAMAGE_VARIANCE,
   EFFECTIVENESS_MESSAGES,
-  FALLBACK_POWER,
   HIGH_CRIT_CHANCE,
   OHKO_MOVES,
   PARALYSIS_SKIP_CHANCE,
   POISON_FRACTIONS,
   RUN_ODDS,
+  SLEEP_TURNS,
   SLEEP_WAKE_CHANCE,
-  STAB_MULTIPLIER,
   STAGE_LIMIT,
   STAT_LABELS,
   STATUS_LABELS,
@@ -25,26 +21,31 @@ import {
 } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
 import { effectiveSpeed, moveSlotOf, stageMultiplier } from './battleActor.mjs'
+import { applyDamage, applyHeal, label, other, say } from './battleEvents.mjs'
 import { attemptCatch } from './capture.mjs'
+import { computeDamage, FIXED_DAMAGE } from './damage.mjs'
 import { expFromDefeating, moneyFromDefeating } from './exp.mjs'
 import { decideOrder, pickFoeMove } from './foeAi.mjs'
-import { displayName, isFainted, levelOf } from './pokemon.mjs'
+import {
+  displayName,
+  hpFraction,
+  isFainted,
+  isImmuneToAilment,
+  levelOf,
+} from './pokemon.mjs'
 import { chance, makeRng, randInt } from './rng.mjs'
 import { effectiveness, effectivenessMessage } from './typechart.mjs'
-
-const FIXED_DAMAGE = {
-  'dragon-rage': () => 40,
-  'sonic-boom': () => 20,
-  'seismic-toss': ({ attackerLevel }) => attackerLevel,
-  'night-shade': ({ attackerLevel }) => attackerLevel,
-  'super-fang': ({ defender }) => Math.max(1, Math.floor(defender.hp / 2)),
-  psywave: ({ attackerLevel, rng }) => {
-    return Math.max(
-      1,
-      Math.floor((attackerLevel * randInt(rng, 50, 150)) / 100),
-    )
-  },
-}
+import {
+  applyFlinch,
+  applyVolatileAilment,
+  blockedByVolatile,
+  emptyVolatile,
+  endOfTurnVolatile,
+  isMoveDisabled,
+  isTrapped,
+  isVolatileAilment,
+  statusLandedThisTurn,
+} from './volatile.mjs'
 
 export const emptyStages = () => {
   return {
@@ -68,8 +69,12 @@ export const createBattle = ({
     seed,
     rng: makeRng(seed),
     turn: 0,
-    player: { mon: playerMon, stages: emptyStages() },
-    foe: { mon: wildMon, stages: emptyStages() },
+    player: {
+      mon: playerMon,
+      stages: emptyStages(),
+      volatile: emptyVolatile(),
+    },
+    foe: { mon: wildMon, stages: emptyStages(), volatile: emptyVolatile() },
     participants: [...new Set([...participants, playerMon])],
     over: false,
     outcome: null,
@@ -81,6 +86,7 @@ export const createBattle = ({
 export const switchIn = (battle, mon) => {
   battle.player.mon = mon
   battle.player.stages = emptyStages()
+  battle.player.volatile = emptyVolatile()
 
   if (!battle.participants.includes(mon)) battle.participants.push(mon)
 
@@ -93,125 +99,71 @@ export const rehydrate = (battle) => {
   return battle
 }
 
-const other = (side) => (side === 'player' ? 'foe' : 'player')
-
-const label = (battle, side) => {
-  const name = displayName(battle[side].mon)
-
-  return side === 'player' ? name : `the wild ${name}`
+const hasUsableMove = (actor) => {
+  return actor.mon.moves.some(
+    (slot, index) => slot.pp > 0 && !isMoveDisabled(actor, index),
+  )
 }
 
-const say = (events, text) => {
-  events.push({ type: 'message', text })
-}
-
-const hasUsableMove = (actor) => actor.mon.moves.some((slot) => slot.pp > 0)
-
-const blockedByStatus = (battle, side, events) => {
-  const actor = battle[side]
-  const mon = actor.mon
+const blockedBySleep = (battle, side, events) => {
+  const mon = battle[side].mon
   const who = label(battle, side)
 
-  if (mon.status === 'sleep') {
-    if (mon.statusTurns <= 0 || chance(battle.rng, SLEEP_WAKE_CHANCE)) {
-      mon.status = null
-      mon.statusTurns = 0
-
-      say(events, `${who} woke up!`)
-
-      return false
-    }
-
-    mon.statusTurns--
-
-    say(events, `${who} is fast asleep.`)
+  if (statusLandedThisTurn(battle[side], battle.turn)) {
+    say(events, `${who} ${TURN_MESSAGES.fastAsleep}`)
 
     return true
   }
 
-  if (mon.status === 'freeze') {
-    if (chance(battle.rng, THAW_CHANCE)) {
-      mon.status = null
+  if (mon.statusTurns <= 0 || chance(battle.rng, SLEEP_WAKE_CHANCE)) {
+    mon.status = null
+    mon.statusTurns = 0
 
-      say(events, `${who} thawed out!`)
+    say(events, `${who} ${TURN_MESSAGES.wokeUp}`)
 
-      return false
-    }
-
-    say(events, `${who} is frozen solid!`)
-
-    return true
+    return false
   }
+
+  mon.statusTurns--
+
+  say(events, `${who} ${TURN_MESSAGES.fastAsleep}`)
+
+  return true
+}
+
+const blockedByFreeze = (battle, side, events) => {
+  const mon = battle[side].mon
+  const who = label(battle, side)
+
+  if (
+    !statusLandedThisTurn(battle[side], battle.turn) &&
+    chance(battle.rng, THAW_CHANCE)
+  ) {
+    mon.status = null
+
+    say(events, `${who} ${TURN_MESSAGES.thawedOut}`)
+
+    return false
+  }
+
+  say(events, `${who} ${TURN_MESSAGES.frozenSolid}`)
+
+  return true
+}
+
+const blockedByStatus = (battle, side, events) => {
+  const mon = battle[side].mon
+
+  if (mon.status === 'sleep') return blockedBySleep(battle, side, events)
+  if (mon.status === 'freeze') return blockedByFreeze(battle, side, events)
 
   if (mon.status === 'paralysis' && chance(battle.rng, PARALYSIS_SKIP_CHANCE)) {
-    say(events, `${who} is paralysed and can't move!`)
+    say(events, `${label(battle, side)} ${TURN_MESSAGES.fullyParalysed}`)
 
     return true
   }
 
   return false
-}
-
-const applyDamage = (battle, side, amount, events) => {
-  const actor = battle[side]
-  const dealt = Math.min(amount, actor.mon.hp)
-
-  actor.mon.hp -= dealt
-
-  events.push({ type: 'damage', side, amount: dealt, hpAfter: actor.mon.hp })
-
-  return dealt
-}
-
-const getMovePower = (move) => move.power ?? FALLBACK_POWER[move.key] ?? 50
-
-const computeDamage = (battle, attackerSide, move, isCrit) => {
-  const attacker = battle[attackerSide]
-  const defender = battle[other(attackerSide)]
-  const attackerLevel = levelOf(attacker.mon)
-
-  const physical = move.damageClass === 'physical'
-  const attackStat = physical ? 'attack' : 'spAttack'
-  const defenseStat = physical ? 'defense' : 'spDefense'
-
-  const a =
-    attacker.mon.stats[attackStat] *
-    (isCrit ? 1 : stageMultiplier(attacker.stages[attackStat]))
-  const d =
-    defender.mon.stats[defenseStat] *
-    (isCrit ? 1 : stageMultiplier(defender.stages[defenseStat]))
-
-  const power = getMovePower(move)
-
-  let damage =
-    Math.floor(
-      Math.floor((Math.floor((2 * attackerLevel) / 5 + 2) * power * a) / d) /
-        50,
-    ) + 2
-
-  if (isCrit) damage = Math.floor(damage * CRIT_MULTIPLIER)
-
-  const attackerTypes = species(attacker.mon.species).types
-
-  if (attackerTypes.includes(move.type))
-    damage = Math.floor(damage * STAB_MULTIPLIER)
-
-  const multiplier = effectiveness(
-    move.type,
-    species(defender.mon.species).types,
-  )
-
-  damage = Math.floor(damage * multiplier)
-
-  if (attacker.mon.status === 'burn' && physical)
-    damage = Math.floor(damage / 2)
-
-  damage = Math.floor(
-    (damage * randInt(battle.rng, DAMAGE_VARIANCE.min, DAMAGE_VARIANCE.max)) /
-      DAMAGE_VARIANCE.max,
-  )
-
-  return { damage: multiplier === 0 ? 0 : Math.max(1, damage), multiplier }
 }
 
 const landsHit = (battle, attackerSide, move) => {
@@ -268,37 +220,49 @@ const getAilmentRate = (move) => {
   return move.ailmentChance || 0
 }
 
-const applyAilment = (battle, attackerSide, move, events) => {
-  if (!move.ailment) return
-  if (!(move.ailment in STATUS_LABELS)) return
-
-  const defender = battle[other(attackerSide)]
-
-  if (defender.mon.status) return
-
+const rollsAilment = (battle, move) => {
   const rate = getAilmentRate(move)
 
-  if (rate <= 0 || !chance(battle.rng, rate / 100)) return
+  if (rate <= 0) return false
 
-  const defenderTypes = species(defender.mon.species).types
-  const immune = AILMENT_IMMUNE_TYPES[move.ailment]
+  return chance(battle.rng, rate / 100)
+}
 
-  if (immune?.some((type) => defenderTypes.includes(type))) return
+const applyStatusAilment = (battle, defenderSide, move, events) => {
+  const defender = battle[defenderSide]
+
+  if (defender.mon.status) return
+  if (!rollsAilment(battle, move)) return
+  if (isImmuneToAilment(defender.mon, move.ailment)) return
 
   defender.mon.status = move.ailment
   defender.mon.statusTurns =
-    move.ailment === 'sleep' ? randInt(battle.rng, 1, 3) : 0
+    move.ailment === 'sleep'
+      ? randInt(battle.rng, SLEEP_TURNS.min, SLEEP_TURNS.max)
+      : 0
+  defender.volatile.statusTurn = battle.turn
 
-  events.push({
-    type: 'status',
-    side: other(attackerSide),
-    status: move.ailment,
-  })
+  events.push({ type: 'status', side: defenderSide, status: move.ailment })
 
-  say(
-    events,
-    `${label(battle, other(attackerSide))} ${STATUS_LABELS[move.ailment]}!`,
-  )
+  say(events, `${label(battle, defenderSide)} ${STATUS_LABELS[move.ailment]}!`)
+}
+
+const applyAilment = (battle, attackerSide, move, events) => {
+  if (!move.ailment) return
+
+  const defenderSide = other(attackerSide)
+
+  if (isVolatileAilment(move.ailment)) {
+    if (!rollsAilment(battle, move)) return
+
+    applyVolatileAilment(battle, defenderSide, move, events)
+
+    return
+  }
+
+  if (!(move.ailment in STATUS_LABELS)) return
+
+  applyStatusAilment(battle, defenderSide, move, events)
 }
 
 const doesNotAffect = (move, defenderTypes, events) => {
@@ -315,21 +279,49 @@ const rollHitCount = (battle, move) => {
   return randInt(battle.rng, move.minHits ?? move.maxHits, move.maxHits)
 }
 
+const applyRecoil = (battle, attackerSide, amount, events) => {
+  applyDamage(battle, attackerSide, amount, events)
+  say(events, `${label(battle, attackerSide)} ${TURN_MESSAGES.recoil}`)
+}
+
+const applyDrain = (battle, attackerSide, drain, total, events) => {
+  const amount = Math.max(1, Math.floor((total * Math.abs(drain)) / 100))
+
+  if (drain < 0) return applyRecoil(battle, attackerSide, amount, events)
+
+  applyHeal(battle, attackerSide, amount, events)
+  say(
+    events,
+    `${label(battle, other(attackerSide))} ${TURN_MESSAGES.energyDrained}`,
+  )
+}
+
 const useMove = (battle, attackerSide, moveIndex, events) => {
   const attacker = battle[attackerSide]
   const defenderSide = other(attackerSide)
 
   if (blockedByStatus(battle, attackerSide, events)) return
+  if (blockedByVolatile(battle, attackerSide, events)) return
 
   const slot = moveSlotOf(attacker, moveIndex)
+  const disabled = slot != null && isMoveDisabled(attacker, moveIndex)
 
   let move
 
-  if (slot) {
+  if (slot && !disabled) {
     move = { ...moveData(slot.move), key: slot.move }
     slot.pp--
   } else if (!hasUsableMove(attacker)) {
     move = { ...STRUGGLE.data, key: STRUGGLE.move }
+  } else if (disabled) {
+    const who = label(battle, attackerSide)
+
+    say(
+      events,
+      `${who}'s ${moveData(slot.move).name} ${TURN_MESSAGES.disabled}`,
+    )
+
+    return
   } else {
     say(events, TURN_MESSAGES.noPp)
     return
@@ -352,23 +344,15 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
     applyAilment(battle, attackerSide, move, events)
 
     if (move.healing) {
-      const healed = Math.min(
+      const healed = applyHeal(
+        battle,
+        attackerSide,
         Math.floor((attacker.mon.stats.hp * move.healing) / 100),
-        attacker.mon.stats.hp - attacker.mon.hp,
+        events,
       )
 
-      if (healed > 0) {
-        attacker.mon.hp += healed
-
-        events.push({
-          type: 'heal',
-          side: attackerSide,
-          amount: healed,
-          hpAfter: attacker.mon.hp,
-        })
-
+      if (healed > 0)
         say(events, `${label(battle, attackerSide)} regained health!`)
-      }
     }
 
     return
@@ -430,34 +414,21 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
   if (note) say(events, note)
   if (hits > 1) say(events, `Hit ${hits} times!`)
 
-  if (move.drain && total > 0) {
-    const drained = Math.max(1, Math.floor((total * move.drain) / 100))
+  if (move.drain && total > 0)
+    applyDrain(battle, attackerSide, move.drain, total, events)
 
-    attacker.mon.hp = Math.min(attacker.mon.stats.hp, attacker.mon.hp + drained)
-
-    events.push({
-      type: 'heal',
-      side: attackerSide,
-      amount: drained,
-      hpAfter: attacker.mon.hp,
-    })
-
-    say(events, `${label(battle, attackerSide)} had its energy drained!`)
-  }
-
-  if (move.key === STRUGGLE.move && total > 0) {
-    applyDamage(
+  if (move.key === STRUGGLE.move && total > 0)
+    applyRecoil(
       battle,
       attackerSide,
       Math.max(1, Math.floor(total / STRUGGLE_RECOIL_FRACTION)),
       events,
     )
-    say(events, `${label(battle, attackerSide)} is hit by recoil!`)
-  }
 
   if (!isFainted(battle[defenderSide].mon)) {
     applyAilment(battle, attackerSide, move, events)
     applyStatChanges(battle, attackerSide, move, events)
+    applyFlinch(battle, defenderSide, move)
   }
 }
 
@@ -470,9 +441,7 @@ const endOfTurnDamage = (battle, side, events) => {
 
   if (!fraction) return
 
-  const amount = Math.max(1, Math.floor(mon.stats.hp / fraction))
-
-  applyDamage(battle, side, amount, events)
+  applyDamage(battle, side, hpFraction(mon, fraction), events)
   say(events, `${label(battle, side)} is hurt by its ${mon.status}!`)
 }
 
@@ -483,30 +452,71 @@ const finish = (battle, outcome, events) => {
   events.push({ type: 'end', outcome })
 }
 
-const checkFaint = (battle, events) => {
-  for (const side of ['player', 'foe']) {
-    if (!isFainted(battle[side].mon)) continue
+const awardVictory = (battle) => {
+  const foe = battle.foe.mon
 
+  battle.rewards = {
+    exp: expFromDefeating(foe.species, levelOf(foe)),
+    money: moneyFromDefeating(levelOf(foe), battle.rng),
+  }
+}
+
+const checkFaint = (battle, events) => {
+  const fainted = ['foe', 'player'].filter((side) =>
+    isFainted(battle[side].mon),
+  )
+
+  if (!fainted.length) return false
+
+  for (const side of fainted) {
     events.push({ type: 'faint', side })
     say(events, `${label(battle, side)} fainted!`)
+  }
 
-    if (side === 'foe') {
-      const foe = battle.foe.mon
-
-      battle.rewards = {
-        exp: expFromDefeating(foe.species, levelOf(foe)),
-        money: moneyFromDefeating(levelOf(foe), battle.rng),
-      }
-
-      finish(battle, 'win', events)
-    } else {
-      finish(battle, 'loss', events)
-    }
+  if (!fainted.includes('foe')) {
+    finish(battle, 'loss', events)
 
     return true
   }
 
-  return false
+  awardVictory(battle)
+  finish(battle, 'win', events)
+
+  return true
+}
+
+const runOdds = (battle) => {
+  const playerSpeed = effectiveSpeed(battle.player)
+  const foeSpeed = effectiveSpeed(battle.foe)
+
+  if (playerSpeed >= foeSpeed) return 1
+
+  return Math.min(
+    RUN_ODDS.max,
+    (playerSpeed / foeSpeed) * RUN_ODDS.speedFactor +
+      battle.runAttempts * RUN_ODDS.perAttempt,
+  )
+}
+
+const attemptRun = (battle, events) => {
+  if (isTrapped(battle.player)) {
+    say(events, TURN_MESSAGES.cantEscape)
+
+    return false
+  }
+
+  battle.runAttempts++
+
+  if (!chance(battle.rng, runOdds(battle))) {
+    say(events, TURN_MESSAGES.stuck)
+
+    return false
+  }
+
+  say(events, TURN_MESSAGES.gotAway)
+  finish(battle, 'fled', events)
+
+  return true
 }
 
 export const submitAction = (battle, action) => {
@@ -535,27 +545,7 @@ export const submitAction = (battle, action) => {
 
     say(events, CATCH_COMPLAINTS[result.shakes])
   } else if (action.type === 'run') {
-    battle.runAttempts++
-
-    const playerSpeed = effectiveSpeed(battle.player)
-    const foeSpeed = effectiveSpeed(battle.foe)
-    const odds =
-      playerSpeed >= foeSpeed
-        ? 1
-        : Math.min(
-            RUN_ODDS.max,
-            (playerSpeed / foeSpeed) * RUN_ODDS.speedFactor +
-              battle.runAttempts * RUN_ODDS.perAttempt,
-          )
-
-    if (chance(battle.rng, odds)) {
-      say(events, TURN_MESSAGES.gotAway)
-      finish(battle, 'fled', events)
-
-      return events
-    }
-
-    say(events, TURN_MESSAGES.stuck)
+    if (attemptRun(battle, events)) return events
   } else if (action.type === 'move') {
     const foeMoveIndex = pickFoeMove(battle)
 
@@ -584,6 +574,7 @@ export const submitAction = (battle, action) => {
 
   for (const side of ['player', 'foe']) {
     endOfTurnDamage(battle, side, events)
+    endOfTurnVolatile(battle, side, events)
   }
 
   checkFaint(battle, events)
