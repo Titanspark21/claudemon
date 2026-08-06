@@ -9,6 +9,14 @@ export const STAGE_LIMIT = 6
 export const STRUGGLE_RECOIL_FRACTION = 4
 export const DAMAGE_VARIANCE = { min: 217, max: 255 }
 export const POISON_FRACTIONS = { poison: 8, burn: 16 }
+export const SLEEP_TURNS = { min: 1, max: 3 }
+export const CONFUSION_TURNS = { min: 2, max: 5 }
+export const CONFUSION_SELF_HIT_CHANCE = 0.5
+export const CONFUSION_SELF_HIT_POWER = 40
+export const TRAP_TURNS = { min: 2, max: 5 }
+export const TRAP_FRACTION = 16
+export const DISABLE_TURNS = { min: 2, max: 5 }
+export const LEECH_SEED_FRACTION = 8
 export const FALLBACK_POWER = { 'low-kick': 50 }
 export const RUN_ODDS = { max: 0.95, speedFactor: 0.5, perAttempt: 0.15 }
 export const FOE_AI_SCORES = { defaultPower: 40, status: 15 }
@@ -60,6 +68,22 @@ export const AILMENT_IMMUNE_TYPES = {
   poison: ['poison', 'steel'],
   freeze: ['ice'],
   paralysis: ['electric'],
+  'leech-seed': ['grass'],
+}
+
+export const VOLATILE_MESSAGES = {
+  confused: 'became confused!',
+  trappedBy: 'was trapped by',
+  freedFrom: 'was freed from',
+  hurtBy: 'is hurt by',
+  wasDisabled: 'was disabled!',
+  noLongerDisabled: 'is no longer disabled!',
+  stillConfused: 'is confused!',
+  snappedOut: 'snapped out of its confusion!',
+  hurtItself: 'It hurt itself in its confusion!',
+  flinched: 'flinched and could not move!',
+  seeded: 'was seeded!',
+  sapped: "'s health is sapped by Leech Seed!",
 }
 
 export const TURN_MESSAGES = {
@@ -69,6 +93,15 @@ export const TURN_MESSAGES = {
   criticalHit: 'A critical hit!',
   gotAway: 'Got away safely!',
   stuck: "Couldn't get away!",
+  cantEscape: "Can't escape!",
+  disabled: 'is disabled!',
+  recoil: 'is hit by recoil!',
+  energyDrained: 'had its energy drained!',
+  wokeUp: 'woke up!',
+  fastAsleep: 'is fast asleep.',
+  thawedOut: 'thawed out!',
+  frozenSolid: 'is frozen solid!',
+  fullyParalysed: "is paralysed and can't move!",
 }
 
 export const CATCH_COMPLAINTS = [
@@ -432,6 +465,7 @@ export const BAG_MESSAGES = {
 
 export const BATTLE_MESSAGES = {
   noPp: 'There is no PP left for that move!',
+  disabled: 'That move is disabled!',
   joinedTeam: 'It joined your team!',
   wentToBox: 'Your team was full, so it went to the box.',
   blackout: [

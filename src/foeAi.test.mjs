@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 
 import { decideOrder, pickFoeMove } from './foeAi.mjs'
+import { emptyVolatile } from './volatile.mjs'
 
 test('Should pick the foe move that scores best against the player types', () => {
   const battle = {
@@ -13,6 +14,7 @@ test('Should pick the foe move that scores best against the player types', () =>
           { move: 'growl', pp: 40, maxPp: 40 },
         ],
       },
+      volatile: emptyVolatile(),
     },
   }
 
@@ -30,6 +32,25 @@ test('Should skip the slots the foe has no PP left for', () => {
           { move: 'growl', pp: 40, maxPp: 40 },
         ],
       },
+      volatile: emptyVolatile(),
+    },
+  }
+
+  expect(pickFoeMove(battle)).toBe(0)
+})
+
+test('Should skip a disabled slot even when it scores best', () => {
+  const battle = {
+    player: { mon: { species: 4, stats: { speed: 50 }, status: null } },
+    foe: {
+      mon: {
+        moves: [
+          { move: 'tackle', pp: 35, maxPp: 35 },
+          { move: 'water-gun', pp: 25, maxPp: 25 },
+          { move: 'growl', pp: 40, maxPp: 40 },
+        ],
+      },
+      volatile: { ...emptyVolatile(), disable: { index: 1, turns: 3 } },
     },
   }
 

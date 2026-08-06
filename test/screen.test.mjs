@@ -24,6 +24,7 @@ import { BLOCK_GRIDS, blockRows, fitCanvasCols } from '../src/ui/sprite.mjs'
 import { genderTag } from '../src/ui/widgets.mjs'
 import { CURSOR, gray, RESET, SCREEN_CODES } from '../src/ui/ansi.mjs'
 import { stripAnsi, visibleLength } from '../src/ui/text.mjs'
+import { emptyVolatile } from '../src/volatile.mjs'
 
 const fakeTerminal = ({ cols = 40, rows = 12 } = {}) => {
   const writes = []
@@ -752,8 +753,8 @@ const BATTLE_SAVE = {
 
 const BATTLE = {
   state: {
-    foe: { mon: { ...POKEMON, species: 143 } },
-    player: { mon: POKEMON },
+    foe: { mon: { ...POKEMON, species: 143 }, volatile: emptyVolatile() },
+    player: { mon: POKEMON, volatile: emptyVolatile() },
     over: false,
   },
   hp: { foe: 20, player: 20 },
@@ -836,6 +837,32 @@ test('Should always fit the message box, whatever is open and however short the 
       ).toBeLessThanOrEqual(rows - 1)
     }
   }
+})
+
+test('Should grey a disabled move on the fight menu, like one out of PP', () => {
+  const grayOpen = gray('').replace(RESET, '')
+  const { lines } = drawBattle(
+    {
+      ...BATTLE_CTX,
+      battle: {
+        ...BATTLE,
+        menu: 'fight',
+        state: {
+          ...BATTLE.state,
+          player: {
+            mon: POKEMON,
+            volatile: { ...emptyVolatile(), disable: { index: 1, turns: 3 } },
+          },
+        },
+      },
+    },
+    { cols: 120, rows: 40 },
+  )
+
+  const row = lines.find((line) => stripAnsi(line).includes('Growl'))
+
+  expect(row, 'the disabled move is greyed out').toContain(`${grayOpen}Growl`)
+  expect(row, 'the usable one is not').not.toContain(`${grayOpen}Tackle`)
 })
 
 test('Should keep the bottom border of the box, which the renderer used to cut off', () => {

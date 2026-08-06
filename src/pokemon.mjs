@@ -1,3 +1,4 @@
+import { AILMENT_IMMUNE_TYPES } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
 import { expForLevel, levelFromExp } from './exp.mjs'
 import { movesAtLevel } from './learnset.mjs'
@@ -51,6 +52,18 @@ export const speciesGender = (id) => {
 export const levelOf = (mon) => levelFromExp(mon.species, mon.exp)
 
 export const isFainted = (mon) => mon.hp <= 0
+
+export const hpFraction = (mon, denominator) => {
+  return Math.max(1, Math.floor(mon.stats.hp / denominator))
+}
+
+export const isImmuneToAilment = (mon, ailment) => {
+  const immune = AILMENT_IMMUNE_TYPES[ailment]
+
+  if (!immune) return false
+
+  return species(mon.species).types.some((type) => immune.includes(type))
+}
 
 export const refreshStats = (mon) => {
   const previousMax = mon.stats.hp

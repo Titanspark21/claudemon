@@ -2,6 +2,7 @@ import { ITEMS } from '../../constants.mjs'
 import { move as moveData } from '../../data.mjs'
 import { expProgress } from '../../exp.mjs'
 import { displayName, genderOf, levelOf } from '../../pokemon.mjs'
+import { isMoveDisabled } from '../../volatile.mjs'
 import { bold, brightGreen, dim, gray } from '../ansi.mjs'
 import { ballOverlays, ballScale, ballSteps } from '../ball.mjs'
 import {
@@ -68,12 +69,14 @@ const identity = (text) => text
 
 const accuracyLabel = (accuracy) => accuracy ?? BATTLE_PROMPTS.unknownAccuracy
 
-const moveMenu = (mon, rawSelection, width) => {
+const moveMenu = (actor, rawSelection, width) => {
+  const mon = actor.mon
   const selected = clampSelection(rawSelection, mon.moves.length)
 
-  const labels = mon.moves.map((slot) => {
+  const labels = mon.moves.map((slot, index) => {
     const data = moveData(slot.move)
-    const low = slot.pp === 0 ? gray : identity
+    const blocked = slot.pp === 0 || isMoveDisabled(actor, index)
+    const low = blocked ? gray : identity
 
     return low(`${padRight(data.name, 15)} ${dim(`${slot.pp}/${slot.maxPp}`)}`)
   })
@@ -225,7 +228,7 @@ const messageBody = (ctx, width) => {
         }),
       ]
     case 'fight':
-      return moveMenu(player, battle.selection, inner)
+      return moveMenu(battle.state.player, battle.selection, inner)
     case 'bag': {
       const labels = battle.bagItems.map(
         (key) =>
