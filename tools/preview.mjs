@@ -38,7 +38,14 @@ function sampleSave() {
 
   for (const id of [10, 13, 19, 21, 41, 43, 74, 129, 133]) markSeen(save, id)
   // A playthrough with some road behind it, so the Pokedex has a tally to show.
-  for (const [id, times] of [[16, 9], [19, 6], [25, 4], [10, 3], [41, 2], [129, 1]]) {
+  for (const [id, times] of [
+    [16, 9],
+    [19, 6],
+    [25, 4],
+    [10, 3],
+    [41, 2],
+    [129, 1],
+  ]) {
     for (let met = 0; met < times; met++) markFaced(save, id)
   }
   return save
@@ -57,7 +64,9 @@ function makeApp(save) {
 }
 
 function show(title, app) {
-  process.stdout.write(`\n${bold(`── ${title} `)}${dim('─'.repeat(Math.max(0, cols - title.length - 4)))}\n`)
+  process.stdout.write(
+    `\n${bold(`── ${title} `)}${dim('─'.repeat(Math.max(0, cols - title.length - 4)))}\n`,
+  )
   const module = MODULES[app.mode]
   const { lines, overlays } = module.draw(app, { cols, rows })
   process.stdout.write(lines.join('\n') + '\n')
@@ -93,7 +102,10 @@ function updateRun({ state = 'running', at = 1, to = null } = {}) {
   const labels = [
     ['refreshing the marketplace', 'refreshed the marketplace'],
     ['fetching the new version', 'fetched the new version'],
-    ['checking the command, status line and sprites', 'the command, status line and sprites are up to date'],
+    [
+      'checking the command, status line and sprites',
+      'the command, status line and sprites are up to date',
+    ],
   ]
   return {
     kind: 'plugin',
@@ -148,7 +160,11 @@ const scenes = {
     app.mode = 'home'
     app.activity = { state: 'working', tool: 'Edit', since: Date.now() - 213_000, sessions: 2 }
     app.encounter = {
-      species: 25, name: 'Pikachu', level: 11, seed: 1, expiresAt: Date.now() + 22_000,
+      species: 25,
+      name: 'Pikachu',
+      level: 11,
+      seed: 1,
+      expiresAt: Date.now() + 22_000,
     }
     return app
   },
@@ -160,12 +176,18 @@ const scenes = {
     const state = createBattle({ playerMon: app.save.party[0], wildMon: wild, seed: 5 })
     app.battle = {
       state,
-      menu: 'main', selection: 0, message: null, events: [],
+      menu: 'main',
+      selection: 0,
+      message: null,
+      events: [],
       hp: { player: state.player.mon.hp, foe: state.foe.mon.hp },
       hpTarget: { player: state.player.mon.hp, foe: state.foe.mon.hp },
       effect: null,
       ball: null,
-      postSteps: null, learnStep: null, bagItems: [], bagItem: null,
+      postSteps: null,
+      learnStep: null,
+      bagItems: [],
+      bagItem: null,
     }
     return app
   },

@@ -8,7 +8,12 @@
 
 import { spriteFile } from '../../paths.mjs'
 import {
-  displayName, genderOf, isFainted, levelOf, speciesName, stoneEvolution,
+  displayName,
+  genderOf,
+  isFainted,
+  levelOf,
+  speciesName,
+  stoneEvolution,
 } from '../../pokemon.mjs'
 import { ITEMS, countOf, itemsInBag, usableOnParty } from '../../shop.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
@@ -16,7 +21,8 @@ import { monDetail } from '../detail.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
 import { genderTag, menuList, padRight, withFooter, wrap } from '../widgets.mjs'
 
-const HINTS = ' ↑ ↓ browse · [enter] lead · [i] items · [b] the box · [d] send it there · [esc] back'
+const HINTS =
+  ' ↑ ↓ browse · [enter] lead · [i] items · [b] the box · [d] send it there · [esc] back'
 const BAG_HINTS = ' ↑ ↓ choose an item · [enter] use it · [esc] put the bag away'
 
 /** The mark on an item that would evolve the one you have chosen. */
@@ -50,8 +56,9 @@ function bagNote(ctx, bag, mon) {
 
   const target = stoneEvolution(mon, key)
   if (target) {
-    return `${brightYellow(EVOLVES)} ${displayName(mon).toUpperCase()} would become ${
-      speciesName(target).toUpperCase()}.`
+    return `${brightYellow(EVOLVES)} ${displayName(mon).toUpperCase()} would become ${speciesName(
+      target,
+    ).toUpperCase()}.`
   }
   // The same words the refusal uses, because they are the same fact: one arrives before
   // you press it and one after, and two phrasings would read as two different rules.
@@ -67,7 +74,8 @@ export function draw(ctx, size) {
   const listWidth = 30
 
   const teamHeader = ` ${brightYellow('◓')} ${bold('TEAM')}   ${dim(
-    `${party.length}/6 · ${ctx.save.box.length} in the box`)}`
+    `${party.length}/6 · ${ctx.save.box.length} in the box`,
+  )}`
 
   if (party.length === 0) {
     lines.push(teamHeader)
@@ -81,24 +89,28 @@ export function draw(ctx, size) {
 
   // The header says which of the two lists is under the cursor, and who the bag is for:
   // one screen doing two jobs has to be plain about which one it is doing.
-  lines.push(bag
-    ? ` ${brightYellow('◓')} ${bold('BAG')}    ${dim(`on ${displayName(selected).toUpperCase()}`)}`
-    : teamHeader)
+  lines.push(
+    bag
+      ? ` ${brightYellow('◓')} ${bold('BAG')}    ${dim(`on ${displayName(selected).toUpperCase()}`)}`
+      : teamHeader,
+  )
   lines.push('')
 
   const entries = bag
     ? bag.map((key) => {
-      const name = usableOnParty(key) ? ITEMS[key].name : gray(ITEMS[key].name)
-      const mark = stoneEvolution(selected, key) ? brightYellow(EVOLVES) : ' '
-      return `${mark} ${padRight(name, 15)} ${dim(`x${countOf(ctx.save, key)}`)}`
-    })
+        const name = usableOnParty(key) ? ITEMS[key].name : gray(ITEMS[key].name)
+        const mark = stoneEvolution(selected, key) ? brightYellow(EVOLVES) : ' '
+        return `${mark} ${padRight(name, 15)} ${dim(`x${countOf(ctx.save, key)}`)}`
+      })
     : party.map((mon, index) => {
-      const name = isFainted(mon) ? gray(displayName(mon).toUpperCase()) : displayName(mon).toUpperCase()
-      const leadMark = index === 0 ? brightYellow('★') : ' '
-      // The symbol goes inside the padded cell: the longest name in Kanto is ten
-      // characters, so it still lands clear of the level.
-      return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)}`
-    })
+        const name = isFainted(mon)
+          ? gray(displayName(mon).toUpperCase())
+          : displayName(mon).toUpperCase()
+        const leadMark = index === 0 ? brightYellow('★') : ' '
+        // The symbol goes inside the padded cell: the longest name in Kanto is ten
+        // characters, so it still lands clear of the level.
+        return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)}`
+      })
 
   const list = menuList(entries, bag ? bagIndex(ctx, bag) : ctx.teamSelection, {
     height: Math.max(6, entries.length),

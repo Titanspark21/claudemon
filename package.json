@@ -8,11 +8,14 @@
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "node --test test/*.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.8.0",
-    "globals": "^17.0.0"
+    "globals": "^17.0.0",
+    "prettier": "^3.9.6"
   }
 }

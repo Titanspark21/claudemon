@@ -221,11 +221,14 @@ function computeDamage(battle, attackerSide, move, isCrit) {
   const defenseStat = physical ? 'defense' : 'spDefense'
 
   // A critical hit ignores stat stages, so a defence boost cannot blunt it.
-  const a = attacker.mon.stats[attackStat] * (isCrit ? 1 : stageMultiplier(attacker.stages[attackStat]))
-  const d = defender.mon.stats[defenseStat] * (isCrit ? 1 : stageMultiplier(defender.stages[defenseStat]))
+  const a =
+    attacker.mon.stats[attackStat] * (isCrit ? 1 : stageMultiplier(attacker.stages[attackStat]))
+  const d =
+    defender.mon.stats[defenseStat] * (isCrit ? 1 : stageMultiplier(defender.stages[defenseStat]))
 
   const power = move.power ?? FALLBACK_POWER[move.key] ?? 50
-  let damage = Math.floor(Math.floor((Math.floor((2 * attackerLevel) / 5 + 2) * power * a) / d) / 50) + 2
+  let damage =
+    Math.floor(Math.floor((Math.floor((2 * attackerLevel) / 5 + 2) * power * a) / d) / 50) + 2
 
   if (isCrit) damage = Math.floor(damage * 1.5)
 
@@ -273,7 +276,10 @@ function applyStatChanges(battle, attackerSide, move, events) {
     actor.stages[change.stat] = next
     events.push({ type: 'stat', side, stat: change.stat, delta: change.change })
     const magnitude = Math.abs(change.change) > 1 ? 'sharply ' : ''
-    say(events, `${who}'s ${statName} ${change.change < 0 ? `${magnitude}fell` : `rose${magnitude ? ' sharply' : ''}`}!`)
+    say(
+      events,
+      `${who}'s ${statName} ${change.change < 0 ? `${magnitude}fell` : `rose${magnitude ? ' sharply' : ''}`}!`,
+    )
   }
 }
 
@@ -502,9 +508,10 @@ export function submitAction(battle, action) {
     // Faster Pokemon always get away; otherwise the odds improve with each try.
     const playerSpeed = effectiveSpeed(battle.player)
     const foeSpeed = effectiveSpeed(battle.foe)
-    const odds = playerSpeed >= foeSpeed
-      ? 1
-      : Math.min(0.95, (playerSpeed / foeSpeed) * 0.5 + battle.runAttempts * 0.15)
+    const odds =
+      playerSpeed >= foeSpeed
+        ? 1
+        : Math.min(0.95, (playerSpeed / foeSpeed) * 0.5 + battle.runAttempts * 0.15)
 
     if (chance(battle.rng, odds)) {
       say(events, 'Got away safely!')
@@ -582,7 +589,7 @@ export function pickFoeMove(battle) {
     const score =
       move.damageClass === 'status'
         ? 15
-        : power * effectiveness(move.type, playerTypes) * (move.accuracy ?? 100) / 100
+        : (power * effectiveness(move.type, playerTypes) * (move.accuracy ?? 100)) / 100
 
     if (score > bestScore) {
       bestScore = score

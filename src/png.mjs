@@ -41,12 +41,23 @@ function unfilter(raw, width, height, channels, bitDepth) {
 
       let restored
       switch (filter) {
-        case 0: restored = value; break
-        case 1: restored = value + left; break
-        case 2: restored = value + above; break
-        case 3: restored = value + ((left + above) >> 1); break
-        case 4: restored = value + paeth(left, above, upperLeft); break
-        default: throw new Error(`unsupported PNG filter ${filter} on row ${row}`)
+        case 0:
+          restored = value
+          break
+        case 1:
+          restored = value + left
+          break
+        case 2:
+          restored = value + above
+          break
+        case 3:
+          restored = value + ((left + above) >> 1)
+          break
+        case 4:
+          restored = value + paeth(left, above, upperLeft)
+          break
+        default:
+          throw new Error(`unsupported PNG filter ${filter} on row ${row}`)
       }
       out[lineStart + i] = restored & 0xff
     }

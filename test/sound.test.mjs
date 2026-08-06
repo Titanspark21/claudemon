@@ -14,9 +14,8 @@ import { join } from 'node:path'
 
 process.env.CLAUDEMON_HOME = mkdtempSync(join(tmpdir(), 'claudemon-sound-'))
 
-const {
-  MUSIC, SOUNDS, musicPlaying, play, renderWav, startMusic, stopMusic,
-} = await import('../src/sound.mjs')
+const { MUSIC, SOUNDS, musicPlaying, play, renderWav, startMusic, stopMusic } =
+  await import('../src/sound.mjs')
 
 /** The fields of a RIFF header this game cares about. */
 function readHeader(wav) {
@@ -161,7 +160,10 @@ test('a track is audible without being louder than the blips', () => {
     // at gain 0.2, and one mastered too quietly is a battle that sounds like it failed.
     // Both of these hold across the table, so the fanfare cannot arrive twice the
     // volume of the theme it interrupts.
-    assert.ok(rms > 0.02, `${name}: RMS ${rms.toFixed(4)} is close enough to silence to look broken`)
+    assert.ok(
+      rms > 0.02,
+      `${name}: RMS ${rms.toFixed(4)} is close enough to silence to look broken`,
+    )
     assert.ok(rms < 0.2, `${name}: RMS ${rms.toFixed(4)} is loud next to a blip at gain 0.2`)
     assert.ok(peak < 0.99, `${name} peaks at ${peak.toFixed(3)}, which is clipping or close to it`)
   }

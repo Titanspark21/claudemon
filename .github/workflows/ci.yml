@@ -62,6 +62,11 @@ jobs:
 
       - run: npm run lint
 
+      # Formatting is the other thing that can be settled without a sprite on disk, so
+      # it rides in the same job rather than paying for a second checkout to say the
+      # same thing. `npm run format` locally is what turns a red one green.
+      - run: npm run format:check
+
   test:
     needs: sprites
     runs-on: ubuntu-latest

@@ -14,7 +14,16 @@ import { bold, brightGreen, brightYellow, dim, gray, visibleLength } from '../an
 import { ballOverlays, ballScale, ballSteps } from '../ball.mjs'
 import { NATIVE_CANVAS_COLS, loadSprite, spriteHeight } from '../sprite.mjs'
 import {
-  expBar, genderTag, hpBar, menuGrid, menuList, padLeft, padRight, panel, statusTag, typeBadge,
+  expBar,
+  genderTag,
+  hpBar,
+  menuGrid,
+  menuList,
+  padLeft,
+  padRight,
+  panel,
+  statusTag,
+  typeBadge,
   wrap,
 } from '../widgets.mjs'
 
@@ -109,7 +118,11 @@ const NO_SPRITE = { rows: ['', '(no sprite)', ''], cols: 12 }
  * arithmetic below measures the row with `visibleLength`, which knows an emoji takes
  * two cells and a space one. A glyph it does not know the width of would drift the
  * burst sideways.
+ *
+ * Each frame is written as the shape it draws, one row per line, so the burst can be
+ * seen opening out down the page.
  */
+// prettier-ignore
 export const HIT_FRAMES = [
   ['💥'],
   ['💥💥💥'],
@@ -351,8 +364,11 @@ function partyLabels(save) {
   return save.party.map((mon) => {
     const fainted = mon.hp <= 0 ? gray(' FNT') : ''
     const name = `${displayName(mon).toUpperCase()}${genderTag(genderOf(mon))}`
-    return `${padRight(name, 14)} ${dim(`Lv${levelOf(mon)}`)} ${
-      hpBar(mon.hp, mon.stats.hp, 10)}${fainted}`
+    return `${padRight(name, 14)} ${dim(`Lv${levelOf(mon)}`)} ${hpBar(
+      mon.hp,
+      mon.stats.hp,
+      10,
+    )}${fainted}`
   })
 }
 
@@ -395,9 +411,10 @@ export function draw(ctx, size) {
   for (const line of playerInfo(player, battle.hp.player, width)) lines.push(` ${line}`)
 
   if (battle.effect) {
-    const hit = battle.effect.side === 'foe'
-      ? { top: foeTop, rows: foeRows, indent: foeIndent, cols: fitted.foe.cols }
-      : { top: playerTop, rows: playerRows, indent: playerIndent, cols: fitted.player.cols }
+    const hit =
+      battle.effect.side === 'foe'
+        ? { top: foeTop, rows: foeRows, indent: foeIndent, cols: fitted.foe.cols }
+        : { top: playerTop, rows: playerRows, indent: playerIndent, cols: fitted.player.cols }
 
     // Pushed last so it lands on top: overlays are drawn in the order they arrive,
     // and in image mode the sprite is an overlay too.
@@ -407,15 +424,26 @@ export function draw(ctx, size) {
   }
 
   if (ballStep) {
-    overlays.push(...ballOverlays(ballStep, {
-      foe: { top: foeTop, rows: foeRows, indent: foeIndent, cols: fitted.foe.cols },
-      player: { top: playerTop, rows: playerRows, indent: playerIndent, cols: fitted.player.cols },
-      scale: ballScale(fitted.canvas),
-      cols,
-      // The message box goes in below this, and a ball in the middle of a
-      // sentence is worse than a ball that flew off the top of the field.
-      maxRow: lines.length - 1,
-    }, battle.ball.frame))
+    overlays.push(
+      ...ballOverlays(
+        ballStep,
+        {
+          foe: { top: foeTop, rows: foeRows, indent: foeIndent, cols: fitted.foe.cols },
+          player: {
+            top: playerTop,
+            rows: playerRows,
+            indent: playerIndent,
+            cols: fitted.player.cols,
+          },
+          scale: ballScale(fitted.canvas),
+          cols,
+          // The message box goes in below this, and a ball in the middle of a
+          // sentence is worse than a ball that flew off the top of the field.
+          maxRow: lines.length - 1,
+        },
+        battle.ball.frame,
+      ),
+    )
   }
 
   // Message box, pinned to the bottom.
@@ -443,7 +471,8 @@ function messageBody(ctx, width) {
       return [
         `What will ${bold(displayName(player).toUpperCase())} do?`,
         ...menuGrid(['FIGHT', 'BAG', 'POKÉMON', 'RUN'], battle.selection, {
-          columns: 2, width: inner,
+          columns: 2,
+          width: inner,
         }),
       ]
     case 'fight':
@@ -475,8 +504,9 @@ function messageBody(ctx, width) {
       // the field: everyone who took part in the fight earns the experience.
       const labels = step.mon.moves.map((slot) => moveData(slot.move).name)
       return [
-        `Which move should ${bold(displayName(step.mon).toUpperCase())} forget to learn ${
-          bold(moveData(step.move).name)}?`,
+        `Which move should ${bold(displayName(step.mon).toUpperCase())} forget to learn ${bold(
+          moveData(step.move).name,
+        )}?`,
         ...menuList([...labels, 'Do not learn it'], battle.selection, { height: 5, width: inner }),
       ]
     }
@@ -497,7 +527,8 @@ export function onKey(ctx, key) {
   const options = menuLength(ctx)
 
   if (key.name === 'up') battle.selection = wrap(battle.selection - stride(battle.menu), options)
-  else if (key.name === 'down') battle.selection = wrap(battle.selection + stride(battle.menu), options)
+  else if (key.name === 'down')
+    battle.selection = wrap(battle.selection + stride(battle.menu), options)
   else if (key.name === 'left') battle.selection = wrap(battle.selection - 1, options)
   else if (key.name === 'right') battle.selection = wrap(battle.selection + 1, options)
   else if (key.name === 'enter' || key.name === 'space') ctx.chooseBattleOption()
@@ -512,13 +543,19 @@ function stride(menu) {
 export function menuLength(ctx) {
   const battle = ctx.battle
   switch (battle.menu) {
-    case 'main': return 4
-    case 'fight': return battle.state.player.mon.moves.length
-    case 'bag': return battle.bagItems.length
+    case 'main':
+      return 4
+    case 'fight':
+      return battle.state.player.mon.moves.length
+    case 'bag':
+      return battle.bagItems.length
     // Both of the menus that ask you to point at one of your own.
     case 'target':
-    case 'party': return ctx.save.party.length
-    case 'learn': return battle.learnStep.mon.moves.length + 1
-    default: return 0
+    case 'party':
+      return ctx.save.party.length
+    case 'learn':
+      return battle.learnStep.mon.moves.length + 1
+    default:
+      return 0
   }
 }

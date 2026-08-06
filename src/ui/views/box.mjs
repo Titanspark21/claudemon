@@ -39,11 +39,16 @@ export function draw(ctx, size) {
   const selected = box[Math.min(ctx.boxSelection, box.length - 1)]
 
   const entries = box.map((mon) => {
-    const name = isFainted(mon) ? gray(displayName(mon).toUpperCase()) : displayName(mon).toUpperCase()
+    const name = isFainted(mon)
+      ? gray(displayName(mon).toUpperCase())
+      : displayName(mon).toUpperCase()
     return `${padRight(`${name}${genderTag(genderOf(mon))}`, 12)} ${dim(`Lv${levelOf(mon)}`)}`
   })
 
-  const list = menuList(entries, ctx.boxSelection, { height: Math.max(6, box.length), width: listWidth })
+  const list = menuList(entries, ctx.boxSelection, {
+    height: Math.max(6, box.length),
+    width: listWidth,
+  })
 
   const sprite = loadSprite(spriteFile('front', selected.species, 'png'), {
     cols: fitCanvasCols(size, 24, ctx.spriteScale),

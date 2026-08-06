@@ -212,7 +212,9 @@ async function main() {
     console.log(bold('\nThe claudemon dataset is already built\n'))
     for (const name of OUTPUTS) console.log(`  ${brightGreen('✔')} ${name}`)
     console.log(dim(`\n  ${BUNDLED_DATA_DIR}`))
-    console.log(`\n  Rebuild it with ${bold('--force')}, or refetch from PokeAPI with ${bold('--no-cache')}.\n`)
+    console.log(
+      `\n  Rebuild it with ${bold('--force')}, or refetch from PokeAPI with ${bold('--no-cache')}.\n`,
+    )
     return
   }
 
@@ -224,10 +226,14 @@ async function main() {
 
   // Neither pass needs the other, so run them as one: 302 URLs sharing a single
   // pool of 8 rather than two pools of 8 taking turns.
-  const both = await pass('pokemon', [
-    ...ids.map((id) => `${API}/pokemon/${id}`),
-    ...ids.map((id) => `${API}/pokemon-species/${id}`),
-  ], (url) => getJson(url))
+  const both = await pass(
+    'pokemon',
+    [
+      ...ids.map((id) => `${API}/pokemon/${id}`),
+      ...ids.map((id) => `${API}/pokemon-species/${id}`),
+    ],
+    (url) => getJson(url),
+  )
   const pokemon = both.slice(0, ids.length)
   const species = both.slice(ids.length)
 
@@ -293,9 +299,7 @@ async function main() {
     return {
       id: entry.id,
       name: speciesEntry.name.replace(/^./, (c) => c.toUpperCase()),
-      types: entry.types
-        .sort((a, b) => a.slot - b.slot)
-        .map((item) => item.type.name),
+      types: entry.types.sort((a, b) => a.slot - b.slot).map((item) => item.type.name),
       stats: readStats(entry),
       baseExp: entry.base_experience,
       captureRate: speciesEntry.capture_rate,
@@ -384,8 +388,8 @@ async function main() {
   }
 
   console.log(
-    `\n  ${requests} requests, ${cacheHits} served from cache`
-      + (throttled > 0 ? `, ${throttled} asked to slow down` : ''),
+    `\n  ${requests} requests, ${cacheHits} served from cache` +
+      (throttled > 0 ? `, ${throttled} asked to slow down` : ''),
     dim(`\n  ${BUNDLED_DATA_DIR}\n`),
   )
 }

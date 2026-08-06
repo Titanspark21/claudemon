@@ -108,7 +108,12 @@ export function assetFile(name) {
  * allowed anywhere near a filename.
  */
 export function sessionFile(id) {
-  return join(SESSIONS_DIR, `${String(id).replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 64)}.json`)
+  return join(
+    SESSIONS_DIR,
+    `${String(id)
+      .replace(/[^A-Za-z0-9._-]/g, '_')
+      .slice(0, 64)}.json`,
+  )
 }
 
 export function spriteFile(side, id, ext) {

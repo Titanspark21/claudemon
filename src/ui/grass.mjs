@@ -83,7 +83,11 @@ const IN_FRONT = { '.': null, g: [80, 172, 78], G: [116, 208, 98] }
  * Sixteen across rather than eight, and deliberately irregular. A short tile
  * repeats often enough to read as a pattern, and a field that reads as a pattern
  * reads as a hedge.
+ *
+ * Kept one row per line by hand: the rows are the picture, and folded onto one line
+ * they are a list of strings.
  */
+// prettier-ignore
 const BACK_TILE = [
   '...g......g.....',
   '..gGg....gGg..g.',
@@ -97,7 +101,10 @@ const BACK_TILE = [
  * Its bottom two rows are opaque on purpose. Every pixel below the far grass's
  * line has to be filled by something, because a gap there is not a gap in the
  * grass — it is the terminal showing through the middle of the field.
+ *
+ * One row per line, for the same reason as the tile above.
  */
+// prettier-ignore
 const FRONT_TILE = [
   '..g....g...g....',
   '.gGg..gGg.gGg.g.',
@@ -154,7 +161,7 @@ export function bandScale({ rows }) {
 export function walkerColumn(step, width, scale = 1) {
   const walker = WALKER_COLS * scale
   const span = width + walker
-  return (((step * scale + walker) % span) + span) % span - walker
+  return ((((step * scale + walker) % span) + span) % span) - walker
 }
 
 /**

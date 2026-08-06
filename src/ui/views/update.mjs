@@ -14,10 +14,14 @@ export const SPINNER = ['◐', '◓', '◑', '◒']
 /** The marker for a step, which is also the only thing saying what tense it is in. */
 function marker(status, frame) {
   switch (status) {
-    case 'ok': return brightGreen('✔')
-    case 'failed': return brightRed('✘')
-    case 'running': return brightYellow(SPINNER[frame % SPINNER.length])
-    default: return dim('·')
+    case 'ok':
+      return brightGreen('✔')
+    case 'failed':
+      return brightRed('✘')
+    case 'running':
+      return brightYellow(SPINNER[frame % SPINNER.length])
+    default:
+      return dim('·')
   }
 }
 
@@ -76,9 +80,10 @@ export function draw(ctx, size) {
   lines.push(` ${brightYellow('◓')} ${bold('UPDATE')}`)
   lines.push('')
 
-  const heading = run.state === 'running'
-    ? `v${run.from} ${dim('→')} newest`
-    : `v${run.from} ${dim('→')} ${run.to ? `v${run.to}` : dim('unchanged')}`
+  const heading =
+    run.state === 'running'
+      ? `v${run.from} ${dim('→')} newest`
+      : `v${run.from} ${dim('→')} ${run.to ? `v${run.to}` : dim('unchanged')}`
   lines.push(centre(heading, cols))
   lines.push('')
 

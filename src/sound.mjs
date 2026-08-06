@@ -39,10 +39,22 @@ export const SOUNDS = {
   cursor: { gain: 0.16, notes: [{ hz: 1175, ms: 16 }] },
 
   /** Choosing what the cursor is on: two notes going up, which reads as "yes". */
-  select: { gain: 0.2, notes: [{ hz: 880, ms: 22 }, { hz: 1319, ms: 40 }] },
+  select: {
+    gain: 0.2,
+    notes: [
+      { hz: 880, ms: 22 },
+      { hz: 1319, ms: 40 },
+    ],
+  },
 
   /** Backing out of a screen. The same shape as `select`, going down instead. */
-  back: { gain: 0.16, notes: [{ hz: 659, ms: 20 }, { hz: 440, ms: 34 }] },
+  back: {
+    gain: 0.16,
+    notes: [
+      { hz: 659, ms: 20 },
+      { hz: 440, ms: 34 },
+    ],
+  },
 }
 
 /**
@@ -98,15 +110,19 @@ const MAX_IN_FLIGHT = 3
  */
 const PLAYERS = {
   darwin: [{ command: 'afplay', args: (file) => [file] }],
-  win32: [{
-    command: 'powershell',
-    // Doubling is how a single-quoted PowerShell string escapes a quote. A home
-    // directory with an apostrophe in it is rare and not worth a broken command.
-    args: (file) => [
-      '-NoProfile', '-NonInteractive', '-Command',
-      `(New-Object Media.SoundPlayer '${file.replace(/'/g, "''")}').PlaySync()`,
-    ],
-  }],
+  win32: [
+    {
+      command: 'powershell',
+      // Doubling is how a single-quoted PowerShell string escapes a quote. A home
+      // directory with an apostrophe in it is rare and not worth a broken command.
+      args: (file) => [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        `(New-Object Media.SoundPlayer '${file.replace(/'/g, "''")}').PlaySync()`,
+      ],
+    },
+  ],
   default: [
     { command: 'paplay', args: (file) => [file] },
     { command: 'aplay', args: (file) => ['-q', file] },
@@ -190,9 +206,10 @@ export function renderWav({ notes = [], gain = 0.2 } = {}) {
 
 /** Where a binary actually is, or null. Cheaper and quieter than shelling out to `which`. */
 function onPath(binary) {
-  const names = process.platform === 'win32'
-    ? [`${binary}.exe`, `${binary}.cmd`, `${binary}.bat`, binary]
-    : [binary]
+  const names =
+    process.platform === 'win32'
+      ? [`${binary}.exe`, `${binary}.cmd`, `${binary}.bat`, binary]
+      : [binary]
 
   for (const dir of (process.env.PATH || '').split(delimiter)) {
     if (!dir) continue

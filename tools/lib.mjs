@@ -39,9 +39,13 @@ export function progress(label, done, total) {
 export async function pass(label, items, worker, limit) {
   let done = 0
   progress(label, 0, items.length)
-  return pool(items, async (item, index) => {
-    const value = await worker(item, index)
-    progress(label, ++done, items.length)
-    return value
-  }, limit)
+  return pool(
+    items,
+    async (item, index) => {
+      const value = await worker(item, index)
+      progress(label, ++done, items.length)
+      return value
+    },
+    limit,
+  )
 }

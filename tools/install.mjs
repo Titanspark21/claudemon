@@ -18,8 +18,14 @@
 
 import { execFileSync } from 'node:child_process'
 import {
-  chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync,
-  unlinkSync, writeFileSync,
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, dirname, join, resolve } from 'node:path'
@@ -292,7 +298,9 @@ if (uninstalling) {
   if (ready) {
     console.log(`\n${bold('Done.')} Two things left, both one-offs:\n`)
   } else {
-    console.log(`\n${bold('Nearly there')} — sort out the ${brightYellow('•')} and ${brightRed('✘')} above, then:\n`)
+    console.log(
+      `\n${bold('Nearly there')} — sort out the ${brightYellow('•')} and ${brightRed('✘')} above, then:\n`,
+    )
   }
 
   console.log(`  1. Restart Claude Code, so the hooks and the status line load.`)

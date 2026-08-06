@@ -21,7 +21,9 @@ export const APP_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
  */
 export function versionAt(root) {
   try {
-    const version = JSON.parse(readFileSync(join(root, '.claude-plugin', 'plugin.json'), 'utf8')).version
+    const version = JSON.parse(
+      readFileSync(join(root, '.claude-plugin', 'plugin.json'), 'utf8'),
+    ).version
     return typeof version === 'string' && version ? version : null
   } catch {
     return null

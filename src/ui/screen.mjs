@@ -28,21 +28,44 @@ export function parseKey(chunk) {
   const sequence = chunk.toString('utf8')
 
   switch (sequence) {
-    case '\x1b[A': case '\x1bOA': return { name: 'up' }
-    case '\x1b[B': case '\x1bOB': return { name: 'down' }
-    case '\x1b[C': case '\x1bOC': return { name: 'right' }
-    case '\x1b[D': case '\x1bOD': return { name: 'left' }
-    case '\x1b[5~': return { name: 'pageup' }
-    case '\x1b[6~': return { name: 'pagedown' }
-    case '\x1b[H': case '\x1bOH': return { name: 'home' }
-    case '\x1b[F': case '\x1bOF': return { name: 'end' }
-    case '\r': case '\n': return { name: 'enter' }
-    case '\t': return { name: 'tab' }
-    case ' ': return { name: 'space' }
-    case '\x7f': case '\b': return { name: 'backspace' }
-    case '\x1b': return { name: 'escape' }
-    case '\x03': return { name: 'ctrl-c' }
-    case '\x04': return { name: 'ctrl-d' }
+    case '\x1b[A':
+    case '\x1bOA':
+      return { name: 'up' }
+    case '\x1b[B':
+    case '\x1bOB':
+      return { name: 'down' }
+    case '\x1b[C':
+    case '\x1bOC':
+      return { name: 'right' }
+    case '\x1b[D':
+    case '\x1bOD':
+      return { name: 'left' }
+    case '\x1b[5~':
+      return { name: 'pageup' }
+    case '\x1b[6~':
+      return { name: 'pagedown' }
+    case '\x1b[H':
+    case '\x1bOH':
+      return { name: 'home' }
+    case '\x1b[F':
+    case '\x1bOF':
+      return { name: 'end' }
+    case '\r':
+    case '\n':
+      return { name: 'enter' }
+    case '\t':
+      return { name: 'tab' }
+    case ' ':
+      return { name: 'space' }
+    case '\x7f':
+    case '\b':
+      return { name: 'backspace' }
+    case '\x1b':
+      return { name: 'escape' }
+    case '\x03':
+      return { name: 'ctrl-c' }
+    case '\x04':
+      return { name: 'ctrl-d' }
     default:
       return { name: sequence, char: sequence }
   }
@@ -121,8 +144,14 @@ export function createScreen({ input = process.stdin, output = process.stdout } 
     // Whatever happens, hand the terminal back in a usable state. Leaving a
     // user in the alternate buffer with a hidden cursor is unforgivable.
     process.once('exit', restore)
-    process.once('SIGINT', () => { restore(); process.exit(0) })
-    process.once('SIGTERM', () => { restore(); process.exit(0) })
+    process.once('SIGINT', () => {
+      restore()
+      process.exit(0)
+    })
+    process.once('SIGTERM', () => {
+      restore()
+      process.exit(0)
+    })
     process.once('uncaughtException', (error) => {
       restore()
       console.error(error)
@@ -170,7 +199,8 @@ export function createScreen({ input = process.stdin, output = process.stdout } 
       // A row being taken back from an overlay is written to the edge rather than
       // erased. Its new contents are usually blank, so an erase would write nothing
       // at all and leave whatever the overlay put there still on the screen.
-      if (wipeAll || forced.has(row)) out += cursor.to(row + 1, 1) + reset + fill(visible[row], cols)
+      if (wipeAll || forced.has(row))
+        out += cursor.to(row + 1, 1) + reset + fill(visible[row], cols)
       else out += cursor.to(row + 1, 1) + screenCodes.clearLine + visible[row]
 
       repainted.add(row)

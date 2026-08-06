@@ -14,8 +14,12 @@ import { genderTag, hpBar, menuList, padRight, typeBadge, withFooter, wrap } fro
 
 /** Three-character labels, so the base-stat bars line up. */
 const STAT_GLYPHS = {
-  hp: 'HP ', attack: 'Atk', defense: 'Def',
-  spAttack: 'SpA', spDefense: 'SpD', speed: 'Spd',
+  hp: 'HP ',
+  attack: 'Atk',
+  defense: 'Def',
+  spAttack: 'SpA',
+  spDefense: 'SpD',
+  speed: 'Spd',
 }
 
 export function draw(ctx, size) {
@@ -45,7 +49,9 @@ export function draw(ctx, size) {
     const mark = isCaught ? brightGreen('●') : isSeen ? dim('◐') : gray('·')
     // A species has a gender only where every one of them has the same one, which in
     // Kanto is what separates the two Nidoran now that their names read alike.
-    const name = isSeen ? `${speciesName(mon.id)}${genderTag(speciesGender(mon.id))}` : gray('-----')
+    const name = isSeen
+      ? `${speciesName(mon.id)}${genderTag(speciesGender(mon.id))}`
+      : gray('-----')
     return `${number} ${mark} ${name}`
   })
 
@@ -55,8 +61,11 @@ export function draw(ctx, size) {
   // Detail panel drawn alongside the list.
   const detail = []
   if (seen) {
-    detail.push(`${bold(speciesName(selected.id).toUpperCase())}${genderTag(
-      speciesGender(selected.id))}  ${dim(`#${String(selected.id).padStart(3, '0')}`)}`)
+    detail.push(
+      `${bold(speciesName(selected.id).toUpperCase())}${genderTag(
+        speciesGender(selected.id),
+      )}  ${dim(`#${String(selected.id).padStart(3, '0')}`)}`,
+    )
     detail.push(selected.types.map(typeBadge).join(' '))
     // How many of it you have stood in front of. Left off entirely at zero: an entry
     // you have only ever seen has nothing to say here, and nor does one you caught
@@ -68,19 +77,21 @@ export function draw(ctx, size) {
       const stats = selected.stats
       detail.push(dim('Base stats'))
       for (const key of STAT_NAMES) {
-        detail.push(`${STAT_GLYPHS[key]} ${hpBar(stats[key], 160, 18)} ${String(stats[key]).padStart(3)}`)
+        detail.push(
+          `${STAT_GLYPHS[key]} ${hpBar(stats[key], 160, 18)} ${String(stats[key]).padStart(3)}`,
+        )
       }
       detail.push('')
       detail.push(dim(`Catch rate ${selected.captureRate} · Base exp ${selected.baseExp}`))
-      const evolves = selected.evolutions
-        .map((evolution) => {
-          const how = evolution.trigger === 'level-up'
+      const evolves = selected.evolutions.map((evolution) => {
+        const how =
+          evolution.trigger === 'level-up'
             ? `at level ${evolution.level}`
             : evolution.trigger === 'use-item'
               ? `with a ${evolution.item.replace(/-/g, ' ')}`
               : 'by trading'
-          return `${species(evolution.to).name} ${how}`
-        })
+        return `${species(evolution.to).name} ${how}`
+      })
       if (evolves.length > 0) detail.push(dim(`Evolves into ${evolves.join(', ')}`))
     } else {
       detail.push(dim('Seen, but not yet caught.'))
@@ -93,8 +104,8 @@ export function draw(ctx, size) {
   // Sprite for the highlighted entry.
   const sprite = seen
     ? loadSprite(spriteFile('front', selected.id, 'png'), {
-      cols: Math.min(fitCanvasCols(size, 18, ctx.spriteScale), (cols - detailLeft - 4) * 2),
-    })
+        cols: Math.min(fitCanvasCols(size, 18, ctx.spriteScale), (cols - detailLeft - 4) * 2),
+      })
     : null
   const spriteBlock = sprite ? sprite.rows : []
 
@@ -106,7 +117,10 @@ export function draw(ctx, size) {
     lines.push(` ${left}  ${dim('│')}  ${right}`)
   }
 
-  return { lines: withFooter(lines, dim(' ↑ ↓ browse · PgUp/PgDn jump · [esc] back'), rows), overlays }
+  return {
+    lines: withFooter(lines, dim(' ↑ ↓ browse · PgUp/PgDn jump · [esc] back'), rows),
+    overlays,
+  }
 }
 
 export function onKey(ctx, key) {
@@ -114,7 +128,8 @@ export function onKey(ctx, key) {
   const step = key.name === 'pageup' || key.name === 'pagedown' ? 10 : 1
 
   if (key.name === 'up' || key.name === 'k') ctx.dexSelection = wrap(ctx.dexSelection - 1, total)
-  else if (key.name === 'down' || key.name === 'j') ctx.dexSelection = wrap(ctx.dexSelection + 1, total)
+  else if (key.name === 'down' || key.name === 'j')
+    ctx.dexSelection = wrap(ctx.dexSelection + 1, total)
   else if (key.name === 'pageup') ctx.dexSelection = Math.max(0, ctx.dexSelection - step)
   else if (key.name === 'pagedown') ctx.dexSelection = Math.min(total - 1, ctx.dexSelection + step)
   else if (key.name === 'escape' || key.name === 'q') ctx.setMode('home')

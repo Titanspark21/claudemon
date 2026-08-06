@@ -32,10 +32,10 @@ export function draw(ctx, size) {
 
   const chosen = ITEMS[SHOP_STOCK[ctx.shopSelection]]
   lines.push('')
-  for (const row of panel([
-    chosen.description,
-    ctx.shopMessage ?? dim('[enter] buy one · [5] buy five'),
-  ], width)) {
+  for (const row of panel(
+    [chosen.description, ctx.shopMessage ?? dim('[enter] buy one · [5] buy five')],
+    width,
+  )) {
     lines.push(` ${row}`)
   }
 

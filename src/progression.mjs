@@ -8,7 +8,13 @@
 import { move as moveData, species } from './data.mjs'
 import { movesLearnedAt, MAX_LEVEL, MOVE_LIMIT } from './exp.mjs'
 import {
-  displayName, evolveInto, isFainted, levelOf, makeMoveSlot, pendingEvolution, refreshStats,
+  displayName,
+  evolveInto,
+  isFainted,
+  levelOf,
+  makeMoveSlot,
+  pendingEvolution,
+  refreshStats,
 } from './pokemon.mjs'
 import { markCaught } from './state.mjs'
 
