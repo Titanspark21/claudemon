@@ -400,6 +400,328 @@ export const TRAINER_CLASSES = [
   },
 ]
 
+export const GYM_SEED_STRIDE = 97
+
+export const GYM_STATUSES = {
+  beaten: 'beaten',
+  next: 'next',
+  pending: 'pending',
+}
+
+export const GYMS = [
+  {
+    id: 'pewter',
+    city: 'Pewter',
+    type: 'rock',
+    badge: 'Boulder Badge',
+    trainers: [
+      {
+        class: 'Camper',
+        name: 'Liam',
+        sprite: 'camper',
+        prize: 40,
+        team: [
+          { species: 74, level: 10 },
+          { species: 27, level: 11 },
+        ],
+      },
+      {
+        class: 'Hiker',
+        name: 'Wade',
+        sprite: 'hiker',
+        prize: 45,
+        team: [
+          { species: 74, level: 11 },
+          { species: 95, level: 12 },
+        ],
+      },
+    ],
+    leader: {
+      class: 'Leader',
+      name: 'Brock',
+      sprite: 'brock',
+      prize: 90,
+      team: [
+        { species: 74, level: 12 },
+        { species: 95, level: 14 },
+      ],
+    },
+  },
+  {
+    id: 'cerulean',
+    city: 'Cerulean',
+    type: 'water',
+    badge: 'Cascade Badge',
+    trainers: [
+      {
+        class: 'Swimmer',
+        name: 'Diana',
+        sprite: 'swimmer',
+        prize: 50,
+        team: [
+          { species: 118, level: 16 },
+          { species: 116, level: 17 },
+        ],
+      },
+      {
+        class: 'Lass',
+        name: 'Briana',
+        sprite: 'lass',
+        prize: 50,
+        team: [
+          { species: 60, level: 17 },
+          { species: 90, level: 18 },
+        ],
+      },
+    ],
+    leader: {
+      class: 'Leader',
+      name: 'Misty',
+      sprite: 'misty',
+      prize: 100,
+      team: [
+        { species: 120, level: 18 },
+        { species: 121, level: 21 },
+      ],
+    },
+  },
+  {
+    id: 'vermilion',
+    city: 'Vermilion',
+    type: 'electric',
+    badge: 'Thunder Badge',
+    trainers: [
+      {
+        class: 'Sailor',
+        name: 'Dwayne',
+        sprite: 'sailor',
+        prize: 55,
+        team: [
+          { species: 25, level: 21 },
+          { species: 81, level: 21 },
+        ],
+      },
+      {
+        class: 'Gentleman',
+        name: 'Tucker',
+        sprite: 'gentleman',
+        prize: 60,
+        team: [
+          { species: 81, level: 22 },
+          { species: 100, level: 23 },
+        ],
+      },
+    ],
+    leader: {
+      class: 'Leader',
+      name: 'Lt. Surge',
+      sprite: 'ltsurge',
+      prize: 110,
+      team: [
+        { species: 100, level: 24 },
+        { species: 25, level: 24 },
+        { species: 26, level: 26 },
+      ],
+    },
+  },
+  {
+    id: 'celadon',
+    city: 'Celadon',
+    type: 'grass',
+    badge: 'Rainbow Badge',
+    trainers: [
+      {
+        class: 'Lass',
+        name: 'Michelle',
+        sprite: 'lass-gen4',
+        prize: 60,
+        team: [
+          { species: 43, level: 27 },
+          { species: 69, level: 27 },
+        ],
+      },
+      {
+        class: 'Beauty',
+        name: 'Tamia',
+        sprite: 'beauty',
+        prize: 65,
+        team: [
+          { species: 102, level: 28 },
+          { species: 70, level: 29 },
+        ],
+      },
+    ],
+    leader: {
+      class: 'Leader',
+      name: 'Erika',
+      sprite: 'erika',
+      prize: 120,
+      team: [
+        { species: 114, level: 29 },
+        { species: 71, level: 29 },
+        { species: 45, level: 31 },
+      ],
+    },
+  },
+  {
+    id: 'fuchsia',
+    city: 'Fuchsia',
+    type: 'poison',
+    badge: 'Soul Badge',
+    trainers: [
+      {
+        class: 'Juggler',
+        name: 'Kayden',
+        sprite: 'juggler',
+        prize: 70,
+        team: [
+          { species: 109, level: 34 },
+          { species: 88, level: 34 },
+        ],
+      },
+      {
+        class: 'Tamer',
+        name: 'Edgar',
+        sprite: 'blackbelt',
+        prize: 75,
+        team: [
+          { species: 42, level: 35 },
+          { species: 30, level: 36 },
+        ],
+      },
+    ],
+    leader: {
+      class: 'Leader',
+      name: 'Koga',
+      sprite: 'koga',
+      prize: 130,
+      team: [
+        { species: 109, level: 37 },
+        { species: 89, level: 39 },
+        { species: 110, level: 43 },
+      ],
+    },
+  },
+  {
+    id: 'saffron',
+    city: 'Saffron',
+    type: 'psychic',
+    badge: 'Marsh Badge',
+    trainers: [
+      {
+        class: 'Psychic',
+        name: 'Johan',
+        sprite: 'psychic',
+        prize: 80,
+        team: [
+          { species: 96, level: 38 },
+          { species: 79, level: 38 },
+        ],
+      },
+      {
+        class: 'Channeler',
+        name: 'Tamara',
+        sprite: 'channeler-gen1',
+        prize: 80,
+        team: [
+          { species: 92, level: 39 },
+          { species: 93, level: 40 },
+        ],
+      },
+    ],
+    leader: {
+      class: 'Leader',
+      name: 'Sabrina',
+      sprite: 'sabrina',
+      prize: 140,
+      team: [
+        { species: 64, level: 38 },
+        { species: 122, level: 40 },
+        { species: 65, level: 43 },
+      ],
+    },
+  },
+  {
+    id: 'cinnabar',
+    city: 'Cinnabar',
+    type: 'fire',
+    badge: 'Volcano Badge',
+    trainers: [
+      {
+        class: 'Super Nerd',
+        name: 'Erik',
+        sprite: 'scientist',
+        prize: 85,
+        team: [
+          { species: 77, level: 41 },
+          { species: 58, level: 41 },
+        ],
+      },
+      {
+        class: 'Burglar',
+        name: 'Ramon',
+        sprite: 'burglar',
+        prize: 90,
+        team: [
+          { species: 37, level: 42 },
+          { species: 126, level: 43 },
+        ],
+      },
+    ],
+    leader: {
+      class: 'Leader',
+      name: 'Blaine',
+      sprite: 'blaine',
+      prize: 150,
+      team: [
+        { species: 58, level: 42 },
+        { species: 78, level: 44 },
+        { species: 59, level: 47 },
+      ],
+    },
+  },
+  {
+    id: 'viridian',
+    city: 'Viridian',
+    type: 'ground',
+    badge: 'Earth Badge',
+    trainers: [
+      {
+        class: 'Cooltrainer',
+        name: 'Samuel',
+        sprite: 'acetrainer',
+        prize: 95,
+        team: [
+          { species: 33, level: 45 },
+          { species: 28, level: 45 },
+        ],
+      },
+      {
+        class: 'Cooltrainer',
+        name: 'Naoko',
+        sprite: 'acetrainerf',
+        prize: 95,
+        team: [
+          { species: 105, level: 46 },
+          { species: 51, level: 47 },
+        ],
+      },
+    ],
+    leader: {
+      class: 'Leader',
+      name: 'Giovanni',
+      sprite: 'giovanni',
+      prize: 160,
+      team: [
+        { species: 111, level: 45 },
+        { species: 31, level: 46 },
+        { species: 34, level: 48 },
+        { species: 112, level: 50 },
+      ],
+    },
+  },
+]
+
 export const TRAINER_NAMES = [
   'Joey',
   'Mikey',
@@ -560,6 +882,19 @@ export const BOX_MESSAGES = {
 export const BAG_MESSAGES = {
   empty: 'Your bag is empty — the shop sells balls, potions and stones.',
   noRoomForMove: 'There was no room for it, so it kept the four it knows.',
+}
+
+export const BAG_MODES = new Set(['team', 'gym'])
+
+export const GYM_MESSAGES = {
+  wipedOut: 'Your whole team has fainted. Heal before you challenge a gym.',
+  downInside:
+    'Your team is down. Use a Revive, or walk out — there is no rest in here.',
+  thrownOut: 'The gym showed you the door.',
+  defeated: 'You went down before the badge did.',
+  forfeited: 'You walked out. Nothing in there counted.',
+  earned: 'is yours!',
+  stillYours: 'is still yours.',
 }
 
 export const BATTLE_MESSAGES = {

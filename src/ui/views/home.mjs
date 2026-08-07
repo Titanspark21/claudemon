@@ -46,7 +46,7 @@ import {
   UPDATE_NOTICES,
   WALK_HINTS,
 } from './constants.mjs'
-import { clampSelection } from './helpers.mjs'
+import { clampSelection, menuColumns } from './helpers.mjs'
 
 export const menuItems = (ctx) => {
   const base = isWorking(ctx.activity)
@@ -248,7 +248,7 @@ export const draw = (ctx, size) => {
     item.disabled ? gray(item.label) : item.label,
   )
   const menuRows = menuGrid(labels, ctx.homeSelection, {
-    columns: Math.min(items.length, Math.max(1, Math.floor(width / MENU_CELL))),
+    columns: menuColumns(items.length, width, MENU_CELL),
     width,
   })
 

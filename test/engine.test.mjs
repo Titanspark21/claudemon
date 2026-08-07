@@ -48,7 +48,7 @@ const aTrainerBattle = (team, playerMon) => {
   return createBattle({
     playerMon,
     wildMon: team[0],
-    trainer: { class: 'Lass', name: 'Iris', team },
+    trainer: { class: 'Lass', name: 'Iris', prize: 30, team },
     seed: 5,
   })
 }

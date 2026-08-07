@@ -30,7 +30,7 @@ export const trainerPrize = (trainer) => {
     return Math.max(best, levelOf(mon))
   }, 1)
 
-  return trainerClass(trainer.class).prize * top
+  return trainer.prize * top
 }
 
 const teamSize = (rng, leadLevel, maxMons) => {

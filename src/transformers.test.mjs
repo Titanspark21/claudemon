@@ -47,6 +47,7 @@ const rawSave = {
   ],
   bag: { 'poke-ball': 5 },
   money: 3000,
+  badges: ['pewter', 'cerulean'],
   dex: { seen: [4, 19], caught: [4], faced: { 19: 2 } },
   stats: { battles: 3, wins: 2, losses: 1, caught: 1, runs: 0 },
   cheatMode: true,
@@ -56,6 +57,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
   const save = transformResponseSave(rawSave)
 
   expect(Object.keys(save).sort()).toEqual([
+    'badges',
     'bag',
     'box',
     'dex',
@@ -66,6 +68,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
     'version',
   ])
   expect(save.trainer).toEqual(rawSave.trainer)
+  expect(save.badges).toEqual(['pewter', 'cerulean'])
   expect(save.dex).toEqual({ seen: [4, 19], caught: [4], faced: { 19: 2 } })
   expect(save.stats).toEqual({
     battles: 3,
@@ -101,6 +104,7 @@ test('Should give a save written before a field existed an empty one instead', (
   expect(save.box).toEqual([])
   expect(save.bag).toEqual({})
   expect(save.money).toBe(0)
+  expect(save.badges).toEqual([])
   expect(save.dex).toEqual({ seen: [], caught: [], faced: {} })
   expect(save.stats).toEqual({
     battles: 0,

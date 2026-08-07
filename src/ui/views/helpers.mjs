@@ -1,5 +1,8 @@
-import { brightGreen, dim, gray } from '../ansi.mjs'
+import { GYMS } from '../../constants.mjs'
+import { hasBadge } from '../../state.mjs'
+import { brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
 import {
+  BADGE_MARKS,
   DEX_MARKS,
   EVOLUTION_WORDING,
   OPTIONS_PREVIEW_SPECIES,
@@ -34,6 +37,29 @@ export const dexMark = (isCaught, isSeen) => {
   if (isSeen) return dim(DEX_MARKS.seen)
 
   return gray(DEX_MARKS.unseen)
+}
+
+export const menuColumns = (count, width, cell) => {
+  const perRow = Math.max(1, Math.floor(width / cell))
+  const rows = Math.ceil(count / perRow)
+
+  return Math.min(count, Math.ceil(count / Math.max(1, rows)))
+}
+
+export const badgeMark = (earned) => {
+  if (earned) return brightYellow(BADGE_MARKS.earned)
+
+  return gray(BADGE_MARKS.missing)
+}
+
+export const badgeStrip = (save) => {
+  return GYMS.map((gym) => badgeMark(hasBadge(save, gym.id))).join('')
+}
+
+export const levelRangeLabel = (range) => {
+  if (range.min === range.max) return `Lv${range.min}`
+
+  return `Lv${range.min}-${range.max}`
 }
 
 export const evolutionWording = (evolution) => {

@@ -50,7 +50,7 @@ const main = () => {
   }
 
   const tickHeartbeat = () => {
-    if (app.save) publishStatus(app.save)
+    if (app.save && !app.gym) publishStatus(app.save)
   }
 
   const handleQueueChange = (_event, filename) => {

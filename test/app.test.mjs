@@ -15,7 +15,9 @@ const sandbox = useSandboxHome('claudemon-app-')
 const { createApp } = await import('../src/app.mjs')
 const { endSession, writeActivity } = await import('../src/activity.mjs')
 const { loadConfig, spriteScale } = await import('../src/config.mjs')
-const { DEFAULT_CONFIG } = await import('../src/constants.mjs')
+const { DEFAULT_CONFIG, GYM_MESSAGES } = await import('../src/constants.mjs')
+const { GYM_MESSAGES: GYM_SCREEN_MESSAGES } =
+  await import('../src/ui/views/constants.mjs')
 const { isDataReady } = await import('../src/data.mjs')
 const { expFromTrainerMon } = await import('../src/exp.mjs')
 const { clearEncounter, peekQueue, writeEncounter } =
@@ -28,6 +30,7 @@ const { HIT_FRAMES } = await import('../src/ui/constants.mjs')
 const { SETTINGS } = await import('../src/ui/views/options.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
 const battleView = await import('../src/ui/views/battle.mjs')
+const gymView = await import('../src/ui/views/gym.mjs')
 const { stripAnsi } = await import('../src/ui/text.mjs')
 const { makeRng } = await import('../src/rng.mjs')
 const { VERSION } = await import('../src/version.mjs')
@@ -91,6 +94,13 @@ const stubRun = () => {
 }
 
 const press = (app, name, char) => app.handleKey({ name, char })
+
+const gymText = (app) => {
+  return gymView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+}
 
 const type = (app, text) => {
   for (const char of text) press(app, char, char)
@@ -1538,13 +1548,14 @@ test('Should open each screen from the home menu and come back', () => {
   expect(homeView.menuItems(app).map((item) => item.id)).toEqual([
     'dex',
     'team',
+    'gyms',
     'shop',
     'heal',
     'options',
     'quit',
   ])
 
-  for (const mode of ['dex', 'team', 'shop', 'options']) {
+  for (const mode of ['dex', 'team', 'gyms', 'shop', 'options']) {
     walkHomeTo(app, mode)
     press(app, 'enter')
 
@@ -2591,4 +2602,292 @@ test('Should carry the version on the home screen, and the notice only when ther
     notice,
     'the notice names the version and the key that fetches it',
   ).toContain('[u]')
+})
+
+test('Should hand over the badge once the whole gym is down, and write it where it survives the terminal', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+
+  save.party = [createPokemon(150, 80, makeRng(2))]
+  save.party[0].moves = [makeMoveSlot('psychic')]
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  onHome(app, 'gyms')
+  press(app, 'enter')
+
+  expect(app.mode).toBe('gyms')
+
+  press(app, 'enter')
+
+  expect(app.mode, 'the roster opens before the first punch').toBe('gym')
+  expect(app.gym.index).toBe(0)
+  expect(app.save.badges).toEqual([])
+
+  const stillToCome = ['HIKER WADE', 'LEADER BROCK', null]
+
+  for (const next of stillToCome) {
+    press(app, 'enter')
+
+    expect(app.mode, `the battle before ${next} should start`).toBe('battle')
+
+    fightItOut(app, 200)
+
+    if (!next) continue
+
+    const prompt = gymText(app)
+      .split('\n')
+      .find((line) => line.includes('[enter]'))
+
+    expect(
+      prompt,
+      'a win leaves a prompt naming whoever is next, not a stale notice',
+    ).toContain(next)
+  }
+
+  expect(app.mode, 'the gym shows you out once the leader falls').toBe('gyms')
+  expect(app.gym, 'the run is finished with').toBeNull()
+  expect(app.save.badges).toEqual(['pewter'])
+  expect(app.gymMessage).toContain('Boulder Badge')
+  expect(loadSave().badges, 'and it is on disk').toEqual(['pewter'])
+})
+
+test('Should put the save back exactly as it was when the gym beats you', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+
+  save.party = [createPokemon(129, 5, makeRng(3))]
+  save.bag = { potion: 2 }
+  save.money = 1234
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.persist()
+
+  const expBefore = app.save.party[0].exp
+
+  onHome(app, 'gyms')
+  press(app, 'enter')
+  press(app, 'enter')
+  press(app, 'enter')
+
+  fightItOut(app, 400)
+
+  expect(app.mode).toBe('gyms')
+  expect(app.gymMessage).toBe(GYM_MESSAGES.defeated)
+  expect(app.save.badges).toEqual([])
+  expect(app.save.money, 'the prize money never happened').toBe(1234)
+  expect(app.save.bag).toEqual({ potion: 2 })
+  expect(app.save.party[0].exp, 'nor did the experience').toBe(expBefore)
+  expect(app.save.party[0].hp, 'nor the beating').toBe(
+    app.save.party[0].stats.hp,
+  )
+  expect(
+    app.save.stats.battles,
+    'as far as the record goes, you never went',
+  ).toBe(0)
+  expect(loadSave().money, 'and the file agrees').toBe(1234)
+})
+
+test('Should seal the gym: no way home, no free rest, and nothing reaching the disk mid-run', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+
+  save.money = 500
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.persist()
+
+  onHome(app, 'gyms')
+  press(app, 'enter')
+  press(app, 'enter')
+
+  expect(app.mode).toBe('gym')
+
+  for (const key of ['q', 'b', 'd', 'left', 'right']) {
+    press(app, key)
+
+    expect(app.mode, `[${key}] should not open a door`).toBe('gym')
+  }
+
+  app.save.money = 999
+  app.persist()
+
+  expect(loadSave().money, 'the run writes nothing').toBe(500)
+})
+
+test('Should carry your wounds into the gym, cure them only with a potion, and take the potion back if you walk out', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+
+  save.party = [createPokemon(150, 50, makeRng(4))]
+  save.party[0].hp = 5
+  save.bag = { potion: 1 }
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  onHome(app, 'gyms')
+  press(app, 'enter')
+  press(app, 'enter')
+
+  expect(app.mode).toBe('gym')
+  expect(app.save.party[0].hp, 'walking in is not a rest').toBe(5)
+
+  press(app, 'i')
+
+  expect(app.bagSelection, 'the bag opens over the gym').toBe(0)
+
+  press(app, 'enter')
+
+  expect(app.save.party[0].hp).toBe(25)
+  expect(app.save.bag.potion).toBeUndefined()
+  expect(app.mode, 'and you are still in the gym').toBe('gym')
+
+  press(app, 'i')
+
+  expect(
+    gymText(app),
+    'reaching for a bag with nothing in it says so',
+  ).toContain('Your bag is empty')
+
+  press(app, 'escape')
+
+  expect(app.mode, 'one press only asks').toBe('gym')
+  expect(gymText(app), 'and says so on screen').toContain(
+    GYM_SCREEN_MESSAGES.confirmLeave,
+  )
+
+  press(app, 'down')
+
+  expect(app.mode, 'anything else keeps you in').toBe('gym')
+  expect(gymText(app), 'and takes the question back').not.toContain(
+    GYM_SCREEN_MESSAGES.confirmLeave,
+  )
+
+  press(app, 'escape')
+  press(app, 'escape')
+
+  expect(app.mode).toBe('gyms')
+  expect(app.gymMessage).toBe(GYM_MESSAGES.forfeited)
+  expect(app.save.bag.potion, 'the potion you drank never left the bag').toBe(1)
+  expect(app.save.party[0].hp, 'and the wound is back').toBe(5)
+})
+
+test('Should turn a fainted team away at the gym door', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+
+  save.party[0].hp = 0
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  onHome(app, 'gyms')
+  press(app, 'enter')
+  press(app, 'enter')
+
+  expect(app.mode).toBe('gyms')
+  expect(app.gym).toBeNull()
+  expect(app.gymMessage).toBe(GYM_MESSAGES.wipedOut)
+})
+
+test('Should challenge the gym the cursor is on, not the first one on the list', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+
+  save.party = [createPokemon(150, 50, makeRng(7))]
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  onHome(app, 'gyms')
+  press(app, 'enter')
+
+  press(app, 'down')
+  press(app, 'down')
+  press(app, 'up')
+  press(app, 'enter')
+
+  expect(app.gym.id).toBe('cerulean')
+  expect(app.mode).toBe('gym')
+})
+
+test('Should let you put a different Pokémon out front between gym battles', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+
+  save.party = [
+    createPokemon(4, 20, makeRng(8)),
+    createPokemon(7, 20, makeRng(9)),
+  ]
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  onHome(app, 'gyms')
+  press(app, 'enter')
+  press(app, 'enter')
+
+  press(app, 'up')
+  press(app, 'down')
+  press(app, 'down')
+  press(app, 'l')
+
+  expect(app.mode, 'you never left the gym to do it').toBe('gym')
+  expect(app.save.party[0].species, 'the second one takes the front').toBe(7)
+})
+
+test('Should leave the grass alone during a gym run and pick the encounter up on the way out', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  onHome(app, 'gyms')
+  press(app, 'enter')
+  press(app, 'enter')
+
+  expect(app.mode).toBe('gym')
+
+  queueEncounter(app, { species: 129, name: 'Magikarp', level: 3, seed: 9 })
+
+  expect(app.encounter, 'the grass waits until the gym is done with you').toBe(
+    null,
+  )
+  expect(
+    app.save.dex.seen,
+    'and nothing it says reaches a save the run may undo',
+  ).not.toContain(129)
+
+  press(app, 'escape')
+  press(app, 'escape')
+
+  expect(app.mode).toBe('gyms')
+
+  app.pump()
+
+  expect(app.encounter?.species, 'it was still there afterwards').toBe(129)
+  expect(app.save.dex.seen).toContain(129)
 })

@@ -29,6 +29,7 @@ export const DEFAULT_MENU_STRIDE = 1
 export const BASE_MENU = [
   { id: 'dex', label: 'POKÉDEX' },
   { id: 'team', label: 'TEAM' },
+  { id: 'gyms', label: 'GYM' },
   { id: 'shop', label: 'SHOP' },
   { id: 'heal', label: 'HEAL' },
   { id: 'options', label: 'OPTION' },
@@ -153,6 +154,42 @@ export const SHOP_OWNED_LABEL = 'have'
 export const SHOP_PROMPT = '[enter] buy one · [5] buy five'
 export const SHOP_HINTS =
   ' ↑ ↓ browse · [enter] buy one · [5] buy five · [esc] back'
+
+export const GYMS_TITLE = 'GYMS'
+export const GYM_TITLE_SUFFIX = 'GYM'
+export const GYMS_LIST_WIDTH = 32
+export const GYM_DETAIL_GAP = 6
+export const GYM_SPRITE_RESERVED_ROWS = 18
+export const GYM_CITY_WIDTH = 10
+export const GYM_TYPE_WIDTH = 8
+export const GYM_ROSTER_NAME_WIDTH = 20
+export const MAX_GYM_WIDTH = 56
+export const GYM_ROSTER_PANEL_TITLE = 'Gauntlet'
+
+export const BADGE_MARKS = { earned: '◆', missing: '◇' }
+export const GYM_ROSTER_MARKS = { beaten: '✔', next: '▶', pending: '·' }
+
+export const GYM_MESSAGES = {
+  badges: 'badges',
+  trainers: 'trainers before the leader',
+  inYourBag: 'In your bag',
+  potions: 'Potions',
+  revives: 'Revives',
+  alreadyWon: 'Already won.',
+  noBadgeYet: 'Not yet won.',
+  confirmLeave: 'Walk out and none of it counted. [esc] again to leave.',
+  rules: 'No shop, no rest — your bag is all you get in here.',
+  rollback: 'Lose or leave and the whole run is undone.',
+}
+
+export const GYM_PROMPTS = {
+  challenge: 'face the next one',
+  leader: 'the leader is next',
+}
+
+export const GYMS_HINTS = ' ↑ ↓ browse · [enter] challenge the gym · [esc] back'
+export const GYM_HINTS =
+  ' ↑ ↓ pick one · [enter] next battle · [i] bag · [l] lead · [esc] give up'
 
 export const MAX_NAME = 12
 export const AVERAGE_IV = 15

@@ -26,6 +26,12 @@ export const itemsInBag = (save) => {
 
 export const usableOnParty = (key) => PARTY_ITEM_KINDS.has(ITEMS[key].kind)
 
+export const countOfKind = (save, kind) => {
+  return Object.keys(ITEMS)
+    .filter((key) => ITEMS[key].kind === kind)
+    .reduce((total, key) => total + countOf(save, key), 0)
+}
+
 export const addItem = (save, key, quantity = 1) => {
   save.bag[key] = countOf(save, key) + quantity
 
