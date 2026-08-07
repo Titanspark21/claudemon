@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
 
+import { spriteFile } from '../paths.mjs'
 import { fieldWidth, fitBattleSprites, usableRows } from './battleField.mjs'
 import { MAX_FIELD_WIDTH } from './constants.mjs'
 
@@ -22,7 +23,12 @@ test('Should only share rows between sprites when there is clear air between the
     for (const cols of [60, 80, 100, 120, 160]) {
       for (let rows = 24; rows <= 60; rows += 4) {
         const size = { cols, rows }
-        const fitted = fitBattleSprites(size, foe, player, 1)
+        const fitted = fitBattleSprites(
+          size,
+          spriteFile('front', foe, 'png'),
+          spriteFile('back', player, 'png'),
+          1,
+        )
 
         if (fitted.overlap === 0) continue
 
@@ -55,7 +61,12 @@ test('Should never grow the field past the rows the layout can spare', () => {
   ]) {
     for (let rows = 24; rows <= 60; rows += 2) {
       const size = { cols: 120, rows }
-      const fitted = fitBattleSprites(size, foe, player, 1)
+      const fitted = fitBattleSprites(
+        size,
+        spriteFile('front', foe, 'png'),
+        spriteFile('back', player, 'png'),
+        1,
+      )
       const height =
         fitted.foe.rows.length + fitted.player.rows.length - fitted.overlap
 

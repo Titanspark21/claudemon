@@ -3,6 +3,7 @@ import {
   MAX_LEVEL,
   MONEY_JITTER_PER_LEVEL,
   MONEY_PER_LEVEL,
+  TRAINER_EXP_BONUS,
 } from './constants.mjs'
 import { loadData, species } from './data.mjs'
 import { randInt } from './rng.mjs'
@@ -39,6 +40,12 @@ export const expFromDefeating = (foeSpeciesId, foeLevel) => {
   return Math.max(
     1,
     Math.floor((species(foeSpeciesId).baseExp * foeLevel) / EXP_DIVISOR),
+  )
+}
+
+export const expFromTrainerMon = (foeSpeciesId, foeLevel) => {
+  return Math.floor(
+    expFromDefeating(foeSpeciesId, foeLevel) * TRAINER_EXP_BONUS,
   )
 }
 

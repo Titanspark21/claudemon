@@ -91,7 +91,7 @@ const rewindSession = (home, id, ms) => {
 test('Should buy the turn a walk rather than take one the instant a prompt is submitted', () => {
   const home = freshHome()
 
-  writeConfig(home, { encounterChance: 1 })
+  writeConfig(home, { encounterChance: 1, trainerChance: 0 })
   runHook(home, 'on-prompt.mjs', {
     session_id: 'aaa',
     cwd: '/tmp',
@@ -115,7 +115,7 @@ test('Should buy the turn a walk rather than take one the instant a prompt is su
 test('Should take the walk a prompt bought once Claude gets going', () => {
   const home = freshHome()
 
-  writeConfig(home, { encounterChance: 1 })
+  writeConfig(home, { encounterChance: 1, trainerChance: 0 })
   runHook(home, 'on-prompt.mjs', {
     session_id: 'aaa1',
     cwd: '/tmp',
@@ -145,10 +145,48 @@ test('Should take the walk a prompt bought once Claude gets going', () => {
   ).toBe(0)
 })
 
+test('Should put a whole trainer in the grass when the walk turns one up', () => {
+  const home = freshHome()
+
+  writeConfig(home, { encounterChance: 1, trainerChance: 1 })
+  runHook(home, 'on-prompt.mjs', {
+    session_id: 'aaa9',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
+    prompt: 'x'.repeat(120),
+  })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'aaa9',
+    cwd: '/tmp',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Read',
+  })
+
+  const [queued] = queueIn(home)
+
+  expect(queued.kind).toBe('trainer')
+  expect(queued.species, 'a trainer is not a species').toBeUndefined()
+  expect(queued.trainer.class).toBeTruthy()
+  expect(queued.trainer.name).toBeTruthy()
+  expect(queued.trainer.team.length).toBeGreaterThanOrEqual(1)
+  expect(queued.trainer.team[0].level).toBeGreaterThanOrEqual(2)
+  expect(queued.session).toBe('aaa9')
+  expect(Date.parse(queued.at), 'stamped, so it can time out').not.toBeNaN()
+
+  const line = runStatusLine(home)
+
+  expect(line, 'the status line calls the trainer out').toContain(
+    `${queued.trainer.name.toUpperCase()} wants to battle!`,
+  )
+  expect(line, 'and says how many are coming').toContain(
+    `×${queued.trainer.team.length}`,
+  )
+})
+
 test('Should still take the walk it bought when the turn never touches a tool', () => {
   const home = freshHome()
 
-  writeConfig(home, { encounterChance: 1 })
+  writeConfig(home, { encounterChance: 1, trainerChance: 0 })
   runHook(home, 'on-prompt.mjs', {
     session_id: 'aaa4',
     cwd: '/tmp',
@@ -180,7 +218,7 @@ test('Should not stack a second Pokemon behind the first however many prompts ar
     tool_name: 'Read',
   }
 
-  writeConfig(home, { encounterChance: 1 })
+  writeConfig(home, { encounterChance: 1, trainerChance: 0 })
   runHook(home, 'on-prompt.mjs', submitted)
   runHook(home, 'on-activity.mjs', toolCall)
 
@@ -211,7 +249,11 @@ test('Should replace an encounter nobody faced once it has timed out', () => {
     tool_name: 'Read',
   }
 
-  writeConfig(home, { encounterChance: 1, encounterTtlSeconds: 30 })
+  writeConfig(home, {
+    encounterChance: 1,
+    trainerChance: 0,
+    encounterTtlSeconds: 30,
+  })
   runHook(home, 'on-prompt.mjs', submitted)
   runHook(home, 'on-activity.mjs', toolCall)
 
@@ -238,7 +280,7 @@ test('Should replace an encounter nobody faced once it has timed out', () => {
 test('Should only ever take the walk a prompt bought once', () => {
   const home = freshHome()
 
-  writeConfig(home, { encounterChance: 1 })
+  writeConfig(home, { encounterChance: 1, trainerChance: 0 })
   runHook(home, 'on-prompt.mjs', {
     session_id: 'aaa5',
     cwd: '/tmp',
@@ -274,7 +316,7 @@ test('Should only ever take the walk a prompt bought once', () => {
 test('Should start the turn but walk nowhere when the prompt is blank', () => {
   const home = freshHome()
 
-  writeConfig(home, { encounterChance: 1 })
+  writeConfig(home, { encounterChance: 1, trainerChance: 0 })
   runHook(home, 'on-prompt.mjs', {
     session_id: 'ccc',
     cwd: '/tmp',
@@ -298,7 +340,7 @@ test('Should start the turn but walk nowhere when the prompt is blank', () => {
 test('Should say nothing on stdout, whatever the prompt', () => {
   const home = freshHome()
 
-  writeConfig(home, { encounterChance: 1 })
+  writeConfig(home, { encounterChance: 1, trainerChance: 0 })
 
   const stdout = runHook(home, 'on-prompt.mjs', {
     session_id: 'ddd',
@@ -352,7 +394,11 @@ test('Should end the turn and walk nowhere when a session stops without having w
   const home = freshHome()
   const stopped = { session_id: 'hhh', hook_event_name: 'Stop' }
 
-  writeConfig(home, { encounterChance: 1, workStepSeconds: 20 })
+  writeConfig(home, {
+    encounterChance: 1,
+    trainerChance: 0,
+    workStepSeconds: 20,
+  })
   runHook(home, 'on-activity.mjs', stopped)
 
   expect(sessionIn(home, 'hhh').state).toBe('idle')
@@ -388,7 +434,11 @@ test('Should take the session file with it when the session ends', () => {
 test('Should walk you through the grass for the time spent working', () => {
   const home = freshHome()
 
-  writeConfig(home, { encounterChance: 1, workStepSeconds: 20 })
+  writeConfig(home, {
+    encounterChance: 1,
+    trainerChance: 0,
+    workStepSeconds: 20,
+  })
   runHook(home, 'on-activity.mjs', {
     session_id: 'jjj',
     hook_event_name: 'PreToolUse',
@@ -415,7 +465,11 @@ test('Should walk you through the grass for the time spent working', () => {
 test('Should not bank a queue of battles for later over a long turn', () => {
   const home = freshHome()
 
-  writeConfig(home, { encounterChance: 1, workStepSeconds: 20 })
+  writeConfig(home, {
+    encounterChance: 1,
+    trainerChance: 0,
+    workStepSeconds: 20,
+  })
   runHook(home, 'on-activity.mjs', {
     session_id: 'mmm',
     hook_event_name: 'PreToolUse',
@@ -440,7 +494,11 @@ test('Should not bank a queue of battles for later over a long turn', () => {
 test('Should not cash in the time spent stopped on the next tool call', () => {
   const home = freshHome()
 
-  writeConfig(home, { encounterChance: 1, workStepSeconds: 20 })
+  writeConfig(home, {
+    encounterChance: 1,
+    trainerChance: 0,
+    workStepSeconds: 20,
+  })
   runHook(home, 'on-activity.mjs', {
     session_id: 'lll',
     hook_event_name: 'Notification',

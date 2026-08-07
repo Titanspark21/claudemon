@@ -104,6 +104,21 @@ export const TURN_MESSAGES = {
   fullyParalysed: "is paralysed and can't move!",
 }
 
+export const FOE_LABELS = { wild: 'the wild', trainer: "the foe's" }
+
+export const TRAINER_MESSAGES = {
+  wantsToBattle: 'wants to battle!',
+  sentOut: 'sent out',
+  defeated: 'was defeated!',
+  noRunning: 'No! There is no running from a trainer battle!',
+  noStealing: "Don't be a thief! That Pokémon belongs to somebody.",
+}
+
+export const TRAINER_REFUSALS = {
+  ball: TRAINER_MESSAGES.noStealing,
+  run: TRAINER_MESSAGES.noRunning,
+}
+
 export const CATCH_COMPLAINTS = [
   'Oh no! The Pokemon broke free!',
   'Aargh! Almost had it!',
@@ -285,6 +300,8 @@ export const SPRITE_SCALE_MAX = 1
 export const DEFAULT_CONFIG = {
   encounterChance: 0.12,
 
+  trainerChance: 0.15,
+
   charsPerStep: 40,
 
   maxSteps: 4,
@@ -315,6 +332,7 @@ export const ACTIVITY_VERSION = 1
 export const LEGENDARY_LEVEL_GATE = 40
 export const DEFAULT_CAPTURE_RATE = 45
 export const STAGE_LEVEL_GATES = { 1: 16, 2: 32 }
+export const ENCOUNTER_VERSION = 1
 
 export const WILD_LEVEL_SPREAD = {
   min: 2,
@@ -323,6 +341,87 @@ export const WILD_LEVEL_SPREAD = {
   above: 2,
   ceiling: 100,
 }
+
+export const TRAINER_LEVEL_SPREAD = {
+  min: 2,
+  fallbackMax: 5,
+  below: 1,
+  above: 3,
+  ceiling: 100,
+}
+
+export const TRAINER_LEVELS_PER_MON = 12
+export const TRAINER_EXP_BONUS = 1.5
+
+export const TRAINER_CLASSES = [
+  {
+    name: 'Bug Catcher',
+    maxMons: 3,
+    prize: 22,
+    sprites: ['bugcatcher', 'bugcatcher-gen4dp'],
+  },
+  {
+    name: 'Youngster',
+    maxMons: 2,
+    prize: 25,
+    sprites: ['youngster', 'youngster-gen4', 'youngster-gen4dp'],
+  },
+  {
+    name: 'Lass',
+    maxMons: 3,
+    prize: 30,
+    sprites: ['lass', 'lass-gen4', 'lass-gen4dp'],
+  },
+  { name: 'Biker', maxMons: 4, prize: 40, sprites: ['biker', 'biker-gen4'] },
+  { name: 'Hiker', maxMons: 3, prize: 45, sprites: ['hiker', 'hiker-gen4'] },
+  { name: 'Sailor', maxMons: 4, prize: 50, sprites: ['sailor', 'sailor-gen6'] },
+  {
+    name: 'Super Nerd',
+    maxMons: 4,
+    prize: 55,
+    sprites: ['scientist', 'scientist-gen4', 'scientist-gen4dp'],
+  },
+  {
+    name: 'Cooltrainer',
+    maxMons: 5,
+    prize: 70,
+    sprites: ['acetrainer-gen4dp', 'acetrainerf-gen4dp'],
+  },
+  {
+    name: 'Ace Trainer',
+    maxMons: 6,
+    prize: 80,
+    sprites: [
+      'acetrainer',
+      'acetrainerf',
+      'acetrainer-gen4',
+      'acetrainerf-gen4',
+    ],
+  },
+]
+
+export const TRAINER_NAMES = [
+  'Joey',
+  'Mikey',
+  'Calvin',
+  'Sally',
+  'Rick',
+  'Dana',
+  'Cole',
+  'Jasmine',
+  'Otis',
+  'Lola',
+  'Beverly',
+  'Hugh',
+  'Nolan',
+  'Kelsey',
+  'Wade',
+  'Iris',
+  'Marc',
+  'Dawn',
+  'Tucker',
+  'Priya',
+]
 
 export const FALLBACK_SPECIES = [
   { id: 16, name: 'Pidgey', weight: 20 },

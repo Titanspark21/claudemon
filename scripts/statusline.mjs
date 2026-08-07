@@ -1,7 +1,9 @@
 import { spawnSync } from 'node:child_process'
 import { encounterTtlMs, loadConfig } from '../src/config.mjs'
+import { TRAINER_MESSAGES } from '../src/constants.mjs'
 import { encounterExpiresAt, readEncounter } from '../src/queue.mjs'
 import { companionIsLive, readStatus } from '../src/status.mjs'
+import { trainerLabel } from '../src/trainer.mjs'
 import {
   bold,
   brightCyan,
@@ -50,7 +52,14 @@ const wrappedOutput = (command, stdin) => {
   }
 }
 
+const trainerHeadline = (trainer) => {
+  const label = bold(trainerLabel(trainer))
+
+  return `${label} ${TRAINER_MESSAGES.wantsToBattle} ${dim(`×${trainer.team.length}`)}`
+}
+
 const encounterHeadline = (encounter) => {
+  if (encounter.kind === 'trainer') return trainerHeadline(encounter.trainer)
   if (!encounter.name) return WILD_FALLBACK_HEADLINE
 
   return `A wild ${bold(encounter.name.toUpperCase())} appeared!`

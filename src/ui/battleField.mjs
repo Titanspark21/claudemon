@@ -1,4 +1,3 @@
-import { spriteFile } from '../paths.mjs'
 import {
   FIELD_GAP,
   FIELD_LEFT,
@@ -33,14 +32,11 @@ export const overlapRows = (foe, player, width) => {
   return Math.floor(shorter * OVERLAP_FRACTION)
 }
 
-const spriteRows = (speciesId, side, canvasCols) => {
-  return (
-    loadSprite(spriteFile(side, speciesId, 'png'), { cols: canvasCols }) ??
-    NO_SPRITE
-  )
+const spriteRows = (pngPath, canvasCols) => {
+  return loadSprite(pngPath, { cols: canvasCols }) ?? NO_SPRITE
 }
 
-export const fitBattleSprites = (size, foeId, playerId, scale) => {
+export const fitBattleSprites = (size, foeFile, playerFile, scale) => {
   const budget = Math.max(MIN_FIELD_ROWS, usableRows(size) - CHROME_ROWS)
   const width = fieldWidth(size)
   const room = Math.min(NATIVE_CANVAS_COLS, size.cols - FIELD_ROOM_SLACK)
@@ -52,8 +48,8 @@ export const fitBattleSprites = (size, foeId, playerId, scale) => {
 
   while (low <= high) {
     const canvas = Math.floor((low + high) / 2)
-    const foe = spriteRows(foeId, 'front', canvas)
-    const player = spriteRows(playerId, 'back', canvas)
+    const foe = spriteRows(foeFile, canvas)
+    const player = spriteRows(playerFile, canvas)
     const overlap = overlapRows(foe, player, width)
 
     if (spriteHeight(foe) + spriteHeight(player) - overlap <= budget) {
@@ -66,8 +62,8 @@ export const fitBattleSprites = (size, foeId, playerId, scale) => {
 
   if (best) return best
 
-  const foe = spriteRows(foeId, 'front', MIN_CANVAS_COLS)
-  const player = spriteRows(playerId, 'back', MIN_CANVAS_COLS)
+  const foe = spriteRows(foeFile, MIN_CANVAS_COLS)
+  const player = spriteRows(playerFile, MIN_CANVAS_COLS)
 
   return {
     canvas: MIN_CANVAS_COLS,

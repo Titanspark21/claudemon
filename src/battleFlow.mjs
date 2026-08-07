@@ -1,5 +1,5 @@
 import { isWorking } from './activity.mjs'
-import { createBattle, submitAction, switchIn } from './battle.mjs'
+import { sendOutAfterFaint, submitAction, switchIn } from './battle.mjs'
 import {
   BATTLE_ITEM_KINDS,
   BATTLE_MESSAGES,
@@ -15,6 +15,7 @@ import {
   activePokemon,
   addPokemon,
   healParty,
+  markFaced,
   publishStatus,
   setLead,
 } from './state.mjs'
@@ -29,6 +30,8 @@ const liveHp = (state) => {
 export const createBattleFlow = (state) => {
   return {
     state,
+    foeMon: state.foe.mon,
+    trainerIntro: state.trainer?.sprite != null,
     menu: 'main',
     selection: 0,
     message: null,
@@ -45,6 +48,7 @@ export const createBattleFlow = (state) => {
 }
 
 const syncBars = (battle) => {
+  battle.foeMon = battle.state.foe.mon
   battle.hp = liveHp(battle.state)
   battle.hpTarget = { ...battle.hp }
 }
@@ -100,6 +104,13 @@ const applyBattleEvent = (ctx, event) => {
         battle.effect = { side: event.side, frame: 0 }
       }
       break
+    case 'foe-out':
+      battle.foeMon = event.mon
+      battle.hp.foe = event.hpAfter
+      battle.hpTarget.foe = event.hpAfter
+
+      markFaced(ctx.save, event.mon.species)
+      break
     case 'catch':
       battle.ball = {
         shakes: event.shakes,
@@ -133,6 +144,8 @@ export const advanceMessage = (ctx) => {
   const battle = ctx.battle
 
   if (!battle) return
+
+  battle.trainerIntro = false
 
   if (battle.ball && !battle.ball.done) {
     settleBall(battle)
@@ -257,7 +270,7 @@ const chooseMainOption = (ctx) => {
       openMenu(battle, 'fight')
       break
     case 1:
-      battle.bagItems = usableBattleItems(ctx.save)
+      battle.bagItems = usableBattleItems(ctx.save, battle.state.trainer)
       openMenu(battle, 'bag')
       break
     case 2:
@@ -271,13 +284,14 @@ const chooseMainOption = (ctx) => {
   }
 }
 
-const usableBattleItems = (save) => {
-  const balls = ballsInBag(save)
+const usableBattleItems = (save, trainer) => {
   const others = Object.keys(ITEMS).filter(
     (key) => BATTLE_ITEM_KINDS.has(ITEMS[key].kind) && countOf(save, key) > 0,
   )
 
-  return [...balls, ...others]
+  if (trainer) return others
+
+  return [...ballsInBag(save), ...others]
 }
 
 const chooseMove = (ctx) => {
@@ -469,14 +483,7 @@ const processNextStep = (ctx) => {
   }
 
   if (step.kind === 'send-out') {
-    const foe = battle.state.foe.mon
-
-    battle.state = createBattle({
-      playerMon: step.mon,
-      wildMon: foe,
-      seed: (battle.state.seed + battle.state.turn + 1) >>> 0,
-      participants: battle.state.participants,
-    })
+    sendOutAfterFaint(battle.state, step.mon)
 
     battle.postSteps = null
     syncBars(battle)

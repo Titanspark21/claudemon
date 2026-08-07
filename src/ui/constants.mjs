@@ -249,6 +249,9 @@ export const HP_BAR_EMPTY_GLYPH = '░'
 export const EXP_BAR_COLOUR = [96, 176, 240]
 export const EXP_BAR_GLYPH = '▬'
 
+export const TRAINER_TRAY_COLOUR = [240, 240, 240]
+export const TRAINER_TRAY_GLYPHS = { left: '●', lost: '○' }
+
 export const DEFAULT_BAR_WIDTH = 20
 export const DEFAULT_MENU_COLUMNS = 2
 export const DEFAULT_MENU_WIDTH = 40

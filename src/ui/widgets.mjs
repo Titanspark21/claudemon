@@ -15,6 +15,8 @@ import {
   HP_BAR_EMPTY_GLYPH,
   HP_BAR_THRESHOLDS,
   STATUS_TAGS,
+  TRAINER_TRAY_COLOUR,
+  TRAINER_TRAY_GLYPHS,
   TYPE_COLORS,
   UNKNOWN_STATUS_TAG,
 } from './constants.mjs'
@@ -76,7 +78,8 @@ const hpBarColour = (fraction) => {
 
 export const hpBar = (current, max, width = DEFAULT_BAR_WIDTH) => {
   const fraction = max > 0 ? Math.max(0, current / max) : 0
-  const filled = current > 0 ? Math.max(1, Math.round(fraction * width)) : 0
+  const filled =
+    current > 0 ? Math.min(width, Math.max(1, Math.round(fraction * width))) : 0
 
   const [r, g, b] = hpBarColour(fraction)
 
@@ -87,6 +90,13 @@ export const expBar = (fraction, width = DEFAULT_BAR_WIDTH) => {
   const filled = Math.max(0, Math.min(width, Math.round(fraction * width)))
 
   return `${fg(...EXP_BAR_COLOUR)}${EXP_BAR_GLYPH.repeat(filled)}${CLEAR}${gray(EXP_BAR_GLYPH.repeat(width - filled))}`
+}
+
+export const trainerTray = (remaining, total) => {
+  const left = TRAINER_TRAY_GLYPHS.left.repeat(remaining)
+  const lost = TRAINER_TRAY_GLYPHS.lost.repeat(total - remaining)
+
+  return `${fg(...TRAINER_TRAY_COLOUR)}${left}${CLEAR}${gray(lost)}`
 }
 
 export const panel = (lines, width, { title = null } = {}) => {

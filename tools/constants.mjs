@@ -38,6 +38,9 @@ export const DATASET_BUILDING_HEADING = '\nBuilding the claudemon dataset\n'
 export const SPRITE_BASE_URL =
   'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white'
 
+export const TRAINER_SPRITE_BASE_URL =
+  'https://play.pokemonshowdown.com/sprites/trainers'
+
 export const SPRITE_SIDES = ['front', 'back']
 
 export const SPRITE_MAX_ATTEMPTS = 3
@@ -69,43 +72,6 @@ export const LABEL_WIDTH = 14
 export const BAR_FILLED = '█'
 
 export const BAR_EMPTY = '░'
-
-export const PORT_ATTEMPTS = 10
-
-export const DEFAULT_PORT = 8080
-
-export const MIN_PORT = 1
-
-export const MAX_PORT = 65535
-
-export const CONTENT_TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.ico': 'image/x-icon',
-  '.wav': 'audio/wav',
-  '.woff2': 'font/woff2',
-  '.txt': 'text/plain; charset=utf-8',
-}
-
-export const DEFAULT_CONTENT_TYPE = 'application/octet-stream'
-
-export const PLAIN_TEXT_CONTENT_TYPE = 'text/plain; charset=utf-8'
-
-export const CACHE_CONTROL = 'no-store'
-
-export const OPEN_COMMANDS = {
-  darwin: 'open',
-  win32: 'explorer',
-}
-
-export const DEFAULT_OPEN_COMMAND = 'xdg-open'
 
 export const PROBE_SPRITE_ID = 25
 

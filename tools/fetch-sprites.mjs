@@ -1,6 +1,12 @@
 import { mkdirSync, writeFileSync, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { SPRITES_DIR, spriteFile } from '../src/paths.mjs'
+import { TRAINER_CLASSES } from '../src/constants.mjs'
+import {
+  SPRITES_DIR,
+  TRAINER_SPRITES_DIR,
+  spriteFile,
+  trainerSpriteFile,
+} from '../src/paths.mjs'
 import { pool } from './pool.mjs'
 import { progress } from './progress.mjs'
 import {
@@ -9,12 +15,33 @@ import {
   SPRITE_BASE_URL,
   SPRITE_MAX_ATTEMPTS,
   SPRITE_RETRY_BACKOFF_MS,
+  TRAINER_SPRITE_BASE_URL,
 } from './constants.mjs'
 
 const SIDES = [
   { name: 'front', url: (id) => `${SPRITE_BASE_URL}/${id}.png` },
   { name: 'back', url: (id) => `${SPRITE_BASE_URL}/back/${id}.png` },
 ]
+
+const pokemonJobs = (ids) => {
+  return ids.flatMap((id) =>
+    SIDES.map((side) => ({
+      label: `${side.name}/${id}.png`,
+      url: side.url(id),
+      destination: spriteFile(side.name, id, 'png'),
+    })),
+  )
+}
+
+const trainerJobs = () => {
+  return TRAINER_CLASSES.flatMap((entry) =>
+    entry.sprites.map((name) => ({
+      label: `trainers/${name}.png`,
+      url: `${TRAINER_SPRITE_BASE_URL}/${name}.png`,
+      destination: trainerSpriteFile(name),
+    })),
+  )
+}
 
 const download = async (url, destination) => {
   if (existsSync(destination) && statSync(destination).size > 0) return 'cached'
@@ -54,9 +81,9 @@ const main = async () => {
   for (const side of SIDES)
     mkdirSync(join(SPRITES_DIR, side.name), { recursive: true })
 
-  const jobs = ids.flatMap((id) =>
-    SIDES.map((side) => ({ id, side: side.name, url: side.url(id) })),
-  )
+  mkdirSync(TRAINER_SPRITES_DIR, { recursive: true })
+
+  const jobs = [...pokemonJobs(ids), ...trainerJobs()]
 
   const counts = { fetched: 0, cached: 0, missing: 0 }
   let done = 0
@@ -65,11 +92,9 @@ const main = async () => {
     jobs,
     async (job) => {
       try {
-        counts[await download(job.url, spriteFile(job.side, job.id, 'png'))]++
+        counts[await download(job.url, job.destination)]++
       } catch (error) {
-        process.stderr.write(
-          `\n  ${job.side}/${job.id}.png failed: ${error.message}\n`,
-        )
+        process.stderr.write(`\n  ${job.label} failed: ${error.message}\n`)
       }
 
       progress('sprites', ++done, jobs.length)

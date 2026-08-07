@@ -6,9 +6,11 @@ import {
   FRAMES_PER_STEP,
   HOME_NOTICES,
   ITEMS,
+  TRAINER_MESSAGES,
 } from './constants.mjs'
 import { species } from './data.mjs'
 import { createBattle } from './battle.mjs'
+import { encounterSpecies } from './encounter.mjs'
 import {
   advanceMessage,
   backOutOfBattleMenu,
@@ -41,6 +43,7 @@ import {
   setLead,
   withdrawPokemon,
 } from './state.mjs'
+import { sentOutLine, trainerLabel } from './trainer.mjs'
 import { checkForUpdate, createUpdateRun, currentNotice } from './update.mjs'
 
 import * as bagView from './ui/views/bag.mjs'
@@ -202,7 +205,7 @@ export const createApp = ({
     ctx.homeSelection = 0
 
     if (ctx.save) {
-      markSeen(ctx.save, next.species)
+      markSeen(ctx.save, encounterSpecies(next))
       ctx.persist()
     }
 
@@ -484,24 +487,15 @@ export const createApp = ({
     ctx.encounter = null
     clearEncounter()
 
-    const wild = createPokemon(
-      encounter.species,
-      encounter.level,
-      makeRng(encounter.seed),
-    )
-
-    markFaced(ctx.save, encounter.species)
-
-    const state = createBattle({
-      playerMon: lead,
-      wildMon: wild,
-      seed: encounter.seed,
-    })
+    const { state, intro } =
+      encounter.kind === 'trainer'
+        ? trainerBattle(ctx.save, encounter, lead)
+        : wildBattle(ctx.save, encounter, lead)
 
     ctx.battle = createBattleFlow(state)
 
     ctx.save.stats.battles++
-    queueMessages(ctx, [`A wild ${displayName(wild).toUpperCase()} appeared!`])
+    queueMessages(ctx, intro)
     ctx.playMusic('battle')
     ctx.setMode('battle')
   }
@@ -531,4 +525,55 @@ export const createApp = ({
 
 const isSameEncounter = (entry, held) => {
   return held != null && entry.at === held.at && entry.seed === held.seed
+}
+
+const wildBattle = (save, encounter, lead) => {
+  const wild = createPokemon(
+    encounter.species,
+    encounter.level,
+    makeRng(encounter.seed),
+  )
+
+  markFaced(save, encounter.species)
+
+  return {
+    state: createBattle({
+      playerMon: lead,
+      wildMon: wild,
+      seed: encounter.seed,
+    }),
+    intro: [`A wild ${displayName(wild).toUpperCase()} appeared!`],
+  }
+}
+
+const trainerBattle = (save, encounter, lead) => {
+  const team = encounter.trainer.team.map((entry, index) => {
+    return createPokemon(
+      entry.species,
+      entry.level,
+      makeRng((encounter.seed + index) >>> 0),
+    )
+  })
+
+  markFaced(save, team[0].species)
+
+  const trainer = {
+    class: encounter.trainer.class,
+    name: encounter.trainer.name,
+    sprite: encounter.trainer.sprite,
+    team,
+  }
+
+  return {
+    state: createBattle({
+      playerMon: lead,
+      wildMon: team[0],
+      seed: encounter.seed,
+      trainer,
+    }),
+    intro: [
+      `${trainerLabel(trainer)} ${TRAINER_MESSAGES.wantsToBattle}`,
+      sentOutLine(trainer, team[0]),
+    ],
+  }
 }

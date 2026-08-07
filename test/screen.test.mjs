@@ -10,6 +10,7 @@ import {
   walkerColumn,
 } from '../src/ui/grass.mjs'
 import { fitBattleSprites } from '../src/ui/battleField.mjs'
+import { spriteFile } from '../src/paths.mjs'
 import { draw as drawBattle } from '../src/ui/views/battle.mjs'
 import { draw as drawBox } from '../src/ui/views/box.mjs'
 import { draw as drawDex } from '../src/ui/views/dex.mjs'
@@ -21,7 +22,7 @@ import { DEFAULT_CONFIG } from '../src/constants.mjs'
 import { itemsInBag } from '../src/shop.mjs'
 import { MIN_CANVAS_COLS, NATIVE_CANVAS_COLS } from '../src/ui/constants.mjs'
 import { BLOCK_GRIDS, blockRows, fitCanvasCols } from '../src/ui/sprite.mjs'
-import { genderTag } from '../src/ui/widgets.mjs'
+import { genderTag, hpBar } from '../src/ui/widgets.mjs'
 import { CURSOR, gray, RESET, SCREEN_CODES } from '../src/ui/ansi.mjs'
 import { stripAnsi, visibleLength } from '../src/ui/text.mjs'
 import { emptyVolatile } from '../src/volatile.mjs'
@@ -751,12 +752,15 @@ const BATTLE_SAVE = {
   stats: {},
 }
 
+const FOE = { ...POKEMON, species: 143 }
+
 const BATTLE = {
   state: {
-    foe: { mon: { ...POKEMON, species: 143 }, volatile: emptyVolatile() },
+    foe: { mon: FOE, volatile: emptyVolatile() },
     player: { mon: POKEMON, volatile: emptyVolatile() },
     over: false,
   },
+  foeMon: FOE,
   hp: { foe: 20, player: 20 },
   menu: 'main',
   message: null,
@@ -793,7 +797,12 @@ const nameRow = (ctx, size) => stripAnsi(drawBattle(ctx, size).lines[0])
 test('Should draw both sprites on a shared row, and neither over the other', () => {
   const size = { cols: 120, rows: 40 }
   const { lines } = drawBattle(BATTLE_CTX, size)
-  const fitted = fitBattleSprites(size, 143, 4, 1)
+  const fitted = fitBattleSprites(
+    size,
+    spriteFile('front', 143, 'png'),
+    spriteFile('back', 4, 'png'),
+    1,
+  )
 
   expect(fitted.overlap, 'this size does share rows').toBeGreaterThan(0)
 
@@ -821,6 +830,42 @@ test('Should draw both sprites on a shared row, and neither over the other', () 
       'clear air where they meet',
     ).toBe('  ')
   }
+})
+
+test('Should keep a health bar to its own width even while it still shows the HP of the one that just fell', () => {
+  expect(stripAnsi(hpBar(10, 20, 20))).toHaveLength(20)
+  expect(stripAnsi(hpBar(0, 20, 20))).toHaveLength(20)
+  expect(
+    stripAnsi(hpBar(85, 60, 20)),
+    'the bar of a Pokemon the trainer already swapped out',
+  ).toHaveLength(20)
+})
+
+test('Should count a trainers Pokémon beside the foe bar, the fallen ones greyed out', () => {
+  const standing = { ...POKEMON, species: 143 }
+  const fallen = { ...POKEMON, species: 143, hp: 0 }
+  const trainer = {
+    class: 'Hiker',
+    name: 'Wade',
+    team: [fallen, standing, { ...POKEMON, species: 143 }],
+  }
+
+  const { lines } = drawBattle(
+    {
+      ...BATTLE_CTX,
+      battle: {
+        ...BATTLE,
+        state: { ...BATTLE.state, trainer },
+      },
+    },
+    { cols: 120, rows: 40 },
+  )
+
+  expect(stripAnsi(lines[1]), 'two left of the three').toContain('●●○')
+  expect(
+    stripAnsi(drawBattle(BATTLE_CTX, { cols: 120, rows: 40 }).lines[1]),
+    'a wild Pokémon brings no tray',
+  ).not.toContain('●')
 })
 
 test('Should always fit the message box, whatever is open and however short the window', () => {
@@ -1147,12 +1192,14 @@ test('Should show a gender beside every Pokemon in the team without moving the l
 })
 
 test('Should wear their gender on both sides of a battle', () => {
+  const pikachu = { ...POKEMON, species: 25 }
   const { lines } = drawBattle(
     {
       ...BATTLE_CTX,
       battle: {
         ...BATTLE,
-        state: { ...BATTLE.state, foe: { mon: { ...POKEMON, species: 25 } } },
+        state: { ...BATTLE.state, foe: { mon: pikachu } },
+        foeMon: pikachu,
       },
     },
     { cols: 100, rows: 34 },

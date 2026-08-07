@@ -17,6 +17,7 @@ import {
 
 const CONFIG = {
   encounterChance: 0.12,
+  trainerChance: 0,
   charsPerStep: 40,
   maxSteps: 4,
   workStepSeconds: 20,
@@ -24,6 +25,7 @@ const CONFIG = {
 
 const ALWAYS = {
   encounterChance: 1,
+  trainerChance: 0,
   charsPerStep: 40,
   maxSteps: 4,
   workStepSeconds: 20,
@@ -31,6 +33,15 @@ const ALWAYS = {
 
 const NEVER = {
   encounterChance: 0,
+  trainerChance: 0,
+  charsPerStep: 40,
+  maxSteps: 4,
+  workStepSeconds: 20,
+}
+
+const TRAINERS = {
+  encounterChance: 1,
+  trainerChance: 1,
   charsPerStep: 40,
   maxSteps: 4,
   workStepSeconds: 20,
@@ -294,6 +305,29 @@ test('Should walk the grass empty when there is no chance of an encounter', () =
   expect(found).toEqual([])
 })
 
+test('Should walk into a trainer rather than a lone Pokemon when the trainer roll lands', () => {
+  const found = rollEncounters({
+    steps: 3,
+    leadLevel: 30,
+    rng: makeRng(21),
+    config: TRAINERS,
+    species: PIKACHU_ONLY,
+  })
+
+  expect(found).toHaveLength(3)
+
+  for (const one of found) {
+    expect(one.kind).toBe('trainer')
+    expect(one.species, 'a trainer is not a species').toBeUndefined()
+    expect(one.trainer.class).toBeTruthy()
+    expect(one.trainer.name).toBeTruthy()
+    expect(one.trainer.team.length).toBeGreaterThanOrEqual(1)
+    expect(one.trainer.team.length).toBeLessThanOrEqual(3)
+
+    for (const mon of one.trainer.team) expect(mon.species).toBe(25)
+  }
+})
+
 test('Should meet a certain encounter once per step, and have it look like one', () => {
   const found = rollEncounters({
     steps: 3,
@@ -307,6 +341,7 @@ test('Should meet a certain encounter once per step, and have it look like one',
 
   for (const one of found) {
     expect(one.v).toBe(1)
+    expect(one.kind).toBe('wild')
     expect(one.species).toBe(25)
     expect(one.name).toBe('Pikachu')
     expect(Number.isInteger(one.seed), `${one.seed} is not a whole seed`).toBe(
