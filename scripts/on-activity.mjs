@@ -68,9 +68,11 @@ const walkWhileWorking = (sessionId, now) => {
     offerEncounter(
       {
         v: encounter.v,
+        kind: encounter.kind,
         species: encounter.species,
         name: encounter.name,
         level: encounter.level,
+        trainer: encounter.trainer,
         seed: encounter.seed,
         session: sessionId,
       },

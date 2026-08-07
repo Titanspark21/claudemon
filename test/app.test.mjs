@@ -17,6 +17,7 @@ const { endSession, writeActivity } = await import('../src/activity.mjs')
 const { loadConfig, spriteScale } = await import('../src/config.mjs')
 const { DEFAULT_CONFIG } = await import('../src/constants.mjs')
 const { isDataReady } = await import('../src/data.mjs')
+const { expFromTrainerMon } = await import('../src/exp.mjs')
 const { clearEncounter, peekQueue, writeEncounter } =
   await import('../src/queue.mjs')
 const { createSave, loadSave } = await import('../src/state.mjs')
@@ -26,6 +27,8 @@ const { ballsInBag, countOf, itemsInBag, SHOP_STOCK } =
 const { HIT_FRAMES } = await import('../src/ui/constants.mjs')
 const { SETTINGS } = await import('../src/ui/views/options.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
+const battleView = await import('../src/ui/views/battle.mjs')
+const { stripAnsi } = await import('../src/ui/text.mjs')
 const { makeRng } = await import('../src/rng.mjs')
 const { VERSION } = await import('../src/version.mjs')
 
@@ -152,6 +155,40 @@ const queueEncounter = (app, encounter) => {
   app.pump()
 }
 
+const queueTrainer = (app, trainer) => {
+  writeEncounter({ v: 1, kind: 'trainer', trainer, seed: 12 })
+
+  app.pump()
+}
+
+const encounterSpriteBlock = (lines) => {
+  const heading = lines.findIndex((line) =>
+    /wants to battle!|appeared!/.test(stripAnsi(line)),
+  )
+
+  expect(heading, 'no encounter is on the grass').toBeGreaterThan(-1)
+
+  return lines.slice(heading + 3, heading + 9).join('\n')
+}
+
+const fightItOut = (app, limit = 120) => {
+  let guard = 0
+
+  while (app.mode === 'battle' && guard++ < limit) {
+    if (app.battle.message) press(app, 'enter')
+    else if (app.battle.menu === 'fight') {
+      app.battle.selection = 0
+      press(app, 'enter')
+    } else {
+      app.battle.menu = 'main'
+      app.battle.selection = 0
+      press(app, 'enter')
+    }
+  }
+
+  expect(guard, 'the battle never ended').toBeLessThan(limit)
+}
+
 const duel = (app) => {
   app.save.party[0] = createPokemon(4, 10, makeRng(11))
 
@@ -246,20 +283,8 @@ const loseABattle = (app) => {
 
   expect(app.mode, 'the fight started').toBe('battle')
 
-  let guard = 0
-  while (app.mode === 'battle' && guard++ < 80) {
-    if (app.battle.message) press(app, 'enter')
-    else if (app.battle.menu === 'fight') {
-      app.battle.selection = 0
-      press(app, 'enter')
-    } else {
-      app.battle.menu = 'main'
-      app.battle.selection = 0
-      press(app, 'enter')
-    }
-  }
+  fightItOut(app)
 
-  expect(guard, 'the battle should have ended').toBeLessThan(80)
   expect(app.mode, 'and sent you home').toBe('home')
 }
 
@@ -354,6 +379,282 @@ test('Should keep arrow keys out of the name', () => {
   press(app, 'left')
 
   expect(app.setup.name).toBe('Bo')
+})
+
+test('Should take a trainer on, meet the next Pokémon as each falls, and bank the prize at the end', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.save.party[0] = createPokemon(150, 70, makeRng(3))
+  app.save.party[0].moves = [makeMoveSlot('psychic')]
+
+  const purse = app.save.money
+
+  queueTrainer(app, {
+    class: 'Lass',
+    name: 'Iris',
+    team: [
+      { species: 129, name: 'Magikarp', level: 5 },
+      { species: 129, name: 'Magikarp', level: 6 },
+    ],
+  })
+
+  expect(app.save.dex.seen, 'the one out front is on show').toContain(129)
+  expect(app.save.dex.faced[129], 'but nobody has faced it yet').toBeUndefined()
+
+  const home = homeView.draw(app, { cols: 100, rows: 34 }).lines.join('\n')
+
+  expect(home, 'the grass announces who it is').toMatch(
+    /LASS IRIS.*wants to battle!/,
+  )
+  expect(home, 'and how many are coming').toContain('×2')
+
+  press(app, 'enter')
+
+  expect(app.mode).toBe('battle')
+  expect(app.battle.message).toBe('LASS IRIS wants to battle!')
+  expect(app.battle.state.trainer.team, 'both of them turned up').toHaveLength(
+    2,
+  )
+  expect(
+    app.save.dex.faced[129],
+    'only the one on the field counts as faced so far',
+  ).toBe(1)
+
+  fightItOut(app)
+
+  expect(
+    app.save.dex.faced[129],
+    'and the second once it took the field too',
+  ).toBe(2)
+  expect(app.mode, 'and it sent you home').toBe('home')
+  expect(app.save.money - purse, 'thirty a level for a Lass').toBe(30 * 6)
+  expect(app.save.stats.wins).toBe(1)
+})
+
+test('Should show the trainer in the grass and on the field until they send their first Pokémon out', () => {
+  const size = { cols: 100, rows: 34 }
+
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  queueTrainer(app, {
+    class: 'Lass',
+    name: 'Iris',
+    sprite: 'lass',
+    team: [{ species: 129, name: 'Magikarp', level: 5 }],
+  })
+
+  const grass = homeView.draw(app, size).lines
+
+  expect(grass.join('\n'), 'her sprite is on disk').not.toContain('(no sprite)')
+
+  const wild = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  queueEncounter(wild, { species: 129, name: 'Magikarp', level: 5, seed: 12 })
+
+  expect(
+    encounterSpriteBlock(grass),
+    'the grass shows the Lass, not the Magikarp she carries',
+  ).not.toBe(encounterSpriteBlock(homeView.draw(wild, size).lines))
+
+  press(app, 'enter')
+
+  const intro = battleView.draw(app, size).lines
+
+  expect(stripAnsi(intro[0]).trim(), 'the trainer is who you face').toBe(
+    'LASS IRIS',
+  )
+  expect(
+    stripAnsi(intro[1]),
+    'no health bar for somebody who is not fighting',
+  ).not.toContain('/')
+  expect(intro.join('\n'), 'and their sprite is on disk').not.toContain(
+    '(no sprite)',
+  )
+
+  press(app, 'enter')
+
+  const sentOut = battleView.draw(app, size).lines
+
+  expect(app.battle.message).toBe('LASS IRIS sent out Magikarp!')
+  expect(stripAnsi(sentOut[0]), 'and now the Pokémon holds the slot').toContain(
+    'MAGIKARP',
+  )
+  expect(
+    sentOut.slice(2, 9).join('\n'),
+    'the field changed hands, not just the header',
+  ).not.toBe(intro.slice(2, 9).join('\n'))
+})
+
+test('Should keep the fallen Pokémon on screen until the trainer announces the next one', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.save.party[0] = createPokemon(150, 70, makeRng(3))
+  app.save.party[0].moves = [makeMoveSlot('psychic')]
+
+  queueTrainer(app, {
+    class: 'Lass',
+    name: 'Iris',
+    team: [
+      { species: 129, name: 'Magikarp', level: 5 },
+      { species: 25, name: 'Pikachu', level: 6 },
+    ],
+  })
+
+  press(app, 'enter')
+  clearMessages(app)
+
+  const [first, second] = app.battle.state.trainer.team
+
+  attack(app)
+
+  let guard = 0
+
+  while (!app.battle.message?.includes('fainted') && guard++ < 20)
+    press(app, 'enter')
+
+  expect(guard, 'the foe never fell').toBeLessThan(20)
+  expect(
+    app.battle.foeMon,
+    'the one being announced is the one on screen',
+  ).toBe(first)
+  expect(
+    app.battle.state.trainer.team[1],
+    'even though the engine has already moved on',
+  ).toBe(app.battle.state.foe.mon)
+
+  press(app, 'enter')
+
+  expect(app.battle.message).toBe('LASS IRIS sent out Pikachu!')
+  expect(app.battle.foeMon, 'and only now does the screen follow').toBe(second)
+  expect(app.battle.hp.foe).toBe(second.stats.hp)
+})
+
+test('Should keep the trainer and the winnings when the player has to send somebody else out', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  const opener = createPokemon(150, 70, makeRng(3))
+
+  opener.moves = [makeMoveSlot('double-edge')]
+  opener.hp = 1
+
+  const closer = createPokemon(150, 70, makeRng(4))
+
+  closer.moves = [makeMoveSlot('psychic')]
+
+  app.save.party = [opener, closer]
+
+  const purse = app.save.money
+  const experience = closer.exp
+
+  queueTrainer(app, {
+    class: 'Lass',
+    name: 'Iris',
+    team: [
+      { species: 129, name: 'Magikarp', level: 5 },
+      { species: 129, name: 'Magikarp', level: 5 },
+    ],
+  })
+
+  press(app, 'enter')
+  clearMessages(app)
+
+  attack(app)
+  clearMessages(app)
+
+  expect(opener.hp, 'the recoil took the opener down with it').toBe(0)
+  expect(app.mode, 'but the battle carries on').toBe('battle')
+  expect(app.battle.state.player.mon, 'with the next one out').toBe(closer)
+  expect(
+    app.battle.state.trainer,
+    'and the same trainer across the table',
+  ).toBeTruthy()
+
+  fightItOut(app)
+
+  expect(
+    app.save.money - purse,
+    'the prize is the trainers, not a wild one',
+  ).toBe(30 * 5)
+  expect(
+    closer.exp - experience,
+    'the one the opener took down is still on the tab',
+  ).toBe(2 * expFromTrainerMon(129, 5))
+})
+
+test('Should leave the grass quiet for an encounter there is nobody to fight in', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  queueTrainer(app, { class: 'Lass', name: 'Iris', team: [] })
+
+  expect(app.encounter, 'an empty roster is no encounter at all').toBe(null)
+  expect(homeView.menuItems(app)[0].id, 'and FIGHT never shows up').not.toBe(
+    'fight',
+  )
+
+  queueEncounter(app, { species: 16, level: 3, seed: 99 })
+
+  expect(app.encounter, 'nor is a wild line with no Pokémon named in it').toBe(
+    null,
+  )
+
+  queueTrainer(app, {
+    class: 'Rocket Grunt',
+    name: 'Iris',
+    team: [{ species: 129, name: 'Magikarp', level: 5 }],
+  })
+
+  expect(
+    app.encounter,
+    'nor a trainer of a class this version cannot price',
+  ).toBe(null)
+})
+
+test('Should leave the balls in the bag when the Pokémon across the table has an owner', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  queueTrainer(app, {
+    class: 'Hiker',
+    name: 'Wade',
+    team: [{ species: 129, name: 'Magikarp', level: 5 }],
+  })
+
+  press(app, 'enter')
+  clearMessages(app)
+
+  app.battle.selection = 1
+  press(app, 'enter')
+
+  expect(app.battle.menu).toBe('bag')
+  expect(app.battle.bagItems, 'no ball is on offer').not.toContain('poke-ball')
+  expect(app.battle.bagItems, 'the potions still are').toContain('potion')
 })
 
 test('Should bring an encounter to the home screen and count it as faced only once you enter it', () => {

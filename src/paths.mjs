@@ -7,6 +7,7 @@ export const HOME = process.env.CLAUDEMON_HOME || join(homedir(), '.claudemon')
 
 export const DATA_DIR = join(HOME, 'data')
 export const SPRITES_DIR = join(DATA_DIR, 'sprites')
+export const TRAINER_SPRITES_DIR = join(SPRITES_DIR, 'trainers')
 
 export const BUNDLED_DATA_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -68,4 +69,8 @@ export const sessionFile = (id) => {
 
 export const spriteFile = (side, id, ext) => {
   return join(SPRITES_DIR, side, `${id}.${ext}`)
+}
+
+export const trainerSpriteFile = (name) => {
+  return join(TRAINER_SPRITES_DIR, `${name}.png`)
 }

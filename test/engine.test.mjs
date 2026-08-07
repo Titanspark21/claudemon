@@ -2,7 +2,8 @@ import { expect, test } from 'vitest'
 
 import { isDataReady, move as moveOf, species } from '../src/data.mjs'
 import { effectiveness } from '../src/typechart.mjs'
-import { expForLevel } from '../src/exp.mjs'
+import { expForLevel, expFromTrainerMon } from '../src/exp.mjs'
+import { TRAINER_MESSAGES } from '../src/constants.mjs'
 import { statsAtLevel } from '../src/stats.mjs'
 import { attemptCatch, catchValue } from '../src/capture.mjs'
 import {
@@ -11,12 +12,17 @@ import {
   evolveInto,
   genderOf,
   levelOf,
+  makeMoveSlot,
   pendingEvolution,
   refreshStats,
   speciesGender,
   speciesName,
 } from '../src/pokemon.mjs'
-import { createBattle, submitAction } from '../src/battle.mjs'
+import {
+  createBattle,
+  sendOutAfterFaint,
+  submitAction,
+} from '../src/battle.mjs'
 import { makeRng } from '../src/rng.mjs'
 
 if (!isDataReady()) {
@@ -36,6 +42,15 @@ const aPokemon = (speciesId, level) => {
 
 const textsOf = (events) => {
   return events.filter((event) => event.text).map((event) => event.text)
+}
+
+const aTrainerBattle = (team, playerMon) => {
+  return createBattle({
+    playerMon,
+    wildMon: team[0],
+    trainer: { class: 'Lass', name: 'Iris', team },
+    seed: 5,
+  })
 }
 
 const playSixTurns = (battle) => {
@@ -364,7 +379,97 @@ test('Should report a lost battle as a loss that pays nothing', () => {
 
   expect(battle.outcome).toBe('loss')
   expect(battle.player.mon.hp).toBeLessThanOrEqual(0)
-  expect(battle.rewards, 'a loss pays nothing').toBe(null)
+  expect(battle.rewards, 'a loss pays nothing').toEqual({ exp: 0, money: 0 })
+})
+
+test('Should send out the next Pokemon when one of a trainers falls, and only pay once the last is down', () => {
+  const team = [aPokemon(129, 5), aPokemon(129, 5)]
+  const player = aPokemon(150, 70)
+
+  player.moves = [makeMoveSlot('psychic')]
+
+  const battle = aTrainerBattle(team, player)
+
+  const opening = submitAction(battle, { type: 'move', index: 0 })
+
+  expect(battle.over, 'one down is not the end of a trainer').toBe(false)
+  expect(battle.foe.mon, 'the next one takes the field').toBe(team[1])
+  expect(textsOf(opening)).toContain('LASS IRIS sent out Magikarp!')
+  expect(
+    opening.find((event) => event.type === 'foe-out')?.mon,
+    'the screen is told which one took the field, and when',
+  ).toBe(team[1])
+
+  let guard = 0
+
+  while (!battle.over && guard++ < 30)
+    submitAction(battle, { type: 'move', index: 0 })
+
+  expect(battle.outcome).toBe('win')
+  expect(battle.rewards.exp, 'both of them are worth their bonus').toBe(
+    2 * expFromTrainerMon(129, 5),
+  )
+  expect(battle.rewards.money, 'thirty a level for a Lass').toBe(30 * 5)
+})
+
+test('Should refuse to run from a trainer and refuse to catch what belongs to somebody, at no cost', () => {
+  const battle = aTrainerBattle([aPokemon(129, 5)], aPokemon(150, 70))
+  const full = battle.foe.mon.stats.hp
+
+  expect(textsOf(submitAction(battle, { type: 'run' }))).toEqual([
+    TRAINER_MESSAGES.noRunning,
+  ])
+  expect(
+    textsOf(submitAction(battle, { type: 'ball', key: 'poke-ball' })),
+  ).toEqual([TRAINER_MESSAGES.noStealing])
+
+  expect(battle.over).toBe(false)
+  expect(battle.foe.mon.hp, 'neither costs a turn').toBe(full)
+  expect(
+    battle.turn,
+    'and neither ages the counters the volatile timers are read against',
+  ).toBe(0)
+})
+
+test('Should leave the foe its boosts, its counters and the turn clock when the player sends out somebody new', () => {
+  const battle = aTrainerBattle([aPokemon(129, 5)], aPokemon(150, 70))
+
+  submitAction(battle, { type: 'move', index: 0 })
+
+  battle.foe.stages.attack = 2
+  battle.foe.volatile.confusion = 3
+
+  const clock = battle.turn
+
+  sendOutAfterFaint(battle, aPokemon(25, 10))
+
+  expect(battle.foe.stages.attack, 'the boosts it earned are its own').toBe(2)
+  expect(battle.foe.volatile.confusion).toBe(3)
+  expect(
+    battle.turn,
+    'and the clock runs on, so the volatile turn marks stay in the past',
+  ).toBe(clock)
+  expect(battle.over, 'the battle is live again').toBe(false)
+  expect(battle.outcome).toBe(null)
+})
+
+test('Should have the trainer send out the next one even when the winning blow takes the player down with it', () => {
+  const team = [aPokemon(129, 5), aPokemon(129, 5)]
+  const player = aPokemon(150, 70)
+
+  player.moves = [makeMoveSlot('double-edge')]
+  player.hp = 1
+
+  const battle = aTrainerBattle(team, player)
+
+  submitAction(battle, { type: 'move', index: 0 })
+
+  expect(battle.player.mon.hp, 'the recoil finished it').toBe(0)
+  expect(battle.outcome, 'the player owes a Pokémon').toBe('loss')
+  expect(battle.foe.mon, 'and the trainer already sent the next').toBe(team[1])
+  expect(battle.rewards.exp, 'the one it took down still counts').toBe(
+    expFromTrainerMon(129, 5),
+  )
 })
 
 test('Should always get away with a faster Pokemon', () => {

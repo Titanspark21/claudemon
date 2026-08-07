@@ -112,6 +112,7 @@ export const transformRequestWriteActivity = (entry) => mapActivity(entry)
 const mapConfig = (config) => {
   return {
     encounterChance: config.encounterChance,
+    trainerChance: config.trainerChance,
     charsPerStep: config.charsPerStep,
     maxSteps: config.maxSteps,
     workStepSeconds: config.workStepSeconds,
@@ -133,9 +134,40 @@ export const transformResponseConfig = (config) => {
 
 export const transformRequestWriteConfig = (config) => mapConfig(config)
 
-const mapEncounter = (entry) => {
+const mapTrainerMon = (mon) => {
+  return {
+    species: mon.species,
+    name: mon.name,
+    level: mon.level,
+  }
+}
+
+const mapTrainer = (trainer) => {
+  if (!trainer) return { class: null, name: null, sprite: null, team: [] }
+
+  return {
+    class: trainer.class,
+    name: trainer.name,
+    sprite: trainer.sprite,
+    team: trainer.team ? trainer.team.map(mapTrainerMon) : [],
+  }
+}
+
+const mapTrainerEncounter = (entry) => {
   return {
     v: entry.v,
+    kind: 'trainer',
+    trainer: mapTrainer(entry.trainer),
+    seed: entry.seed,
+    session: entry.session,
+    at: entry.at,
+  }
+}
+
+const mapWildEncounter = (entry) => {
+  return {
+    v: entry.v,
+    kind: 'wild',
     species: entry.species,
     name: entry.name,
     level: entry.level,
@@ -143,6 +175,12 @@ const mapEncounter = (entry) => {
     session: entry.session,
     at: entry.at,
   }
+}
+
+const mapEncounter = (entry) => {
+  if (entry.kind === 'trainer') return mapTrainerEncounter(entry)
+
+  return mapWildEncounter(entry)
 }
 
 export const transformResponseEncounter = (entry) => {

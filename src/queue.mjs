@@ -6,6 +6,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { HOME, QUEUE_FILE } from './paths.mjs'
+import { trainerClass } from './trainer.mjs'
 import {
   transformRequestWriteEncounter,
   transformResponseEncounter,
@@ -59,8 +60,20 @@ export const encounterExpiresAt = (entry, ttlMs) => {
   return at + ttlMs
 }
 
+const isUsable = (entry) => {
+  if (entry.kind === 'trainer') {
+    if (!trainerClass(entry.trainer.class)) return false
+
+    return entry.trainer.team.length > 0
+  }
+
+  return entry.species != null && entry.name != null
+}
+
 export const readEncounter = (ttlMs, now = Date.now()) => {
-  const live = peekQueue().filter((entry) => isLive(entry, ttlMs, now))
+  const live = peekQueue().filter(
+    (entry) => isLive(entry, ttlMs, now) && isUsable(entry),
+  )
 
   if (live.length === 0) return null
 
@@ -70,9 +83,11 @@ export const readEncounter = (ttlMs, now = Date.now()) => {
 export const writeEncounter = (entry) => {
   const stamped = transformRequestWriteEncounter({
     v: entry.v,
+    kind: entry.kind,
     species: entry.species,
     name: entry.name,
     level: entry.level,
+    trainer: entry.trainer,
     seed: entry.seed,
     session: entry.session,
     at: entry.at ?? new Date().toISOString(),

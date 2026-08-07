@@ -1,12 +1,15 @@
 import {
   DEFAULT_CAPTURE_RATE,
+  ENCOUNTER_VERSION,
   FALLBACK_SPECIES,
   LEGENDARY_LEVEL_GATE,
   STAGE_LEVEL_GATES,
   WILD_LEVEL_SPREAD,
 } from './constants.mjs'
 import { loadPokedex } from './data.mjs'
+import { pickLevel } from './helpers.mjs'
 import { chance, randInt, weightedPick } from './rng.mjs'
+import { rollTrainer } from './trainer.mjs'
 
 export const speciesTableFromDex = (dex, leadLevel = 5) => {
   const table = []
@@ -40,20 +43,10 @@ export const loadSpeciesTable = (leadLevel = 5) => {
   }
 }
 
-const pickLevel = (rng, leadLevel) => {
-  if (!leadLevel)
-    return randInt(rng, WILD_LEVEL_SPREAD.min, WILD_LEVEL_SPREAD.fallbackMax)
+export const encounterSpecies = (encounter) => {
+  if (encounter.kind === 'trainer') return encounter.trainer.team[0].species
 
-  const min = Math.max(
-    WILD_LEVEL_SPREAD.min,
-    leadLevel - WILD_LEVEL_SPREAD.below,
-  )
-  const max = Math.min(
-    WILD_LEVEL_SPREAD.ceiling,
-    Math.max(min, leadLevel + WILD_LEVEL_SPREAD.above),
-  )
-
-  return randInt(rng, min, max)
+  return encounter.species
 }
 
 export const stepsFromPrompt = (promptLength, config) => {
@@ -74,21 +67,40 @@ export const stepsWhileWorking = (elapsedMs, config) => {
   return { steps, taken: walked > steps ? elapsedMs : steps * stepMs }
 }
 
+const rollWild = (rng, leadLevel, species) => {
+  const chosen = weightedPick(rng, species, (entry) => entry.weight)
+
+  return {
+    v: ENCOUNTER_VERSION,
+    kind: 'wild',
+    species: chosen.id,
+    name: chosen.name,
+    level: pickLevel(rng, leadLevel, WILD_LEVEL_SPREAD),
+    seed: randInt(rng, 0, 0xffffffff),
+  }
+}
+
+const rollTrainerEncounter = (rng, leadLevel, species) => {
+  return {
+    v: ENCOUNTER_VERSION,
+    kind: 'trainer',
+    trainer: rollTrainer({ rng, leadLevel, species }),
+    seed: randInt(rng, 0, 0xffffffff),
+  }
+}
+
 export const rollEncounters = ({ steps, leadLevel, rng, config, species }) => {
   const encounters = []
 
   for (let step = 0; step < steps; step++) {
     if (!chance(rng, config.encounterChance)) continue
 
-    const chosen = weightedPick(rng, species, (entry) => entry.weight)
+    if (chance(rng, config.trainerChance)) {
+      encounters.push(rollTrainerEncounter(rng, leadLevel, species))
+      continue
+    }
 
-    encounters.push({
-      v: 1,
-      species: chosen.id,
-      name: chosen.name,
-      level: pickLevel(rng, leadLevel),
-      seed: randInt(rng, 0, 0xffffffff),
-    })
+    encounters.push(rollWild(rng, leadLevel, species))
   }
 
   return encounters

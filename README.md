@@ -80,8 +80,8 @@ waiting. Send a longish prompt in the Claude tab and watch the status line.
 | **A terminal with truecolor** | iTerm2, Ghostty, WezTerm, Kitty, Alacritty, VS Code's terminal and macOS Terminal are all fine |
 
 The 151 Pokemon ship with the plugin, so the only thing the install downloads is the
-sprites — 1.2 MB, a few seconds. After that the only thing that ever goes out is the
-version check below, and nothing goes out at all with it switched off.
+sprites, which takes a few seconds. After that the only thing that ever goes out is
+the version check below, and nothing goes out at all with it switched off.
 
 ### Updating
 
@@ -236,10 +236,11 @@ battle message. That is the whole scheme — it is the same everywhere.
 
 ## Credits
 
-Data and sprites come from [PokeAPI](https://pokeapi.co). The stats and movesets in
-`data/` are built from it by `tools/fetch-data.mjs`. The sprites are not in here:
-they are somebody else's artwork, so they are downloaded at install time rather than
-redistributed.
+Data and Pokémon sprites come from [PokeAPI](https://pokeapi.co). The stats and
+movesets in `data/` are built from it by `tools/fetch-data.mjs`. The trainer sprites
+come from [Pokémon Showdown](https://play.pokemonshowdown.com/sprites/trainers/).
+None of the sprites are in here: they are somebody else's artwork, so they are
+downloaded at install time rather than redistributed.
 
 `assets/battle.wav` is the trainer battle theme from the Game Boy games, trimmed to
 two minutes and downmixed to mono; `assets/victory.wav` is the victory fanfare, given

@@ -16,6 +16,8 @@ import {
   STRUGGLE,
   STRUGGLE_RECOIL_FRACTION,
   THAW_CHANCE,
+  TRAINER_MESSAGES,
+  TRAINER_REFUSALS,
   TURN_MESSAGES,
   UNSUPPORTED_MOVES,
 } from './constants.mjs'
@@ -24,7 +26,11 @@ import { effectiveSpeed, moveSlotOf, stageMultiplier } from './battleActor.mjs'
 import { applyDamage, applyHeal, label, other, say } from './battleEvents.mjs'
 import { attemptCatch } from './capture.mjs'
 import { computeDamage, FIXED_DAMAGE } from './damage.mjs'
-import { expFromDefeating, moneyFromDefeating } from './exp.mjs'
+import {
+  expFromDefeating,
+  expFromTrainerMon,
+  moneyFromDefeating,
+} from './exp.mjs'
 import { decideOrder, pickFoeMove } from './foeAi.mjs'
 import {
   displayName,
@@ -34,6 +40,7 @@ import {
   levelOf,
 } from './pokemon.mjs'
 import { chance, makeRng, randInt } from './rng.mjs'
+import { sentOutLine, trainerLabel, trainerPrize } from './trainer.mjs'
 import { effectiveness, effectivenessMessage } from './typechart.mjs'
 import {
   applyFlinch,
@@ -64,6 +71,7 @@ export const createBattle = ({
   wildMon,
   seed,
   participants = [],
+  trainer = null,
 }) => {
   return {
     seed,
@@ -75,10 +83,11 @@ export const createBattle = ({
       volatile: emptyVolatile(),
     },
     foe: { mon: wildMon, stages: emptyStages(), volatile: emptyVolatile() },
+    trainer,
     participants: [...new Set([...participants, playerMon])],
     over: false,
     outcome: null,
-    rewards: null,
+    rewards: { exp: 0, money: 0 },
     runAttempts: 0,
   }
 }
@@ -91,6 +100,16 @@ export const switchIn = (battle, mon) => {
   if (!battle.participants.includes(mon)) battle.participants.push(mon)
 
   return battle
+}
+
+export const sendOutAfterFaint = (battle, mon) => {
+  battle.seed = (battle.seed + battle.turn + 1) >>> 0
+  battle.rng = makeRng(battle.seed)
+  battle.runAttempts = 0
+  battle.over = false
+  battle.outcome = null
+
+  return switchIn(battle, mon)
 }
 
 export const rehydrate = (battle) => {
@@ -452,13 +471,40 @@ const finish = (battle, outcome, events) => {
   events.push({ type: 'end', outcome })
 }
 
-const awardVictory = (battle) => {
+const collectFoeExp = (battle) => {
   const foe = battle.foe.mon
 
-  battle.rewards = {
-    exp: expFromDefeating(foe.species, levelOf(foe)),
-    money: moneyFromDefeating(levelOf(foe), battle.rng),
+  battle.rewards.exp += battle.trainer
+    ? expFromTrainerMon(foe.species, levelOf(foe))
+    : expFromDefeating(foe.species, levelOf(foe))
+}
+
+const awardVictory = (battle, events) => {
+  if (battle.trainer) {
+    battle.rewards.money += trainerPrize(battle.trainer)
+
+    say(events, `${trainerLabel(battle.trainer)} ${TRAINER_MESSAGES.defeated}`)
+
+    return
   }
+
+  battle.rewards.money += moneyFromDefeating(
+    levelOf(battle.foe.mon),
+    battle.rng,
+  )
+}
+
+const nextFoe = (battle) => {
+  if (!battle.trainer) return null
+
+  return battle.trainer.team.find((mon) => !isFainted(mon)) ?? null
+}
+
+const sendNextFoe = (battle, mon, events) => {
+  battle.foe = { mon, stages: emptyStages(), volatile: emptyVolatile() }
+
+  say(events, sentOutLine(battle.trainer, mon))
+  events.push({ type: 'foe-out', mon, hpAfter: mon.hp })
 }
 
 const checkFaint = (battle, events) => {
@@ -479,8 +525,20 @@ const checkFaint = (battle, events) => {
     return true
   }
 
-  awardVictory(battle)
-  finish(battle, 'win', events)
+  collectFoeExp(battle)
+
+  const next = nextFoe(battle)
+
+  if (!next) {
+    awardVictory(battle, events)
+    finish(battle, 'win', events)
+
+    return true
+  }
+
+  sendNextFoe(battle, next, events)
+
+  if (fainted.includes('player')) finish(battle, 'loss', events)
 
   return true
 }
@@ -519,10 +577,24 @@ const attemptRun = (battle, events) => {
   return true
 }
 
+const trainerRefusal = (battle, action) => {
+  if (!battle.trainer) return null
+
+  return TRAINER_REFUSALS[action.type] ?? null
+}
+
 export const submitAction = (battle, action) => {
   const events = []
 
   if (battle.over) return events
+
+  const refused = trainerRefusal(battle, action)
+
+  if (refused) {
+    say(events, refused)
+
+    return events
+  }
 
   rehydrate(battle)
   battle.turn++

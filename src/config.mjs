@@ -33,6 +33,7 @@ const withStored = (stored, patch) => {
 const withDefaults = (stored) => {
   return {
     encounterChance: stored.encounterChance ?? DEFAULT_CONFIG.encounterChance,
+    trainerChance: stored.trainerChance ?? DEFAULT_CONFIG.trainerChance,
     charsPerStep: stored.charsPerStep ?? DEFAULT_CONFIG.charsPerStep,
     maxSteps: stored.maxSteps ?? DEFAULT_CONFIG.maxSteps,
     workStepSeconds: stored.workStepSeconds ?? DEFAULT_CONFIG.workStepSeconds,

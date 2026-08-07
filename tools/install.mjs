@@ -12,7 +12,8 @@ import {
 import { homedir } from 'node:os'
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { HOME, SPRITES_DIR } from '../src/paths.mjs'
+import { HOME, SPRITES_DIR, trainerSpriteFile } from '../src/paths.mjs'
+import { TRAINER_CLASSES } from '../src/constants.mjs'
 import { loadConfig, saveConfig } from '../src/config.mjs'
 import { isDataReady } from '../src/data.mjs'
 import { LAUNCHERS, writeLauncher } from '../src/shim.mjs'
@@ -222,10 +223,20 @@ const installPlugin = () => {
   return true
 }
 
-const fetchSprites = () => {
+const spritesOnDisk = () => {
   const front = join(SPRITES_DIR, 'front')
 
-  if (existsSync(join(front, '1.png')) && existsSync(join(front, '151.png'))) {
+  return (
+    existsSync(join(front, '1.png')) &&
+    existsSync(join(front, '151.png')) &&
+    TRAINER_CLASSES.every((entry) =>
+      entry.sprites.every((name) => existsSync(trainerSpriteFile(name))),
+    )
+  )
+}
+
+const fetchSprites = () => {
+  if (spritesOnDisk()) {
     step('sprites already downloaded')
 
     return true

@@ -1,3 +1,4 @@
+import { FOE_LABELS } from './constants.mjs'
 import { displayName, isFainted } from './pokemon.mjs'
 
 export const other = (side) => (side === 'player' ? 'foe' : 'player')
@@ -5,7 +6,10 @@ export const other = (side) => (side === 'player' ? 'foe' : 'player')
 export const label = (battle, side) => {
   const name = displayName(battle[side].mon)
 
-  return side === 'player' ? name : `the wild ${name}`
+  if (side === 'player') return name
+  if (battle.trainer) return `${FOE_LABELS.trainer} ${name}`
+
+  return `${FOE_LABELS.wild} ${name}`
 }
 
 export const say = (events, text) => {

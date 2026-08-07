@@ -1,7 +1,9 @@
 import { ITEMS } from '../../constants.mjs'
 import { move as moveData } from '../../data.mjs'
 import { expProgress } from '../../exp.mjs'
+import { spriteFile, trainerSpriteFile } from '../../paths.mjs'
 import { displayName, genderOf, levelOf } from '../../pokemon.mjs'
+import { monsLeft, trainerLabel } from '../../trainer.mjs'
 import { isMoveDisabled } from '../../volatile.mjs'
 import { bold, brightGreen, dim, gray } from '../ansi.mjs'
 import { ballOverlays, ballScale, ballSteps } from '../ball.mjs'
@@ -23,6 +25,7 @@ import {
   padRight,
   panel,
   statusTag,
+  trainerTray,
   typeBadge,
   wrap,
 } from '../widgets.mjs'
@@ -39,15 +42,46 @@ import { clampSelection } from './helpers.mjs'
 
 const CAUGHT_MARK = brightGreen(CAUGHT_GLYPH)
 
-const foeInfo = (mon, hp, width, caught) => {
+const foeTray = (trainer) => {
+  if (!trainer) return ''
+
+  return `  ${trainerTray(monsLeft(trainer), trainer.team.length)}`
+}
+
+const foeInfo = (mon, hp, width, caught, trainer) => {
   const name = `${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))} ${dim(`Lv${levelOf(mon)}`)}`
   const tag = statusTag(mon.status)
   const mark = caught ? ` ${CAUGHT_MARK}` : ''
 
   return [
     padRight(`${name}${mark}${tag ? ` ${tag}` : ''}`, width),
-    padRight(`${hpBar(hp, mon.stats.hp, 20)}`, width),
+    padRight(`${hpBar(hp, mon.stats.hp, 20)}${foeTray(trainer)}`, width),
   ]
+}
+
+const trainerInfo = (trainer, width) => {
+  return [
+    padRight(bold(trainerLabel(trainer)), width),
+    padRight(trainerTray(monsLeft(trainer), trainer.team.length), width),
+  ]
+}
+
+const foeHeader = (battle, width, caught) => {
+  if (battle.trainerIntro) return trainerInfo(battle.state.trainer, width)
+
+  return foeInfo(
+    battle.foeMon,
+    battle.hp.foe,
+    width,
+    caught,
+    battle.state.trainer,
+  )
+}
+
+const foeSpriteFile = (battle) => {
+  if (battle.trainerIntro) return trainerSpriteFile(battle.state.trainer.sprite)
+
+  return spriteFile('front', battle.foeMon.species, 'png')
 }
 
 const playerInfo = (mon, hp, width) => {
@@ -115,12 +149,12 @@ export const draw = (ctx, size) => {
 
   const width = fieldWidth(size)
 
-  const foe = battle.state.foe.mon
+  const foe = battle.foeMon
   const player = battle.state.player.mon
   const fitted = fitBattleSprites(
     size,
-    foe.species,
-    player.species,
+    foeSpriteFile(battle),
+    spriteFile('back', player.species, 'png'),
     ctx.spriteScale,
   )
 
@@ -130,8 +164,7 @@ export const draw = (ctx, size) => {
 
   const caught = ctx.save.dex.caught.includes(foe.species)
 
-  for (const line of foeInfo(foe, battle.hp.foe, width, caught))
-    lines.push(` ${line}`)
+  for (const line of foeHeader(battle, width, caught)) lines.push(` ${line}`)
 
   const body = messageBody(ctx, width)
   const maxFieldRows = Math.max(

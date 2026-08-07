@@ -312,7 +312,7 @@ test('Should write only the config keys that are actually set', () => {
   expect(JSON.parse(JSON.stringify(written))).toEqual({ sound: false })
 })
 
-test('Should map an encounter to the seven fields the queue file carries', () => {
+test('Should map an encounter to the fields the queue file carries, and call one with no kind a wild one', () => {
   const entry = transformResponseEncounter({
     v: 1,
     species: 16,
@@ -326,6 +326,7 @@ test('Should map an encounter to the seven fields the queue file carries', () =>
 
   expect(entry).toEqual({
     v: 1,
+    kind: 'wild',
     species: 16,
     name: 'Pidgey',
     level: 4,
@@ -336,7 +337,69 @@ test('Should map an encounter to the seven fields the queue file carries', () =>
   expect(transformResponseEncounter(null)).toBeNull()
 })
 
-test('Should write an encounter with the same seven fields and nothing more', () => {
+test('Should map a trainer encounter to its roster and drop the wild fields', () => {
+  const entry = transformResponseEncounter({
+    v: 1,
+    kind: 'trainer',
+    species: 16,
+    level: 4,
+    trainer: {
+      class: 'Bug Catcher',
+      name: 'Joey',
+      sprite: 'bugcatcher',
+      team: [
+        { species: 13, name: 'Weedle', level: 7, weight: 20 },
+        { species: 10, name: 'Caterpie', level: 8 },
+      ],
+    },
+    seed: 777,
+    session: 'abc',
+    at: '2026-01-01T00:00:00.000Z',
+  })
+
+  expect(entry).toEqual({
+    v: 1,
+    kind: 'trainer',
+    trainer: {
+      class: 'Bug Catcher',
+      name: 'Joey',
+      sprite: 'bugcatcher',
+      team: [
+        { species: 13, name: 'Weedle', level: 7 },
+        { species: 10, name: 'Caterpie', level: 8 },
+      ],
+    },
+    seed: 777,
+    session: 'abc',
+    at: '2026-01-01T00:00:00.000Z',
+  })
+})
+
+test('Should give a trainer with no roster, or no trainer at all, an empty team rather than throwing', () => {
+  const noRoster = transformResponseEncounter({
+    v: 1,
+    kind: 'trainer',
+    trainer: { class: 'Lass', name: 'Iris' },
+    seed: 1,
+    at: '2026-01-01T00:00:00.000Z',
+  })
+
+  expect(noRoster.trainer.team).toEqual([])
+
+  const truncated = transformResponseEncounter({
+    v: 1,
+    kind: 'trainer',
+    seed: 1,
+    at: '2026-01-01T00:00:00.000Z',
+  })
+
+  expect(
+    truncated.trainer,
+    'a half-written line maps, and reads as unusable',
+  ).toEqual({ class: null, name: null, sprite: null, team: [] })
+})
+
+test('Should write an encounter with the same fields and nothing more', () => {
   const written = transformRequestWriteEncounter({
     v: 1,
     species: 16,
@@ -350,6 +413,7 @@ test('Should write an encounter with the same seven fields and nothing more', ()
 
   expect(Object.keys(written).sort()).toEqual([
     'at',
+    'kind',
     'level',
     'name',
     'seed',
@@ -358,6 +422,26 @@ test('Should write an encounter with the same seven fields and nothing more', ()
     'v',
   ])
   expect(written.expiresAt).toBeUndefined()
+
+  const trainer = transformRequestWriteEncounter({
+    v: 1,
+    kind: 'trainer',
+    species: 16,
+    name: 'Pidgey',
+    level: 4,
+    trainer: { class: 'Lass', name: 'Iris', team: [] },
+    seed: 777,
+    at: '2026-01-01T00:00:00.000Z',
+  })
+
+  expect(Object.keys(trainer).sort(), 'no wild fields tag along').toEqual([
+    'at',
+    'kind',
+    'seed',
+    'session',
+    'trainer',
+    'v',
+  ])
 })
 
 test('Should take only the version out of a plugin manifest', () => {

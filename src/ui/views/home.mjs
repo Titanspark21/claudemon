@@ -1,5 +1,7 @@
 import { isWorking } from '../../activity.mjs'
-import { spriteFile } from '../../paths.mjs'
+import { TRAINER_MESSAGES } from '../../constants.mjs'
+import { encounterSpecies } from '../../encounter.mjs'
+import { spriteFile, trainerSpriteFile } from '../../paths.mjs'
 import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import {
   activePokemon,
@@ -7,6 +9,7 @@ import {
   partyNeedsHealing,
   totalBalls,
 } from '../../state.mjs'
+import { trainerLabel } from '../../trainer.mjs'
 import { VERSION } from '../../version.mjs'
 import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
 import { bandRows, bandScale, grassLines } from '../grass.mjs'
@@ -21,6 +24,7 @@ import {
   money,
   padRight,
   panel,
+  trainerTray,
   wrap,
 } from '../widgets.mjs'
 import {
@@ -122,19 +126,29 @@ export const footerRow = (cols, version = VERSION) => {
   return dim(HOME_HINTS + ' '.repeat(gap) + tag)
 }
 
+const encounterHeading = (encounter) => {
+  if (encounter.kind === 'trainer') {
+    return `${brightYellow('✦')} ${bold(trainerLabel(encounter.trainer))} ${TRAINER_MESSAGES.wantsToBattle}`
+  }
+
+  return `${brightYellow('✦')} ${bold(`${ENCOUNTER_MESSAGES.wild} ${encounter.name.toUpperCase()}`)} ${ENCOUNTER_MESSAGES.appeared}`
+}
+
+const encounterSpriteFile = (encounter) => {
+  if (encounter.kind === 'trainer' && encounter.trainer.sprite)
+    return trainerSpriteFile(encounter.trainer.sprite)
+
+  return spriteFile('front', encounterSpecies(encounter), 'png')
+}
+
 const pushEncounterField = (lines, ctx, encounter, size) => {
   const { cols } = size
 
-  lines.push(
-    centre(
-      `${brightYellow('✦')} ${bold(`${ENCOUNTER_MESSAGES.wild} ${encounter.name.toUpperCase()}`)} ${ENCOUNTER_MESSAGES.appeared}`,
-      cols,
-    ),
-  )
+  lines.push(centre(encounterHeading(encounter), cols))
   lines.push(centre(countdownRow(encounter), cols))
   lines.push('')
 
-  const sprite = loadSprite(spriteFile('front', encounter.species, 'png'), {
+  const sprite = loadSprite(encounterSpriteFile(encounter), {
     cols: fitCanvasCols(size, HOME_SPRITE_RESERVED_ROWS, ctx.spriteScale),
   })
 
@@ -148,6 +162,13 @@ const pushEncounterField = (lines, ctx, encounter, size) => {
   const grassAt = lines.length
 
   lines.push('')
+
+  if (encounter.kind === 'trainer') {
+    const count = encounter.trainer.team.length
+
+    lines.push(centre(`${trainerTray(count, count)} ${dim(`×${count}`)}`, cols))
+  }
+
   lines.push(
     centre(`${brightGreen('[enter]')} ${ENCOUNTER_MESSAGES.face}`, cols),
   )
