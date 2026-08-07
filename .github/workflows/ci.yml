@@ -39,6 +39,8 @@ jobs:
           node-version: '24'
           cache: npm
 
+      - run: npm i -g npm@11
+
       - run: npm ci
 
       - run: npm run lint
@@ -60,6 +62,8 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
 
+      - run: npm i -g npm@11
+
       - run: npm ci
 
       - uses: actions/cache/restore@v4
@@ -80,6 +84,8 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+
+      - run: npm i -g npm@11
 
       - run: npm ci
 
