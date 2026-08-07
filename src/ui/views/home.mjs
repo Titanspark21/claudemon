@@ -18,6 +18,7 @@ import { visibleLength } from '../text.mjs'
 import {
   centre,
   elapsed,
+  evolutionTag,
   genderTag,
   hpBar,
   menuGrid,
@@ -40,13 +41,14 @@ import {
   KANTO_TOTAL,
   MAX_HOME_WIDTH,
   MENU_CELL,
+  MON_LEVEL_WIDTH,
   MON_NAME_WIDTH,
   REST_MESSAGES,
   TITLE_COLUMN_SPLIT,
   UPDATE_NOTICES,
   WALK_HINTS,
 } from './constants.mjs'
-import { clampSelection, menuColumns, partyEvoTag } from './helpers.mjs'
+import { clampSelection, menuColumns } from './helpers.mjs'
 
 export const menuItems = (ctx) => {
   const base = isWorking(ctx.activity)
@@ -228,7 +230,9 @@ export const draw = (ctx, size) => {
         ? gray(displayName(mon).toUpperCase())
         : displayName(mon).toUpperCase()
 
-      return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${partyEvoTag(mon)} ${hpBar(
+      const level = `${dim(`Lv${levelOf(mon)}`)}${evolutionTag(mon)}`
+
+      return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${padRight(level, MON_LEVEL_WIDTH)} ${hpBar(
         mon.hp,
         mon.stats.hp,
         10,

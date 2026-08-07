@@ -113,12 +113,11 @@ export const canEvolveByStone = (mon) => {
 }
 
 export const levelUpEvolution = (mon) => {
-  for (const evolution of species(mon.species).evolutions) {
-    if (evolution.trigger === 'level-up' && evolution.level != null)
-      return evolution
-  }
+  const evolution = species(mon.species).evolutions.find(
+    (candidate) => candidate.trigger === 'level-up' && candidate.level != null,
+  )
 
-  return null
+  return evolution ?? null
 }
 
 export const evolveInto = (mon, speciesId) => {

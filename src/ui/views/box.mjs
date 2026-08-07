@@ -4,11 +4,17 @@ import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
-import { genderTag, menuList, padRight, withFooter, wrap } from '../widgets.mjs'
+import {
+  evolutionTag,
+  genderTag,
+  menuList,
+  padRight,
+  withFooter,
+  wrap,
+} from '../widgets.mjs'
 import {
   BOX_HINTS,
   BOX_MESSAGES,
-  BOX_SORT,
   BOX_SORT_LABELS,
   BOX_TITLE,
   COLUMN_DIVIDER,
@@ -18,8 +24,9 @@ import {
   MON_SPRITE_RESERVED_ROWS,
 } from './constants.mjs'
 import {
+  nextPartySort,
   partyEntryAt,
-  partyEvoTag,
+  partySelectionAfterSort,
   sortedPartyEntries,
   zipColumns,
 } from './helpers.mjs'
@@ -31,8 +38,8 @@ export const draw = (ctx, size) => {
 
   const box = ctx.save.box
   const party = ctx.save.party
-  const sort = ctx.boxSort ?? BOX_SORT.order
-  const sortLabel = BOX_SORT_LABELS[sort] ?? BOX_SORT_LABELS.order
+  const sort = ctx.boxSort
+  const sortLabel = BOX_SORT_LABELS[sort]
 
   lines.push(
     ` ${brightYellow('◓')} ${bold(BOX_TITLE)}   ${dim(
@@ -52,7 +59,7 @@ export const draw = (ctx, size) => {
   }
 
   const entries = sortedPartyEntries(box, sort)
-  const selected = partyEntryAt(box, ctx.boxSelection, sort)?.mon ?? box[0]
+  const selected = partyEntryAt(box, ctx.boxSelection, sort).mon
 
   const listEntries = entries.map((entry) => {
     const mon = entry.mon
@@ -60,7 +67,7 @@ export const draw = (ctx, size) => {
       ? gray(displayName(mon).toUpperCase())
       : displayName(mon).toUpperCase()
 
-    return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${partyEvoTag(mon)}`
+    return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${evolutionTag(mon)}`
   })
 
   const list = menuList(listEntries, ctx.boxSelection, {
@@ -89,10 +96,18 @@ export const draw = (ctx, size) => {
 }
 
 export const onKey = (ctx, key) => {
+  if (key.name === 'escape' || key.name === 'q') {
+    ctx.boxMessage = null
+    ctx.setMode('team')
+    return
+  }
+
   const box = ctx.save.box
-  const sort = ctx.boxSort ?? BOX_SORT.order
+
+  if (box.length === 0) return
+
+  const sort = ctx.boxSort
   const total = box.length
-  const selected = partyEntryAt(box, ctx.boxSelection, sort)
 
   if (key.name === 'up' || key.name === 'k') {
     ctx.boxSelection = wrap(ctx.boxSelection - 1, total)
@@ -101,20 +116,16 @@ export const onKey = (ctx, key) => {
     ctx.boxSelection = wrap(ctx.boxSelection + 1, total)
     ctx.boxMessage = null
   } else if (key.name === 's') {
-    const boxIndex = selected?.index ?? 0
-    const next = sort === BOX_SORT.level ? BOX_SORT.order : BOX_SORT.level
+    const nextSort = nextPartySort(sort)
 
-    ctx.boxSort = next
-
-    const reordered = sortedPartyEntries(box, next)
-    const index = reordered.findIndex((entry) => entry.index === boxIndex)
-
-    ctx.boxSelection = index >= 0 ? index : 0
+    ctx.boxSelection = partySelectionAfterSort(
+      box,
+      ctx.boxSelection,
+      sort,
+      nextSort,
+    )
+    ctx.boxSort = nextSort
     ctx.boxMessage = null
-  } else if (key.name === 'enter' || key.name === 'space') {
-    if (selected) ctx.withdrawFromBox(selected.index)
-  } else if (key.name === 'escape' || key.name === 'q') {
-    ctx.boxMessage = null
-    ctx.setMode('team')
-  }
+  } else if (key.name === 'enter' || key.name === 'space')
+    ctx.withdrawFromBox(partyEntryAt(box, ctx.boxSelection, sort).index)
 }

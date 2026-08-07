@@ -3,6 +3,7 @@ import { spriteFile } from '../../paths.mjs'
 import { displayName, speciesName, stoneEvolution } from '../../pokemon.mjs'
 import { countOf, itemsInBag, usableOnParty } from '../../shop.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
+import { EVOLVES_MARK } from '../constants.mjs'
 import { monDetail } from '../detail.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
 import { menuList, padRight, withFooter, wrap } from '../widgets.mjs'
@@ -11,13 +12,11 @@ import {
   BAG_TITLE,
   COLUMN_DIVIDER,
   EMPTY_BAG_MESSAGE,
-  EVOLVES_MARK,
   LIST_HEIGHT_FLOOR,
   LIST_WIDTH,
   MON_SPRITE_RESERVED_ROWS,
   TEAM_BAG_HINTS,
   TEAM_MESSAGES,
-  TEAM_SORT,
 } from './constants.mjs'
 import {
   clampSelection,
@@ -60,8 +59,7 @@ export const draw = (ctx, size) => {
 
   const party = ctx.save.party
   const bag = itemsInBag(ctx.save)
-  const sort = ctx.teamSort ?? TEAM_SORT.order
-  const selected = partyEntryAt(party, ctx.teamSelection, sort)?.mon ?? party[0]
+  const selected = partyEntryAt(party, ctx.teamSelection, ctx.teamSort).mon
   const index = clampSelection(ctx.bagSelection, bag.length)
 
   lines.push(
@@ -115,10 +113,9 @@ export const onKey = (ctx, key) => {
     ctx.bagSelection = wrap(index + 1, bag.length)
     ctx.bagMessage = null
   } else if (key.name === 'enter' || key.name === 'space') {
-    const sort = ctx.teamSort ?? TEAM_SORT.order
-    const entry = partyEntryAt(ctx.save.party, ctx.teamSelection, sort)
+    const entry = partyEntryAt(ctx.save.party, ctx.teamSelection, ctx.teamSort)
 
-    if (entry) ctx.useFromBag(bag[index], entry.index)
+    ctx.useFromBag(bag[index], entry.index)
   } else if (key.name === 'escape' || key.name === 'q' || key.name === 'i') {
     ctx.closeBag()
   }

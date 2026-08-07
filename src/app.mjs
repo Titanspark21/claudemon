@@ -413,10 +413,10 @@ export const createApp = ({
   ctx.makeLead = (index) => {
     setLead(ctx.save, index)
 
-    const entries = sortedPartyEntries(ctx.save.party, ctx.teamSort)
-    const leadAt = entries.findIndex((entry) => entry.index === 0)
-
-    ctx.teamSelection = leadAt >= 0 ? leadAt : 0
+    ctx.teamSelection = sortedPartyEntries(
+      ctx.save.party,
+      ctx.teamSort,
+    ).findIndex((entry) => entry.index === 0)
     ctx.persist()
   }
 
@@ -454,7 +454,10 @@ export const createApp = ({
       return
     }
 
-    ctx.boxSelection = Math.min(index, Math.max(0, ctx.save.box.length - 1))
+    ctx.boxSelection = Math.min(
+      ctx.boxSelection,
+      Math.max(0, ctx.save.box.length - 1),
+    )
     ctx.boxMessage = `${displayName(mon).toUpperCase()} joined your team.`
     ctx.persist()
   }

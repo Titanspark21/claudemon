@@ -1,9 +1,10 @@
 export const APP_TITLE = 'claudemon'
 export const KANTO_TOTAL = 151
 export const COLUMN_DIVIDER = '│'
-export const LIST_WIDTH = 34
+export const LIST_WIDTH = 30
 export const LIST_HEIGHT_FLOOR = 6
 export const MON_NAME_WIDTH = 12
+export const MON_LEVEL_WIDTH = 9
 export const MON_SPRITE_RESERVED_ROWS = 24
 export const EMPTY_BAG_MESSAGE = 'Your bag is empty.'
 export const NO_SPRITE_MESSAGE = '(sprite unavailable)'
@@ -120,12 +121,9 @@ export const DEX_HINTS = ' ↑ ↓ browse · PgUp/PgDn jump · [s] sort · [esc]
 export const TEAM_TITLE = 'TEAM'
 export const BAG_TITLE = 'BAG'
 export const BAG_ITEM_NAME_WIDTH = 15
-export const EVOLVES_MARK = '✦'
 export const LEAD_MARK = '★'
-export const LEVEL_EVO_PREFIX = '→'
-export const TEAM_SORT = { order: 'order', level: 'level' }
+export const PARTY_SORT = { order: 'order', level: 'level' }
 export const TEAM_SORT_LABELS = { order: 'party', level: 'Lv' }
-export const BOX_SORT = { order: 'order', level: 'level' }
 export const BOX_SORT_LABELS = { order: 'caught', level: 'Lv' }
 
 export const TEAM_HINTS =

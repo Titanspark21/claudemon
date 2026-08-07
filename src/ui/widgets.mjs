@@ -1,4 +1,5 @@
-import { bg, bold, CLEAR, dim, fg, gray } from './ansi.mjs'
+import { canEvolveByStone, levelOf, levelUpEvolution } from '../pokemon.mjs'
+import { bg, bold, brightYellow, CLEAR, dim, fg, gray } from './ansi.mjs'
 import {
   BADGE_LUMINANCE_CUTOFF,
   BADGE_TEXT_COLOURS,
@@ -7,10 +8,12 @@ import {
   DEFAULT_MENU_HEIGHT,
   DEFAULT_MENU_WIDTH,
   DEFAULT_TYPE_COLOR,
+  EVOLVES_MARK,
   EXP_BAR_COLOUR,
   EXP_BAR_GLYPH,
   FULL_BLOCK,
   GENDER_MARKS,
+  LEVEL_EVO_PREFIX,
   HP_BAR_COLOURS,
   HP_BAR_EMPTY_GLYPH,
   HP_BAR_THRESHOLDS,
@@ -200,4 +203,18 @@ export const genderTag = (gender) => {
   const [glyph, [r, g, b]] = mark
 
   return `${fg(r, g, b)}${glyph}${CLEAR}`
+}
+
+export const evolutionTag = (mon) => {
+  const levelEvo = levelUpEvolution(mon)
+
+  if (!levelEvo && canEvolveByStone(mon))
+    return ` ${brightYellow(EVOLVES_MARK)}`
+  if (!levelEvo) return ''
+
+  const label = `${LEVEL_EVO_PREFIX}${levelEvo.level}`
+
+  if (levelOf(mon) >= levelEvo.level) return ` ${brightYellow(label)}`
+
+  return ` ${dim(label)}`
 }
