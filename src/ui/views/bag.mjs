@@ -17,8 +17,14 @@ import {
   MON_SPRITE_RESERVED_ROWS,
   TEAM_BAG_HINTS,
   TEAM_MESSAGES,
+  TEAM_SORT,
 } from './constants.mjs'
-import { clampSelection, noteRows, zipColumns } from './helpers.mjs'
+import {
+  clampSelection,
+  noteRows,
+  partyEntryAt,
+  zipColumns,
+} from './helpers.mjs'
 
 const bagNote = (ctx, bag, index, mon) => {
   if (ctx.bagMessage) return ctx.bagMessage
@@ -54,7 +60,8 @@ export const draw = (ctx, size) => {
 
   const party = ctx.save.party
   const bag = itemsInBag(ctx.save)
-  const selected = party[clampSelection(ctx.teamSelection, party.length)]
+  const sort = ctx.teamSort ?? TEAM_SORT.order
+  const selected = partyEntryAt(party, ctx.teamSelection, sort)?.mon ?? party[0]
   const index = clampSelection(ctx.bagSelection, bag.length)
 
   lines.push(
@@ -108,7 +115,10 @@ export const onKey = (ctx, key) => {
     ctx.bagSelection = wrap(index + 1, bag.length)
     ctx.bagMessage = null
   } else if (key.name === 'enter' || key.name === 'space') {
-    ctx.useFromBag(bag[index], ctx.teamSelection)
+    const sort = ctx.teamSort ?? TEAM_SORT.order
+    const entry = partyEntryAt(ctx.save.party, ctx.teamSelection, sort)
+
+    if (entry) ctx.useFromBag(bag[index], entry.index)
   } else if (key.name === 'escape' || key.name === 'q' || key.name === 'i') {
     ctx.closeBag()
   }

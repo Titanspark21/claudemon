@@ -1,7 +1,7 @@
 export const APP_TITLE = 'claudemon'
 export const KANTO_TOTAL = 151
 export const COLUMN_DIVIDER = '│'
-export const LIST_WIDTH = 30
+export const LIST_WIDTH = 34
 export const LIST_HEIGHT_FLOOR = 6
 export const MON_NAME_WIDTH = 12
 export const MON_SPRITE_RESERVED_ROWS = 24
@@ -113,16 +113,23 @@ export const EVOLUTION_WORDING = {
   trade: 'by trading',
 }
 
-export const DEX_HINTS = ' ↑ ↓ browse · PgUp/PgDn jump · [esc] back'
+export const DEX_SORT = { number: 'number', name: 'name' }
+export const DEX_SORT_LABELS = { number: '#', name: 'A–Z' }
+export const DEX_HINTS = ' ↑ ↓ browse · PgUp/PgDn jump · [s] sort · [esc] back'
 
 export const TEAM_TITLE = 'TEAM'
 export const BAG_TITLE = 'BAG'
 export const BAG_ITEM_NAME_WIDTH = 15
 export const EVOLVES_MARK = '✦'
 export const LEAD_MARK = '★'
+export const LEVEL_EVO_PREFIX = '→'
+export const TEAM_SORT = { order: 'order', level: 'level' }
+export const TEAM_SORT_LABELS = { order: 'party', level: 'Lv' }
+export const BOX_SORT = { order: 'order', level: 'level' }
+export const BOX_SORT_LABELS = { order: 'caught', level: 'Lv' }
 
 export const TEAM_HINTS =
-  ' ↑ ↓ browse · [enter] lead · [i] items · [b] the box · [d] send it there · [esc] back'
+  ' ↑ ↓ browse · [enter] lead · [s] sort · [i] items · [b] the box · [d] send it there · [esc] back'
 export const TEAM_BAG_HINTS =
   ' ↑ ↓ choose an item · [enter] use it · [esc] put the bag away'
 
@@ -135,7 +142,7 @@ export const TEAM_MESSAGES = {
 
 export const BOX_TITLE = 'BOX'
 export const BOX_HINTS =
-  ' ↑ ↓ browse · [enter] take it into your team · [esc] back'
+  ' ↑ ↓ browse · [s] sort · [enter] take it into your team · [esc] back'
 
 export const BOX_MESSAGES = {
   empty: 'The box is empty.',

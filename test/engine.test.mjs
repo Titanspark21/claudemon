@@ -13,6 +13,8 @@ import {
   genderOf,
   levelOf,
   makeMoveSlot,
+  canEvolveByStone,
+  levelUpEvolution,
   pendingEvolution,
   refreshStats,
   speciesGender,
@@ -130,6 +132,18 @@ test('Should keep the level, the share of health and the gender when a Pokemon e
 test('Should leave a Pokemon below its evolution level, or one that needs a stone, unevolved', () => {
   expect(pendingEvolution(aPokemon(4, 15))).toBe(null)
   expect(pendingEvolution(aPokemon(25, 50))).toBe(null)
+})
+
+test('Should tell stone evolutions from level-up ones at a glance', () => {
+  expect(canEvolveByStone(aPokemon(25, 10))).toBe(true)
+  expect(canEvolveByStone(aPokemon(4, 10))).toBe(false)
+  expect(levelUpEvolution(aPokemon(4, 10))).toEqual({
+    to: 5,
+    trigger: 'level-up',
+    level: 16,
+    item: null,
+  })
+  expect(levelUpEvolution(aPokemon(25, 10))).toBe(null)
 })
 
 test('Should read the gender off the Attack IV against the species ratio', () => {

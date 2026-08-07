@@ -46,7 +46,7 @@ import {
   UPDATE_NOTICES,
   WALK_HINTS,
 } from './constants.mjs'
-import { clampSelection, menuColumns } from './helpers.mjs'
+import { clampSelection, menuColumns, partyEvoTag } from './helpers.mjs'
 
 export const menuItems = (ctx) => {
   const base = isWorking(ctx.activity)
@@ -228,7 +228,7 @@ export const draw = (ctx, size) => {
         ? gray(displayName(mon).toUpperCase())
         : displayName(mon).toUpperCase()
 
-      return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)} ${hpBar(
+      return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${partyEvoTag(mon)} ${hpBar(
         mon.hp,
         mon.stats.hp,
         10,

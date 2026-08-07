@@ -14,17 +14,25 @@ import {
   MON_SPRITE_RESERVED_ROWS,
   TEAM_HINTS,
   TEAM_MESSAGES,
+  TEAM_SORT,
+  TEAM_SORT_LABELS,
   TEAM_TITLE,
 } from './constants.mjs'
-import { clampSelection, noteRows, zipColumns } from './helpers.mjs'
+import {
+  noteRows,
+  partyEntryAt,
+  partyEvoTag,
+  sortedPartyEntries,
+  zipColumns,
+} from './helpers.mjs'
 
-const partyRow = (mon, index) => {
+const partyRow = (mon, partyIndex) => {
   const name = isFainted(mon)
     ? gray(displayName(mon).toUpperCase())
     : displayName(mon).toUpperCase()
-  const leadMark = index === 0 ? brightYellow(LEAD_MARK) : ' '
+  const leadMark = partyIndex === 0 ? brightYellow(LEAD_MARK) : ' '
 
-  return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}`
+  return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${partyEvoTag(mon)}`
 }
 
 export const draw = (ctx, size) => {
@@ -33,10 +41,12 @@ export const draw = (ctx, size) => {
   const overlays = []
 
   const party = ctx.save.party
+  const sort = ctx.teamSort ?? TEAM_SORT.order
+  const sortLabel = TEAM_SORT_LABELS[sort] ?? TEAM_SORT_LABELS.order
 
   lines.push(
     ` ${brightYellow('◓')} ${bold(TEAM_TITLE)}   ${dim(
-      `${party.length}/${PARTY_LIMIT} · ${ctx.save.box.length} in the box`,
+      `${party.length}/${PARTY_LIMIT} · ${ctx.save.box.length} in the box · sort ${sortLabel}`,
     )}`,
   )
 
@@ -52,11 +62,12 @@ export const draw = (ctx, size) => {
 
   lines.push('')
 
-  const selected = party[clampSelection(ctx.teamSelection, party.length)]
-  const entries = party.map(partyRow)
+  const entries = sortedPartyEntries(party, sort)
+  const selected = partyEntryAt(party, ctx.teamSelection, sort)?.mon ?? party[0]
+  const listEntries = entries.map((entry) => partyRow(entry.mon, entry.index))
 
-  const list = menuList(entries, ctx.teamSelection, {
-    height: Math.max(LIST_HEIGHT_FLOOR, entries.length),
+  const list = menuList(listEntries, ctx.teamSelection, {
+    height: Math.max(LIST_HEIGHT_FLOOR, listEntries.length),
     width: LIST_WIDTH,
   })
 
@@ -89,7 +100,10 @@ export const draw = (ctx, size) => {
 }
 
 export const onKey = (ctx, key) => {
-  const total = ctx.save.party.length
+  const party = ctx.save.party
+  const sort = ctx.teamSort ?? TEAM_SORT.order
+  const total = party.length
+  const selected = partyEntryAt(party, ctx.teamSelection, sort)
 
   if (key.name === 'up' || key.name === 'k') {
     ctx.teamSelection = wrap(ctx.teamSelection - 1, total)
@@ -97,12 +111,24 @@ export const onKey = (ctx, key) => {
   } else if (key.name === 'down' || key.name === 'j') {
     ctx.teamSelection = wrap(ctx.teamSelection + 1, total)
     ctx.clearTeamMessages()
-  } else if (key.name === 'enter' || key.name === 'space')
-    ctx.makeLead(ctx.teamSelection)
-  else if (key.name === 'i') ctx.openBag()
+  } else if (key.name === 'enter' || key.name === 'space') {
+    if (selected) ctx.makeLead(selected.index)
+  } else if (key.name === 's') {
+    const partyIndex = selected?.index ?? 0
+    const next = sort === TEAM_SORT.level ? TEAM_SORT.order : TEAM_SORT.level
+
+    ctx.teamSort = next
+
+    const reordered = sortedPartyEntries(party, next)
+    const index = reordered.findIndex((entry) => entry.index === partyIndex)
+
+    ctx.teamSelection = index >= 0 ? index : 0
+    ctx.clearTeamMessages()
+  } else if (key.name === 'i') ctx.openBag()
   else if (key.name === 'b') ctx.openBox()
-  else if (key.name === 'd') ctx.depositToBox(ctx.teamSelection)
-  else if (key.name === 'escape' || key.name === 'q') {
+  else if (key.name === 'd') {
+    if (selected) ctx.depositToBox(selected.index)
+  } else if (key.name === 'escape' || key.name === 'q') {
     ctx.clearTeamMessages()
     ctx.setMode('home')
   }

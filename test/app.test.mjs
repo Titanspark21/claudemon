@@ -1583,6 +1583,25 @@ test('Should restore the team when you heal at home', () => {
   expect(app.save.party[0].status).toBe(null)
 })
 
+test('Should heal Pokemon in the box as well as the team', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  const boxed = createPokemon(25, 10, makeRng(9))
+
+  boxed.hp = 1
+  boxed.status = 'sleep'
+  app.save.box.push(boxed)
+
+  app.openHomeSelection('heal')
+
+  expect(app.save.box[0].hp).toBe(app.save.box[0].stats.hp)
+  expect(app.save.box[0].status).toBe(null)
+})
+
 test('Should make healing wait until Claude stops working', () => {
   const app = createApp({
     screen: stubScreen(),

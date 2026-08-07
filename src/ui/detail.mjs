@@ -1,7 +1,13 @@
 import { move as moveData, species } from '../data.mjs'
 import { expProgress } from '../exp.mjs'
-import { displayName, genderOf, levelOf } from '../pokemon.mjs'
-import { bold, dim } from './ansi.mjs'
+import {
+  canEvolveByStone,
+  displayName,
+  genderOf,
+  levelOf,
+  levelUpEvolution,
+} from '../pokemon.mjs'
+import { bold, brightYellow, dim } from './ansi.mjs'
 import {
   expBar,
   genderTag,
@@ -10,6 +16,26 @@ import {
   statusTag,
   typeBadge,
 } from './widgets.mjs'
+import { EVOLVES_MARK, LEVEL_EVO_PREFIX } from './views/constants.mjs'
+
+const evolutionLine = (mon) => {
+  const stone = canEvolveByStone(mon)
+  const levelEvo = levelUpEvolution(mon)
+
+  if (!stone && !levelEvo) return null
+
+  const star = brightYellow(EVOLVES_MARK)
+
+  if (stone && !levelEvo) return `${star} evolves with a stone`
+
+  const label = `${LEVEL_EVO_PREFIX}${levelEvo.level}`
+  const ready = levelOf(mon) >= levelEvo.level
+  const levelPart = ready ? brightYellow(label) : dim(label)
+
+  if (stone) return `${star} stone · evolves ${levelPart}`
+
+  return `evolves ${levelPart}`
+}
 
 export const monDetail = (mon) => {
   const lines = []
@@ -20,6 +46,11 @@ export const monDetail = (mon) => {
     )} ${statusTag(mon.status)}`,
   )
   lines.push(species(mon.species).types.map(typeBadge).join(' '))
+
+  const evo = evolutionLine(mon)
+
+  if (evo) lines.push(evo)
+
   lines.push('')
   lines.push(
     `HP  ${hpBar(mon.hp, mon.stats.hp, 22)} ${dim(`${mon.hp}/${mon.stats.hp}`)}`,

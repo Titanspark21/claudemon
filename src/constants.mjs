@@ -870,7 +870,7 @@ export const BATTLE_ITEM_KINDS = new Set(['heal', 'cure', 'revive'])
 
 export const HOME_NOTICES = {
   working: 'Not while Claude is working — rest when it does.',
-  healed: 'Your team is back to full health.',
+  healed: 'Your team and box are back to full health.',
   wipedOut: 'Your whole team has fainted. Heal before heading out.',
 }
 

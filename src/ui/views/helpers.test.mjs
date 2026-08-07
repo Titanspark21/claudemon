@@ -1,9 +1,15 @@
 import { expect, test, vi } from 'vitest'
 
+import { createPokemon } from '../../pokemon.mjs'
+import { makeRng } from '../../rng.mjs'
 import { stripAnsi } from '../text.mjs'
 import {
   DEX_MARKS,
+  DEX_SORT,
+  EVOLVES_MARK,
+  LEVEL_EVO_PREFIX,
   OPTIONS_PREVIEW_SPECIES,
+  TEAM_SORT,
   UPDATE_FOOTERS,
   UPDATE_HEADINGS,
 } from './constants.mjs'
@@ -14,7 +20,11 @@ import {
   evolutionWording,
   noteRows,
   noteText,
+  partyEntryAt,
+  partyEvoTag,
   previewSpecies,
+  sortedDex,
+  sortedPartyEntries,
   updateFooter,
   updateHeading,
   zipColumns,
@@ -104,6 +114,60 @@ test('Should word an evolution by the trigger that brings it about', () => {
     'with a moon stone',
   )
   expect(evolutionWording({ trigger: 'trade', item: null })).toBe('by trading')
+})
+
+test('Should leave the pokedex in number order unless sorting by name', () => {
+  const pokedex = [
+    { id: 1, name: 'Bulbasaur' },
+    { id: 4, name: 'Charmander' },
+    { id: 25, name: 'Pikachu' },
+  ]
+
+  expect(sortedDex(pokedex, DEX_SORT.number)).toBe(pokedex)
+  expect(sortedDex(pokedex, DEX_SORT.name).map((mon) => mon.name)).toEqual([
+    'Bulbasaur',
+    'Charmander',
+    'Pikachu',
+  ])
+  expect(
+    sortedDex(
+      [
+        { id: 25, name: 'Pikachu' },
+        { id: 1, name: 'Bulbasaur' },
+      ],
+      DEX_SORT.name,
+    ).map((mon) => mon.id),
+  ).toEqual([1, 25])
+})
+
+test('Should mark stone evo with a star, and level evo with the level only', () => {
+  const rng = makeRng(7)
+  const pikachu = createPokemon(25, 12, rng)
+  const charmander = createPokemon(4, 10, rng)
+  const ready = createPokemon(4, 16, rng)
+  const finalForm = createPokemon(6, 40, rng)
+
+  expect(stripAnsi(partyEvoTag(pikachu))).toBe(` ${EVOLVES_MARK}`)
+  expect(stripAnsi(partyEvoTag(charmander))).toBe(` ${LEVEL_EVO_PREFIX}16`)
+  expect(stripAnsi(partyEvoTag(ready))).toBe(` ${LEVEL_EVO_PREFIX}16`)
+  expect(partyEvoTag(finalForm)).toBe('')
+})
+
+test('Should sort a party by level, highest first, without losing the party index', () => {
+  const rng = makeRng(3)
+  const party = [
+    createPokemon(1, 5, rng),
+    createPokemon(4, 20, rng),
+    createPokemon(7, 12, rng),
+  ]
+
+  expect(
+    sortedPartyEntries(party, TEAM_SORT.level).map((entry) => entry.index),
+  ).toEqual([1, 2, 0])
+  expect(
+    sortedPartyEntries(party, TEAM_SORT.order).map((entry) => entry.mon),
+  ).toEqual(party)
+  expect(partyEntryAt(party, 0, TEAM_SORT.level).mon).toBe(party[1])
 })
 
 test('Should head the update screen with the version it is moving to', () => {
