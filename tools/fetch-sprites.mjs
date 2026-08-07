@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { TRAINER_CLASSES } from '../src/constants.mjs'
+import { GYMS, TRAINER_CLASSES } from '../src/constants.mjs'
+import { gymRoster } from '../src/gym.mjs'
 import {
   SPRITES_DIR,
   TRAINER_SPRITES_DIR,
@@ -33,14 +34,21 @@ const pokemonJobs = (ids) => {
   )
 }
 
-const trainerJobs = () => {
-  return TRAINER_CLASSES.flatMap((entry) =>
-    entry.sprites.map((name) => ({
-      label: `trainers/${name}.png`,
-      url: `${TRAINER_SPRITE_BASE_URL}/${name}.png`,
-      destination: trainerSpriteFile(name),
-    })),
+const trainerSpriteNames = () => {
+  const fromClasses = TRAINER_CLASSES.flatMap((entry) => entry.sprites)
+  const fromGyms = GYMS.flatMap((gym) =>
+    gymRoster(gym).map((opponent) => opponent.sprite),
   )
+
+  return [...new Set([...fromClasses, ...fromGyms])]
+}
+
+const trainerJobs = () => {
+  return trainerSpriteNames().map((name) => ({
+    label: `trainers/${name}.png`,
+    url: `${TRAINER_SPRITE_BASE_URL}/${name}.png`,
+    destination: trainerSpriteFile(name),
+  }))
 }
 
 const download = async (url, destination) => {

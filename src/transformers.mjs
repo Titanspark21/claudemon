@@ -46,6 +46,7 @@ const mapSave = (save) => {
     box: save.box ? save.box.map(mapPokemon) : [],
     bag: save.bag ?? {},
     money: save.money ?? 0,
+    badges: save.badges ?? [],
     dex: mapDex(save.dex),
     stats: mapStats(save.stats),
   }

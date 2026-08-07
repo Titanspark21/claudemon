@@ -3,6 +3,7 @@ import { sendOutAfterFaint, submitAction, switchIn } from './battle.mjs'
 import {
   BATTLE_ITEM_KINDS,
   BATTLE_MESSAGES,
+  GYM_MESSAGES,
   HP_DRAIN_STEPS,
   ITEMS,
 } from './constants.mjs'
@@ -16,7 +17,6 @@ import {
   addPokemon,
   healParty,
   markFaced,
-  publishStatus,
   setLead,
 } from './state.mjs'
 import { ballSteps } from './ui/ball.mjs'
@@ -450,6 +450,15 @@ const beginPostBattle = (ctx) => {
   battle.postSteps = [{ kind: 'blackout' }]
 }
 
+const blackoutOutcome = (ctx) => {
+  if (ctx.gym) return { rest: false, note: GYM_MESSAGES.thrownOut }
+
+  if (isWorking(ctx.activity))
+    return { rest: false, note: BATTLE_MESSAGES.noRest }
+
+  return { rest: true, note: null }
+}
+
 const processNextStep = (ctx) => {
   const battle = ctx.battle
   const steps = battle.postSteps
@@ -493,15 +502,14 @@ const processNextStep = (ctx) => {
   }
 
   if (step.kind === 'blackout') {
-    const messages = [...BATTLE_MESSAGES.blackout]
+    const { rest, note } = blackoutOutcome(ctx)
 
-    if (isWorking(ctx.activity)) {
-      messages.push(BATTLE_MESSAGES.noRest)
-    } else {
-      healParty(ctx.save)
-    }
+    if (rest) healParty(ctx.save)
 
-    queueMessages(ctx, messages)
+    queueMessages(
+      ctx,
+      note ? [...BATTLE_MESSAGES.blackout, note] : BATTLE_MESSAGES.blackout,
+    )
     syncBars(battle)
     return
   }
@@ -533,11 +541,17 @@ const resolveLearnChoice = (ctx) => {
 }
 
 const finishBattle = (ctx) => {
+  const outcome = ctx.battle.state.outcome
+
   ctx.stopMusic()
   ctx.battle = null
 
+  if (ctx.gym) {
+    ctx.finishGymBattle(outcome)
+    return
+  }
+
   ctx.persist()
-  publishStatus(ctx.save)
 
   ctx.pump()
   ctx.homeSelection = 0

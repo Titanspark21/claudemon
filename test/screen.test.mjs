@@ -18,6 +18,8 @@ import { draw as drawOptions } from '../src/ui/views/options.mjs'
 import { draw as drawShop } from '../src/ui/views/shop.mjs'
 import { draw as drawBag } from '../src/ui/views/bag.mjs'
 import { draw as drawTeam } from '../src/ui/views/team.mjs'
+import { draw as drawGym } from '../src/ui/views/gym.mjs'
+import { draw as drawGyms } from '../src/ui/views/gyms.mjs'
 import { DEFAULT_CONFIG } from '../src/constants.mjs'
 import { itemsInBag } from '../src/shop.mjs'
 import { MIN_CANVAS_COLS, NATIVE_CANVAS_COLS } from '../src/ui/constants.mjs'
@@ -1004,6 +1006,7 @@ const MENU_SAVE = {
   trainer: { name: 'Tester' },
   money: 3000,
   bag: { 'poke-ball': 5, potion: 2, 'thunder-stone': 1 },
+  badges: ['pewter'],
   dex: { seen: [4, 25], caught: [4], faced: {} },
   party: [POKEMON, { ...POKEMON, species: 25 }],
   box: [{ ...POKEMON, species: 19 }],
@@ -1024,20 +1027,31 @@ const MENU_CTX = {
   bagMessage: null,
   shopMessage: null,
   optionsMessage: null,
+  gym: null,
+  gymSelection: 0,
+  gymMessage: null,
+  gymLeaving: false,
+}
+
+const GYM_CTX = {
+  ...MENU_CTX,
+  gym: { id: 'pewter', index: 1, seed: 1, snapshot: null },
 }
 
 const MENU_SCREENS = [
-  ['TEAM', drawTeam, '[b] the box'],
-  ['BOX', drawBox, '[enter] take it into your team'],
-  ['POKÉDEX', drawDex, 'PgUp/PgDn jump'],
-  ['SHOP', drawShop, '[5] buy five'],
-  ['OPTION', drawOptions, '← → change'],
+  ['TEAM', drawTeam, '[b] the box', MENU_CTX],
+  ['BOX', drawBox, '[enter] take it into your team', MENU_CTX],
+  ['POKÉDEX', drawDex, 'PgUp/PgDn jump', MENU_CTX],
+  ['SHOP', drawShop, '[5] buy five', MENU_CTX],
+  ['OPTION', drawOptions, '← → change', MENU_CTX],
+  ['GYMS', drawGyms, '[enter] challenge the gym', MENU_CTX],
+  ['GYM', drawGym, '[i] bag', GYM_CTX],
 ]
 
 test('Should put every menu screen hint where the renderer will draw it', () => {
-  for (const [name, draw, hint] of MENU_SCREENS) {
+  for (const [name, draw, hint, ctx] of MENU_SCREENS) {
     for (const rows of [16, 24, 34, 50]) {
-      const { lines, overlays } = draw(MENU_CTX, { cols: 100, rows })
+      const { lines, overlays } = draw(ctx, { cols: 100, rows })
 
       expect(
         lines.length,
@@ -1300,5 +1314,71 @@ test('Should give a Pokemon with no gender no symbol, and nor an unreadable one'
   ).toMatch(/PIKACHU\s/)
   expect(plain.join('\n'), 'no symbol anywhere on the screen').not.toMatch(
     /[♂♀]/,
+  )
+})
+
+test('Should show a gym run as a gauntlet: what is beaten, who is next and who is still waiting', () => {
+  const plain = drawGym(GYM_CTX, { cols: 100, rows: 34 }).lines.map(stripAnsi)
+  const roster = plain.filter((line) => line.includes('Lv1'))
+
+  expect(plain[0], 'the gym names itself, its type and the prize').toContain(
+    'PEWTER GYM',
+  )
+  expect(plain[0]).toContain('Boulder Badge')
+
+  expect(roster.find((line) => line.includes('CAMPER LIAM'))).toContain('✔')
+  expect(roster.find((line) => line.includes('HIKER WADE'))).toContain('▶')
+  expect(roster.find((line) => line.includes('LEADER BROCK'))).toContain('·')
+
+  expect(plain.join('\n'), 'and it says who you are about to face').toContain(
+    'HIKER WADE',
+  )
+  expect(plain.join('\n'), 'and that the shop is behind you').toContain(
+    'No shop, no rest',
+  )
+})
+
+test('Should keep the gym prompt on screen at every height, so no forfeit goes unconfirmed', () => {
+  const party = Array.from({ length: 6 }, (_, index) => {
+    return { ...POKEMON, species: 4 + index }
+  })
+  const ctx = {
+    ...GYM_CTX,
+    save: { ...MENU_SAVE, party },
+    gymLeaving: true,
+  }
+
+  for (const rows of [16, 18, 20, 24, 34]) {
+    const { lines } = drawGym(ctx, { cols: 100, rows })
+
+    expect(
+      lines.length,
+      `a full team at ${rows} rows built ${lines.length} lines for ${rows - 1}`,
+    ).toBeLessThanOrEqual(rows - 1)
+    expect(
+      lines.map(stripAnsi).join('\n'),
+      `the walk-out question is cut off at ${rows} rows`,
+    ).toContain('[esc] again to leave')
+  }
+})
+
+test('Should mark the gyms you have won and the one you are looking at', () => {
+  const plain = drawGyms(MENU_CTX, { cols: 100, rows: 34 }).lines.map(stripAnsi)
+  const pewter = plain.find((line) => line.includes('PEWTER'))
+  const cerulean = plain.find((line) => line.includes('CERULEAN'))
+
+  expect(plain[0], 'the strip counts the badges').toContain('1/8 badges')
+  expect(pewter, 'a won gym is filled in').toContain('◆')
+  expect(cerulean, 'an unwon one is not').toContain('◇')
+  expect(pewter, 'and every row says the type and the levels').toContain('ROCK')
+  expect(pewter).toContain('Lv10-14')
+
+  expect(
+    plain.join('\n'),
+    'the detail names the badge and the leader',
+  ).toContain('BOULDER BADGE')
+  expect(plain.join('\n')).toContain('LEADER BROCK')
+  expect(plain.join('\n'), 'and what you are walking in with').toContain(
+    'Potions 2',
   )
 })

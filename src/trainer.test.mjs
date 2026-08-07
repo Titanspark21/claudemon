@@ -97,10 +97,11 @@ test('Should keep to the starter range with no lead at all', () => {
   }
 })
 
-test('Should pay by the class rate and the level of its best Pokémon', () => {
+test('Should pay by the rate the trainer carries and the level of its best Pokémon', () => {
   const trainer = {
     class: 'Lass',
     name: 'Iris',
+    prize: trainerClass('Lass').prize,
     team: [
       createPokemon(25, 10, makeRng(1)),
       createPokemon(25, 14, makeRng(2)),
@@ -110,6 +111,18 @@ test('Should pay by the class rate and the level of its best Pokémon', () => {
   expect(trainerPrize(trainer), 'thirty a level for the level fourteen').toBe(
     30 * 14,
   )
+
+  const leader = {
+    class: 'Leader',
+    name: 'Brock',
+    prize: 90,
+    team: [createPokemon(95, 14, makeRng(3))],
+  }
+
+  expect(
+    trainerPrize(leader),
+    'a leader is priced by the gym, not by the class list',
+  ).toBe(90 * 14)
 })
 
 test('Should know a class by name, and know when it does not', () => {

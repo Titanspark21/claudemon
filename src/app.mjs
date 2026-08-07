@@ -1,9 +1,11 @@
 import { isWorking, readSessions, summariseActivity } from './activity.mjs'
 import {
   BAG_MESSAGES,
+  BAG_MODES,
   BOX_MESSAGES,
   FRAMES_PER_SPIN,
   FRAMES_PER_STEP,
+  GYM_MESSAGES,
   HOME_NOTICES,
   ITEMS,
   TRAINER_MESSAGES,
@@ -25,6 +27,17 @@ import {
   spriteScale,
   updateCheckMode,
 } from './config.mjs'
+import {
+  advanceGymRun,
+  createGymRun,
+  currentOpponent,
+  gymBattleSeed,
+  gymById,
+  gymIndex,
+  gymOf,
+  isGymCleared,
+  rollbackGymRun,
+} from './gym.mjs'
 import { applyItem } from './itemUse.mjs'
 import { describeStep } from './progression.mjs'
 import { createPokemon, displayName } from './pokemon.mjs'
@@ -34,8 +47,10 @@ import { buy, itemsInBag, usableOnParty } from './shop.mjs'
 import { play, startMusic, stopMusic } from './sound.mjs'
 import {
   activePokemon,
+  awardBadge,
   createSave,
   depositPokemon,
+  hasBadge,
   healParty,
   markFaced,
   markSeen,
@@ -43,13 +58,15 @@ import {
   setLead,
   withdrawPokemon,
 } from './state.mjs'
-import { sentOutLine, trainerLabel } from './trainer.mjs'
+import { sentOutLine, trainerClass, trainerLabel } from './trainer.mjs'
 import { checkForUpdate, createUpdateRun, currentNotice } from './update.mjs'
 
 import * as bagView from './ui/views/bag.mjs'
 import * as battleView from './ui/views/battle.mjs'
 import * as boxView from './ui/views/box.mjs'
 import * as dexView from './ui/views/dex.mjs'
+import * as gymView from './ui/views/gym.mjs'
+import * as gymsView from './ui/views/gyms.mjs'
 import * as homeView from './ui/views/home.mjs'
 import * as optionsView from './ui/views/options.mjs'
 import * as shopView from './ui/views/shop.mjs'
@@ -68,10 +85,12 @@ const VIEWS = {
   shop: shopView,
   options: optionsView,
   update: updateView,
+  gyms: gymsView,
+  gym: gymView,
 }
 
 const activeView = (ctx) => {
-  if (ctx.mode === 'team' && ctx.bagSelection !== null) return VIEWS.bag
+  if (ctx.bagSelection !== null && BAG_MODES.has(ctx.mode)) return VIEWS.bag
 
   return VIEWS[ctx.mode]
 }
@@ -115,6 +134,12 @@ export const createApp = ({
 
     shopSelection: 0,
     shopMessage: null,
+
+    gym: null,
+    gymSelection: 0,
+    gymMessage: null,
+    gymLeaving: false,
+
     optionsSelection: 0,
     optionsMessage: null,
     notice: null,
@@ -143,7 +168,7 @@ export const createApp = ({
   }
 
   ctx.quit = () => {
-    if (ctx.save) saveGame(ctx.save)
+    ctx.persist()
 
     ctx.stopMusic()
     screen.stop()
@@ -151,6 +176,7 @@ export const createApp = ({
   }
 
   ctx.persist = () => {
+    if (ctx.gym) return
     if (ctx.save) saveGame(ctx.save)
   }
 
@@ -187,6 +213,8 @@ export const createApp = ({
   }
 
   ctx.pump = () => {
+    if (ctx.gym) return false
+
     const ttlMs = encounterTtlMs(ctx.config)
     const next = readEncounter(ttlMs)
 
@@ -346,6 +374,11 @@ export const createApp = ({
         ctx.closeBag()
         ctx.setMode('team')
         break
+      case 'gyms':
+        ctx.gymSelection = 0
+        ctx.gymMessage = null
+        ctx.setMode('gyms')
+        break
       case 'shop':
         ctx.shopSelection = 0
         ctx.shopMessage = null
@@ -489,7 +522,12 @@ export const createApp = ({
 
     const { state, intro } =
       encounter.kind === 'trainer'
-        ? trainerBattle(ctx.save, encounter, lead)
+        ? trainerBattle(
+            ctx.save,
+            encounterTrainer(encounter.trainer),
+            encounter.seed,
+            lead,
+          )
         : wildBattle(ctx.save, encounter, lead)
 
     ctx.battle = createBattleFlow(state)
@@ -498,6 +536,92 @@ export const createApp = ({
     queueMessages(ctx, intro)
     ctx.playMusic('battle')
     ctx.setMode('battle')
+  }
+
+  ctx.startGymRun = (id) => {
+    if (!activePokemon(ctx.save)) {
+      ctx.gymMessage = GYM_MESSAGES.wipedOut
+      return
+    }
+
+    ctx.gym = createGymRun({
+      gym: gymById(id),
+      seed: randomSeed(),
+      save: ctx.save,
+    })
+
+    ctx.gymMessage = null
+    ctx.gymLeaving = false
+    ctx.teamSelection = 0
+    ctx.closeBag()
+    ctx.setMode('gym')
+  }
+
+  ctx.startGymBattle = () => {
+    const lead = activePokemon(ctx.save)
+
+    if (!lead) {
+      ctx.gymMessage = GYM_MESSAGES.downInside
+      return
+    }
+
+    const { state, intro } = trainerBattle(
+      ctx.save,
+      currentOpponent(ctx.gym),
+      gymBattleSeed(ctx.gym),
+      lead,
+    )
+
+    ctx.battle = createBattleFlow(state)
+    ctx.gymMessage = null
+    ctx.gymLeaving = false
+
+    ctx.save.stats.battles++
+    queueMessages(ctx, intro)
+    ctx.playMusic('battle')
+    ctx.setMode('battle')
+  }
+
+  ctx.finishGymBattle = (outcome) => {
+    if (outcome !== 'win') {
+      ctx.leaveGym(GYM_MESSAGES.defeated)
+      return
+    }
+
+    advanceGymRun(ctx.gym)
+
+    if (!isGymCleared(ctx.gym)) {
+      ctx.setMode('gym')
+      return
+    }
+
+    const gym = gymOf(ctx.gym)
+    const wording = hasBadge(ctx.save, gym.id)
+      ? GYM_MESSAGES.stillYours
+      : GYM_MESSAGES.earned
+
+    awardBadge(ctx.save, gym.id)
+    leaveForGymList(ctx, gym.id, `${gym.badge} ${wording}`)
+  }
+
+  ctx.leaveGym = (message) => {
+    const gym = gymOf(ctx.gym)
+
+    ctx.save = rollbackGymRun(ctx.gym)
+    leaveForGymList(ctx, gym.id, message)
+  }
+
+  ctx.confirmLeaveGym = () => {
+    if (ctx.gymLeaving) {
+      ctx.leaveGym(GYM_MESSAGES.forfeited)
+      return
+    }
+
+    ctx.gymLeaving = true
+  }
+
+  ctx.cancelLeaveGym = () => {
+    ctx.gymLeaving = false
   }
 
   ctx.advanceMessage = () => advanceMessage(ctx)
@@ -523,6 +647,17 @@ export const createApp = ({
   return ctx
 }
 
+const leaveForGymList = (ctx, gymId, message) => {
+  ctx.gym = null
+  ctx.gymLeaving = false
+  ctx.gymMessage = message
+  ctx.gymSelection = gymIndex(gymId)
+
+  ctx.closeBag()
+  ctx.persist()
+  ctx.setMode('gyms')
+}
+
 const isSameEncounter = (entry, held) => {
   return held != null && entry.at === held.at && entry.seed === held.seed
 }
@@ -546,21 +681,32 @@ const wildBattle = (save, encounter, lead) => {
   }
 }
 
-const trainerBattle = (save, encounter, lead) => {
-  const team = encounter.trainer.team.map((entry, index) => {
+const encounterTrainer = (trainer) => {
+  return {
+    class: trainer.class,
+    name: trainer.name,
+    sprite: trainer.sprite,
+    prize: trainerClass(trainer.class).prize,
+    team: trainer.team,
+  }
+}
+
+const trainerBattle = (save, opponent, seed, lead) => {
+  const team = opponent.team.map((entry, index) => {
     return createPokemon(
       entry.species,
       entry.level,
-      makeRng((encounter.seed + index) >>> 0),
+      makeRng((seed + index) >>> 0),
     )
   })
 
   markFaced(save, team[0].species)
 
   const trainer = {
-    class: encounter.trainer.class,
-    name: encounter.trainer.name,
-    sprite: encounter.trainer.sprite,
+    class: opponent.class,
+    name: opponent.name,
+    sprite: opponent.sprite,
+    prize: opponent.prize,
     team,
   }
 
@@ -568,7 +714,7 @@ const trainerBattle = (save, encounter, lead) => {
     state: createBattle({
       playerMon: lead,
       wildMon: team[0],
-      seed: encounter.seed,
+      seed,
       trainer,
     }),
     intro: [

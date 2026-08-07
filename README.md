@@ -193,6 +193,8 @@ battle message. That is the whole scheme — it is the same everywhere.
 | Pokédex | All 151, with how many of each you have faced, and base stats and evolution requirements for the ones you caught |
 | Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box. `i` opens the bag on whoever the cursor is on: a potion between fights, and the evolution stones, which are used nowhere else. A ✦ marks an item that would evolve them |
 | Box | Everything you caught with a full team, reached with `b` from the team screen. `enter` takes one back into the team |
+| Gym | The eight Kanto gyms, each one type, listed easiest first with the level range its trainers bring and the badge you have or have not won. `enter` walks in |
+| Gym run | The gauntlet: two trainers and then the leader, back to back. Between fights you can move the cursor over your team, `l` to change your lead and `i` to reach the bag. There is no door back to the menu — `esc` twice walks out and undoes the whole run |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
 | Option | How big sprites are drawn, the menu sounds, the bell, and when the version check runs — daily, every launch, or never. `← →` changes a setting, and the Pokémon underneath redraws as you do |
 
@@ -218,6 +220,12 @@ battle message. That is the whole scheme — it is the same everywhere.
   have faced, a team screen with the box behind it and the bag inside it, and a shop.
   Items are used on whoever you have picked, which is the only way a stone gets used
   at all.
+- Eight gyms, one per type and ordered by difficulty, each a run of two trainers
+  and then the leader with no way back to the menu in between. No shop and no rest
+  in there: the potions you walk in with are the potions you get. Beat the leader
+  and the badge is yours; lose, walk out or close the terminal and the whole run is
+  undone — the experience, the money, the potions and the bruises, as if you had
+  never gone in.
 - A line telling you whether Claude is working, which tool it is on and for how
   long — and a bell when it finishes or gets stuck on a permission prompt, so the
   game tab is somewhere you can actually sit and wait.

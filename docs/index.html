@@ -337,6 +337,7 @@
     <p class="lede">The walking happens while Claude does, not the moment you press enter: a prompt buys you the steps and the turn takes them, so anything that jumps out does it with the grass already moving. So is the waiting — every twenty seconds Claude spends working is another step, because that is the half of the session you actually have free.</p>
     <p>One at a time, and only for half a minute: a Pokemon that appears while you are busy wanders off if you leave it there, so a long session never leaves a queue of battles waiting for you.</p>
     <p>Not everything out there is wild, either. Roughly one step in seven that turns something up turns up a trainer instead — a class, a name and a team behind them, on the same timer as anything else.</p>
+    <p>And when you would rather go looking for a fight than wait for one, there are the eight gyms: two trainers and then the leader, back to back, with no shop and no rest in between. Nothing is written to disk while you are in there — beat the leader and the badge is yours, lose or walk out or close the terminal and the run is undone, down to the last potion.</p>
     <p>The original 151. Fully local — no account, no backend, nothing about you leaving the machine.</p>
   </section>
 
@@ -358,6 +359,22 @@
         <figcaption><b>Trainer battle</b> — they send out their team one after another, no running and no throwing balls at somebody else's Pokemon. Beating them pays out, and their Pokemon are worth more experience than a wild one.</figcaption>
       </figure>
     </div>
+
+    <div class="pair">
+      <figure>
+        <img src="gyms.png" width="1204" height="1450" alt="The gym screen: the eight Kanto gyms listed down the left with their type and level range, Pewter selected, and Brock on the right under the Boulder Badge" loading="lazy">
+        <figcaption><b>Gyms</b> — the eight, easiest first, with the type they run, the levels their trainers bring and the badge marked won or not. <code>enter</code> walks in.</figcaption>
+      </figure>
+      <figure>
+        <img src="gym-leader.png" width="1352" height="1522" alt="The gym screen with Cerulean selected: the Cascade Badge not yet won, Leader Misty and her Water type, two trainers before the leader at Lv16 to 21, and a count of the potions and revives in the bag" loading="lazy">
+        <figcaption><b>Before you walk in</b> — who is waiting, and what you are carrying. The potions in your bag are the potions you get: there is no shop and no healing past that door.</figcaption>
+      </figure>
+    </div>
+
+    <figure>
+      <img src="gym-run.png" width="1094" height="649" alt="Inside the Pewter gym: a Gauntlet panel listing Camper Liam beaten, Hiker Wade next and Leader Brock still to come, the team below it, and a line reading enter, face the next one, Hiker Wade" loading="lazy">
+      <figcaption><b>The run</b> — the gauntlet on the way down, your team underneath it and nothing else: <code>i</code> for the bag, <code>l</code> to change your lead, and <code>esc</code> twice to walk out on all of it.</figcaption>
+    </figure>
 
     <div class="pair">
       <figure>
@@ -463,6 +480,7 @@ node tools/install.mjs</pre>
       <li>Battles with critical hits, the type chart, status conditions, PP, one-hit KOs, fleeing and switching Pokemon mid-fight.</li>
       <li>Catching, where weakening and status genuinely help.</li>
       <li>Trainers from nine classes, with a team sized to how far along you are — up to six for an Ace Trainer. They send out one Pokemon after another, you cannot run and you cannot throw a ball at somebody else's Pokemon, and what you get for winning is prize money and half again the experience.</li>
+      <li>Eight gyms, one per type and ordered by difficulty, each a run of two trainers and then the leader with no way back to the menu in between — and no wild Pokemon interrupting it either. Beat the leader and the badge is yours; lose, give up or close the terminal and the whole run is undone: the experience, the money, the potions and the bruises, as if you had never gone in.</li>
       <li>Levelling, learning moves, and evolution by level or by stone.</li>
       <li>A Pokédex tracking seen and caught separately and counting how many of each you have faced, a team screen with the box behind it and the bag inside it, and a shop. Items are used on whoever you have picked, which is the only way a stone gets used at all.</li>
       <li>A line telling you whether Claude is working, which tool it is on and for how long — and a bell when it finishes or gets stuck on a permission prompt, so the game tab is somewhere you can actually sit and wait.</li>

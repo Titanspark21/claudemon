@@ -6,7 +6,6 @@ import {
   writeFileSync,
 } from 'node:fs'
 import {
-  BALLS,
   EMPTY_STATS,
   PARTY_LIMIT,
   SAVE_VERSION,
@@ -25,7 +24,7 @@ import {
   refreshStats,
 } from './pokemon.mjs'
 import { writeStatus } from './status.mjs'
-import { countOf } from './shop.mjs'
+import { countOfKind } from './shop.mjs'
 import {
   transformRequestSaveGame,
   transformResponseSave,
@@ -41,9 +40,18 @@ export const createSave = ({ trainer, starterId, rng }) => {
     box: [],
     bag: { ...STARTING_BAG },
     money: STARTING_MONEY,
+    badges: [],
     dex: { seen: [starterId], caught: [starterId], faced: {} },
     stats: { ...EMPTY_STATS, caught: STARTER_CAUGHT_COUNT },
   }
+}
+
+export const hasBadge = (save, gymId) => save.badges.includes(gymId)
+
+export const awardBadge = (save, gymId) => {
+  if (!hasBadge(save, gymId)) save.badges.push(gymId)
+
+  return save
 }
 
 export const markSeen = (save, speciesId) => {
@@ -121,12 +129,7 @@ export const partyNeedsHealing = (save) => {
   )
 }
 
-export const totalBalls = (save) => {
-  return Object.keys(BALLS).reduce(
-    (total, key) => total + countOf(save, key),
-    0,
-  )
-}
+export const totalBalls = (save) => countOfKind(save, 'ball')
 
 const getLead = (save) => {
   if (!save.party.length) return null
