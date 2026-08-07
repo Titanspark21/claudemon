@@ -23,6 +23,7 @@ import {
   DEX_MESSAGES,
   DEX_PAGE_STEP,
   DEX_ROWS_RESERVED,
+  DEX_SORT_LABELS,
   DEX_SPRITE_RESERVED_ROWS,
   DEX_TITLE,
   DEX_UNKNOWN_NAME,
@@ -30,23 +31,33 @@ import {
   LIST_HEIGHT_FLOOR,
   STAT_GLYPHS,
 } from './constants.mjs'
-import { dexMark, evolutionWording, zipColumns } from './helpers.mjs'
+import {
+  dexMark,
+  dexSelectionAfterSort,
+  evolutionWording,
+  nextDexSort,
+  sortedDex,
+  zipColumns,
+} from './helpers.mjs'
+
+const dexEntries = (ctx) => sortedDex(loadData().pokedex, ctx.dexSort)
 
 export const draw = (ctx, size) => {
   const { cols, rows } = size
   const lines = []
   const overlays = []
 
-  const dex = loadData().pokedex
+  const dex = dexEntries(ctx)
   const selected = dex[ctx.dexSelection]
   const caught = ctx.save.dex.caught.includes(selected.id)
   const seen = caught || ctx.save.dex.seen.includes(selected.id)
 
   const detailLeft = DEX_LIST_WIDTH + DEX_DETAIL_GAP
+  const sortLabel = DEX_SORT_LABELS[ctx.dexSort]
 
   lines.push(
     ` ${brightYellow('◓')} ${bold(DEX_TITLE)}   ${dim(
-      `${ctx.save.dex.caught.length} caught · ${ctx.save.dex.seen.length} seen · of ${KANTO_TOTAL}`,
+      `${ctx.save.dex.caught.length} caught · ${ctx.save.dex.seen.length} seen · of ${KANTO_TOTAL} · sort ${sortLabel}`,
     )}`,
   )
   lines.push('')
@@ -97,6 +108,7 @@ export const draw = (ctx, size) => {
           `${STAT_GLYPHS[key]} ${hpBar(stats[key], BASE_STAT_MAX, 18)} ${String(stats[key]).padStart(3)}`,
         )
       }
+
       detail.push('')
       detail.push(
         dim(
@@ -142,7 +154,8 @@ export const draw = (ctx, size) => {
 }
 
 export const onKey = (ctx, key) => {
-  const total = loadData().pokedex.length
+  const dex = dexEntries(ctx)
+  const total = dex.length
   const step =
     key.name === 'pageup' || key.name === 'pagedown' ? DEX_PAGE_STEP : 1
 
@@ -154,5 +167,16 @@ export const onKey = (ctx, key) => {
     ctx.dexSelection = Math.max(0, ctx.dexSelection - step)
   else if (key.name === 'pagedown')
     ctx.dexSelection = Math.min(total - 1, ctx.dexSelection + step)
-  else if (key.name === 'escape' || key.name === 'q') ctx.setMode('home')
+  else if (key.name === 's') {
+    const pokedex = loadData().pokedex
+    const nextSort = nextDexSort(ctx.dexSort)
+
+    ctx.dexSelection = dexSelectionAfterSort(
+      pokedex,
+      ctx.dexSelection,
+      ctx.dexSort,
+      nextSort,
+    )
+    ctx.dexSort = nextSort
+  } else if (key.name === 'escape' || key.name === 'q') ctx.setMode('home')
 }

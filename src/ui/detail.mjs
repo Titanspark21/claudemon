@@ -3,6 +3,7 @@ import { expProgress } from '../exp.mjs'
 import { displayName, genderOf, levelOf } from '../pokemon.mjs'
 import { bold, dim } from './ansi.mjs'
 import {
+  evolutionTag,
   expBar,
   genderTag,
   hpBar,
@@ -17,7 +18,7 @@ export const monDetail = (mon) => {
   lines.push(
     `${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))} ${dim(
       `Lv${levelOf(mon)}`,
-    )} ${statusTag(mon.status)}`,
+    )}${evolutionTag(mon)} ${statusTag(mon.status)}`,
   )
   lines.push(species(mon.species).types.map(typeBadge).join(' '))
   lines.push('')

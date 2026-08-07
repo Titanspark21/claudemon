@@ -1,9 +1,13 @@
 import { expect, test, vi } from 'vitest'
 
+import { createPokemon } from '../../pokemon.mjs'
+import { makeRng } from '../../rng.mjs'
 import { stripAnsi } from '../text.mjs'
 import {
   DEX_MARKS,
+  DEX_SORT,
   OPTIONS_PREVIEW_SPECIES,
+  PARTY_SORT,
   UPDATE_FOOTERS,
   UPDATE_HEADINGS,
 } from './constants.mjs'
@@ -11,10 +15,17 @@ import {
   clampSelection,
   currentIndex,
   dexMark,
+  dexSelectionAfterSort,
   evolutionWording,
+  nextDexSort,
+  nextPartySort,
   noteRows,
   noteText,
+  partyEntryAt,
+  partySelectionAfterSort,
   previewSpecies,
+  sortedDex,
+  sortedPartyEntries,
   updateFooter,
   updateHeading,
   zipColumns,
@@ -104,6 +115,99 @@ test('Should word an evolution by the trigger that brings it about', () => {
     'with a moon stone',
   )
   expect(evolutionWording({ trigger: 'trade', item: null })).toBe('by trading')
+})
+
+test('Should leave the pokedex in number order unless sorting by name', () => {
+  const pokedex = [
+    { id: 1, name: 'Bulbasaur' },
+    { id: 4, name: 'Charmander' },
+    { id: 25, name: 'Pikachu' },
+  ]
+
+  expect(sortedDex(pokedex, DEX_SORT.number)).toBe(pokedex)
+  expect(sortedDex(pokedex, DEX_SORT.name).map((mon) => mon.name)).toEqual([
+    'Bulbasaur',
+    'Charmander',
+    'Pikachu',
+  ])
+  expect(
+    sortedDex(
+      [
+        { id: 25, name: 'Pikachu' },
+        { id: 1, name: 'Bulbasaur' },
+      ],
+      DEX_SORT.name,
+    ).map((mon) => mon.id),
+  ).toEqual([1, 25])
+})
+
+test('Should sort a party by level, highest first, without losing the party index', () => {
+  const rng = makeRng(3)
+  const party = [
+    createPokemon(1, 5, rng),
+    createPokemon(4, 20, rng),
+    createPokemon(7, 12, rng),
+  ]
+
+  expect(
+    sortedPartyEntries(party, PARTY_SORT.level).map((entry) => entry.index),
+  ).toEqual([1, 2, 0])
+  expect(
+    sortedPartyEntries(party, PARTY_SORT.order).map((entry) => entry.mon),
+  ).toEqual(party)
+  expect(partyEntryAt(party, 0, PARTY_SORT.level).mon).toBe(party[1])
+  expect(partyEntryAt(party, 99, PARTY_SORT.order).mon).toBe(party[2])
+})
+
+test('Should break a level tie by keeping the earlier party index first', () => {
+  const rng = makeRng(11)
+  const party = [
+    createPokemon(1, 12, rng),
+    createPokemon(4, 20, rng),
+    createPokemon(7, 12, rng),
+  ]
+
+  expect(
+    sortedPartyEntries(party, PARTY_SORT.level).map((entry) => entry.index),
+  ).toEqual([1, 0, 2])
+})
+
+test('Should flip between the two sort modes on each toggle', () => {
+  expect(nextPartySort(PARTY_SORT.order)).toBe(PARTY_SORT.level)
+  expect(nextPartySort(PARTY_SORT.level)).toBe(PARTY_SORT.order)
+  expect(nextDexSort(DEX_SORT.number)).toBe(DEX_SORT.name)
+  expect(nextDexSort(DEX_SORT.name)).toBe(DEX_SORT.number)
+})
+
+test('Should keep the cursor on the same Pokemon when the party order flips', () => {
+  const rng = makeRng(5)
+  const party = [
+    createPokemon(1, 5, rng),
+    createPokemon(4, 20, rng),
+    createPokemon(7, 12, rng),
+  ]
+
+  expect(
+    partySelectionAfterSort(party, 0, PARTY_SORT.order, PARTY_SORT.level),
+  ).toBe(2)
+  expect(
+    partySelectionAfterSort(party, 0, PARTY_SORT.level, PARTY_SORT.order),
+  ).toBe(1)
+})
+
+test('Should keep the cursor on the same species when the pokedex order flips', () => {
+  const pokedex = [
+    { id: 1, name: 'Bulbasaur' },
+    { id: 4, name: 'Charmander' },
+    { id: 25, name: 'Abra' },
+  ]
+
+  expect(
+    dexSelectionAfterSort(pokedex, 2, DEX_SORT.number, DEX_SORT.name),
+  ).toBe(0)
+  expect(
+    dexSelectionAfterSort(pokedex, 0, DEX_SORT.name, DEX_SORT.number),
+  ).toBe(2)
 })
 
 test('Should head the update screen with the version it is moving to', () => {

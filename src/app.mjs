@@ -73,6 +73,7 @@ import * as shopView from './ui/views/shop.mjs'
 import * as starterView from './ui/views/starter.mjs'
 import * as teamView from './ui/views/team.mjs'
 import * as updateView from './ui/views/update.mjs'
+import { sortedPartyEntries } from './ui/views/helpers.mjs'
 
 const VIEWS = {
   starter: starterView,
@@ -124,8 +125,11 @@ export const createApp = ({
 
     homeSelection: 0,
     dexSelection: 0,
+    dexSort: 'number',
     teamSelection: 0,
+    teamSort: 'order',
     boxSelection: 0,
+    boxSort: 'order',
 
     boxMessage: null,
 
@@ -408,7 +412,11 @@ export const createApp = ({
 
   ctx.makeLead = (index) => {
     setLead(ctx.save, index)
-    ctx.teamSelection = 0
+
+    ctx.teamSelection = sortedPartyEntries(
+      ctx.save.party,
+      ctx.teamSort,
+    ).findIndex((entry) => entry.index === 0)
     ctx.persist()
   }
 
@@ -428,7 +436,10 @@ export const createApp = ({
       return
     }
 
-    ctx.teamSelection = Math.min(index, ctx.save.party.length - 1)
+    ctx.teamSelection = Math.min(
+      ctx.teamSelection,
+      Math.max(0, ctx.save.party.length - 1),
+    )
     ctx.boxMessage = `${displayName(mon).toUpperCase()} went to the box.`
     ctx.persist()
   }
@@ -443,7 +454,10 @@ export const createApp = ({
       return
     }
 
-    ctx.boxSelection = Math.min(index, Math.max(0, ctx.save.box.length - 1))
+    ctx.boxSelection = Math.min(
+      ctx.boxSelection,
+      Math.max(0, ctx.save.box.length - 1),
+    )
     ctx.boxMessage = `${displayName(mon).toUpperCase()} joined your team.`
     ctx.persist()
   }

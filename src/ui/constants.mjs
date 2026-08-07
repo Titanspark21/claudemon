@@ -271,3 +271,6 @@ export const GENDER_MARKS = {
   male: ['♂', [104, 144, 240]],
   female: ['♀', [240, 128, 168]],
 }
+
+export const EVOLVES_MARK = '✦'
+export const LEVEL_EVO_PREFIX = '→'

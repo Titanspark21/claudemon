@@ -4,7 +4,14 @@ import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
 import { fitCanvasCols, loadSprite } from '../sprite.mjs'
-import { genderTag, menuList, padRight, withFooter, wrap } from '../widgets.mjs'
+import {
+  evolutionTag,
+  genderTag,
+  menuList,
+  padRight,
+  withFooter,
+  wrap,
+} from '../widgets.mjs'
 import {
   COLUMN_DIVIDER,
   LEAD_MARK,
@@ -14,17 +21,25 @@ import {
   MON_SPRITE_RESERVED_ROWS,
   TEAM_HINTS,
   TEAM_MESSAGES,
+  TEAM_SORT_LABELS,
   TEAM_TITLE,
 } from './constants.mjs'
-import { clampSelection, noteRows, zipColumns } from './helpers.mjs'
+import {
+  nextPartySort,
+  noteRows,
+  partyEntryAt,
+  partySelectionAfterSort,
+  sortedPartyEntries,
+  zipColumns,
+} from './helpers.mjs'
 
-const partyRow = (mon, index) => {
+const partyRow = (mon, partyIndex) => {
   const name = isFainted(mon)
     ? gray(displayName(mon).toUpperCase())
     : displayName(mon).toUpperCase()
-  const leadMark = index === 0 ? brightYellow(LEAD_MARK) : ' '
+  const leadMark = partyIndex === 0 ? brightYellow(LEAD_MARK) : ' '
 
-  return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}`
+  return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${evolutionTag(mon)}`
 }
 
 export const draw = (ctx, size) => {
@@ -33,10 +48,12 @@ export const draw = (ctx, size) => {
   const overlays = []
 
   const party = ctx.save.party
+  const sort = ctx.teamSort
+  const sortLabel = TEAM_SORT_LABELS[sort]
 
   lines.push(
     ` ${brightYellow('◓')} ${bold(TEAM_TITLE)}   ${dim(
-      `${party.length}/${PARTY_LIMIT} · ${ctx.save.box.length} in the box`,
+      `${party.length}/${PARTY_LIMIT} · ${ctx.save.box.length} in the box · sort ${sortLabel}`,
     )}`,
   )
 
@@ -52,11 +69,12 @@ export const draw = (ctx, size) => {
 
   lines.push('')
 
-  const selected = party[clampSelection(ctx.teamSelection, party.length)]
-  const entries = party.map(partyRow)
+  const entries = sortedPartyEntries(party, sort)
+  const selected = partyEntryAt(party, ctx.teamSelection, sort).mon
+  const listEntries = entries.map((entry) => partyRow(entry.mon, entry.index))
 
-  const list = menuList(entries, ctx.teamSelection, {
-    height: Math.max(LIST_HEIGHT_FLOOR, entries.length),
+  const list = menuList(listEntries, ctx.teamSelection, {
+    height: Math.max(LIST_HEIGHT_FLOOR, listEntries.length),
     width: LIST_WIDTH,
   })
 
@@ -89,7 +107,19 @@ export const draw = (ctx, size) => {
 }
 
 export const onKey = (ctx, key) => {
-  const total = ctx.save.party.length
+  if (key.name === 'escape' || key.name === 'q') {
+    ctx.clearTeamMessages()
+    ctx.setMode('home')
+    return
+  }
+
+  const party = ctx.save.party
+
+  if (party.length === 0) return
+
+  const sort = ctx.teamSort
+  const total = party.length
+  const selected = partyEntryAt(party, ctx.teamSelection, sort)
 
   if (key.name === 'up' || key.name === 'k') {
     ctx.teamSelection = wrap(ctx.teamSelection - 1, total)
@@ -98,12 +128,19 @@ export const onKey = (ctx, key) => {
     ctx.teamSelection = wrap(ctx.teamSelection + 1, total)
     ctx.clearTeamMessages()
   } else if (key.name === 'enter' || key.name === 'space')
-    ctx.makeLead(ctx.teamSelection)
-  else if (key.name === 'i') ctx.openBag()
-  else if (key.name === 'b') ctx.openBox()
-  else if (key.name === 'd') ctx.depositToBox(ctx.teamSelection)
-  else if (key.name === 'escape' || key.name === 'q') {
+    ctx.makeLead(selected.index)
+  else if (key.name === 's') {
+    const nextSort = nextPartySort(sort)
+
+    ctx.teamSelection = partySelectionAfterSort(
+      party,
+      ctx.teamSelection,
+      sort,
+      nextSort,
+    )
+    ctx.teamSort = nextSort
     ctx.clearTeamMessages()
-    ctx.setMode('home')
-  }
+  } else if (key.name === 'i') ctx.openBag()
+  else if (key.name === 'b') ctx.openBox()
+  else if (key.name === 'd') ctx.depositToBox(selected.index)
 }

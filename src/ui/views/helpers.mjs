@@ -1,11 +1,14 @@
 import { GYMS } from '../../constants.mjs'
+import { levelOf } from '../../pokemon.mjs'
 import { hasBadge } from '../../state.mjs'
 import { brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
 import {
   BADGE_MARKS,
   DEX_MARKS,
+  DEX_SORT,
   EVOLUTION_WORDING,
   OPTIONS_PREVIEW_SPECIES,
+  PARTY_SORT,
   UPDATE_FOOTERS,
   UPDATE_HEADINGS,
 } from './constants.mjs'
@@ -70,6 +73,64 @@ export const evolutionWording = (evolution) => {
     return `${EVOLUTION_WORDING.item} ${evolution.item.replace(/-/g, ' ')}`
 
   return EVOLUTION_WORDING.trade
+}
+
+export const sortedDex = (pokedex, sort) => {
+  if (sort === DEX_SORT.name) {
+    return [...pokedex].sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  return pokedex
+}
+
+const byLevelThenIndex = (a, b) => {
+  const byLevel = levelOf(b.mon) - levelOf(a.mon)
+
+  if (byLevel !== 0) return byLevel
+
+  return a.index - b.index
+}
+
+export const sortedPartyEntries = (party, sort) => {
+  const entries = party.map((mon, index) => ({ mon, index }))
+
+  if (sort === PARTY_SORT.level) return entries.sort(byLevelThenIndex)
+
+  return entries
+}
+
+export const partyEntryAt = (party, selection, sort) => {
+  const entries = sortedPartyEntries(party, sort)
+
+  return entries[clampSelection(selection, entries.length)]
+}
+
+export const nextPartySort = (sort) => {
+  if (sort === PARTY_SORT.level) return PARTY_SORT.order
+
+  return PARTY_SORT.level
+}
+
+export const partySelectionAfterSort = (party, selection, sort, nextSort) => {
+  const current = partyEntryAt(party, selection, sort)
+
+  return sortedPartyEntries(party, nextSort).findIndex(
+    (entry) => entry.index === current.index,
+  )
+}
+
+export const nextDexSort = (sort) => {
+  if (sort === DEX_SORT.name) return DEX_SORT.number
+
+  return DEX_SORT.name
+}
+
+export const dexSelectionAfterSort = (pokedex, selection, sort, nextSort) => {
+  const current = sortedDex(pokedex, sort)[
+    clampSelection(selection, pokedex.length)
+  ]
+
+  return sortedDex(pokedex, nextSort).findIndex((mon) => mon.id === current.id)
 }
 
 export const updateHeading = (run) => {

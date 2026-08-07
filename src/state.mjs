@@ -116,6 +116,7 @@ export const partyIsWipedOut = (save) => {
 
 export const healParty = (save) => {
   for (const mon of save.party) healFully(mon)
+  for (const mon of save.box) healFully(mon)
 
   return save
 }

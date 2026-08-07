@@ -18,6 +18,7 @@ import { visibleLength } from '../text.mjs'
 import {
   centre,
   elapsed,
+  evolutionTag,
   genderTag,
   hpBar,
   menuGrid,
@@ -40,6 +41,7 @@ import {
   KANTO_TOTAL,
   MAX_HOME_WIDTH,
   MENU_CELL,
+  MON_LEVEL_WIDTH,
   MON_NAME_WIDTH,
   REST_MESSAGES,
   TITLE_COLUMN_SPLIT,
@@ -228,7 +230,9 @@ export const draw = (ctx, size) => {
         ? gray(displayName(mon).toUpperCase())
         : displayName(mon).toUpperCase()
 
-      return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)} ${hpBar(
+      const level = `${dim(`Lv${levelOf(mon)}`)}${evolutionTag(mon)}`
+
+      return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${padRight(level, MON_LEVEL_WIDTH)} ${hpBar(
         mon.hp,
         mon.stats.hp,
         10,

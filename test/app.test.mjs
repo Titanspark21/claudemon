@@ -31,6 +31,7 @@ const { SETTINGS } = await import('../src/ui/views/options.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
 const battleView = await import('../src/ui/views/battle.mjs')
 const gymView = await import('../src/ui/views/gym.mjs')
+const dexView = await import('../src/ui/views/dex.mjs')
 const { stripAnsi } = await import('../src/ui/text.mjs')
 const { makeRng } = await import('../src/rng.mjs')
 const { VERSION } = await import('../src/version.mjs')
@@ -97,6 +98,13 @@ const press = (app, name, char) => app.handleKey({ name, char })
 
 const gymText = (app) => {
   return gymView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+}
+
+const dexText = (app) => {
+  return dexView
     .draw(app, { cols: 100, rows: 34 })
     .lines.map(stripAnsi)
     .join('\n')
@@ -1567,6 +1575,30 @@ test('Should open each screen from the home menu and come back', () => {
   }
 })
 
+test('Should line the home HP bars up whatever the level and evolution marks are', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.save.party.push(createPokemon(25, 9, makeRng(1)))
+  app.save.party.push(createPokemon(6, 40, makeRng(2)))
+  app.save.party.push(createPokemon(4, 100, makeRng(3)))
+
+  const bars = homeView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .filter((line) => line.includes('█'))
+    .map((line) => line.indexOf('█'))
+
+  expect(bars, 'every party member drew a bar').toHaveLength(4)
+  expect(new Set(bars), 'all of them start in one column').toHaveProperty(
+    'size',
+    1,
+  )
+})
+
 test('Should restore the team when you heal at home', () => {
   const app = createApp({
     screen: stubScreen(),
@@ -1581,6 +1613,25 @@ test('Should restore the team when you heal at home', () => {
 
   expect(app.save.party[0].hp).toBe(app.save.party[0].stats.hp)
   expect(app.save.party[0].status).toBe(null)
+})
+
+test('Should heal Pokemon in the box as well as the team', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  const boxed = createPokemon(25, 10, makeRng(9))
+
+  boxed.hp = 1
+  boxed.status = 'sleep'
+  app.save.box.push(boxed)
+
+  app.openHomeSelection('heal')
+
+  expect(app.save.box[0].hp).toBe(app.save.box[0].stats.hp)
+  expect(app.save.box[0].status).toBe(null)
 })
 
 test('Should make healing wait until Claude stops working', () => {
@@ -1816,6 +1867,117 @@ test('Should take one off the team into the box and hand it back again', () => {
   press(app, 'escape')
 
   expect(app.mode, 'the box belongs to the team screen').toBe('team')
+})
+
+test('Should act on the Pokemon the cursor is on once the team is sorted by level', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.save.party.push(createPokemon(25, 9, makeRng(1)))
+  app.save.party.push(createPokemon(4, 20, makeRng(2)))
+
+  app.openHomeSelection('team')
+  press(app, 's')
+
+  expect(app.teamSort, 'the list flipped to level order').toBe('level')
+  expect(app.teamSelection, 'and the cursor stayed on the starter').toBe(2)
+
+  press(app, 'up')
+  press(app, 'enter')
+
+  expect(app.save.party[0].species, 'the row under the cursor led').toBe(25)
+  expect(app.teamSelection, 'and the cursor followed it').toBe(1)
+
+  press(app, 'up')
+  press(app, 'd')
+
+  expect(app.save.box[0].species, 'and d sent the row under it away').toBe(4)
+  expect(app.save.party.map((mon) => mon.species)).toEqual([25, 1])
+})
+
+test('Should reach the Pokemon under the cursor with an item while the team is sorted by level', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  const hurt = createPokemon(4, 20, makeRng(2))
+
+  hurt.hp = 1
+  app.save.party.push(hurt)
+  app.save.bag = { potion: 1 }
+
+  app.openHomeSelection('team')
+  press(app, 's')
+  press(app, 'up')
+
+  expect(app.teamSelection, 'the highest level sits on top').toBe(0)
+
+  press(app, 'i')
+  press(app, 'enter')
+
+  expect(
+    app.save.party[1].hp,
+    'the potion reached the hurt one, not the row it shares an index with',
+  ).toBeGreaterThan(1)
+  expect(itemsInBag(app.save), 'and it was spent').toEqual([])
+})
+
+test('Should withdraw the Pokemon under the cursor and leave the cursor where it was', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.save.box.push(createPokemon(1, 5, makeRng(1)))
+  app.save.box.push(createPokemon(7, 9, makeRng(2)))
+  app.save.box.push(createPokemon(25, 12, makeRng(3)))
+  app.save.box.push(createPokemon(133, 40, makeRng(4)))
+
+  app.openHomeSelection('team')
+  press(app, 'b')
+  press(app, 's')
+
+  expect(app.boxSort).toBe('level')
+  expect(app.boxSelection, 'the lowest level fell to the bottom').toBe(3)
+
+  press(app, 'enter')
+
+  expect(app.save.party[1].species, 'the row under the cursor came out').toBe(1)
+  expect(app.save.box).toHaveLength(3)
+  expect(app.boxSelection, 'and the cursor stayed at the bottom').toBe(2)
+})
+
+test('Should keep the cursor on the same species when the Pokedex flips to A-Z', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.openHomeSelection('dex')
+
+  const numbered = dexText(app)
+
+  expect(numbered).toContain('sort #')
+  expect(numbered).toContain('BULBASAUR')
+
+  press(app, 's')
+
+  const alphabetical = dexText(app)
+
+  expect(alphabetical).toContain('sort A–Z')
+  expect(alphabetical, 'the cursor held its species').toContain('BULBASAUR')
+  expect(app.dexSelection, 'which is no longer first').toBeGreaterThan(0)
+
+  press(app, 's')
+
+  expect(app.dexSelection, 'and back again').toBe(0)
 })
 
 test('Should refuse a full team, and keep the team its last Pokemon', () => {

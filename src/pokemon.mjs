@@ -106,6 +106,20 @@ export const stoneEvolution = (mon, item) => {
   return null
 }
 
+export const canEvolveByStone = (mon) => {
+  return species(mon.species).evolutions.some(
+    (evolution) => evolution.trigger === 'use-item',
+  )
+}
+
+export const levelUpEvolution = (mon) => {
+  const evolution = species(mon.species).evolutions.find(
+    (candidate) => candidate.trigger === 'level-up' && candidate.level != null,
+  )
+
+  return evolution ?? null
+}
+
 export const evolveInto = (mon, speciesId) => {
   const fraction = mon.stats.hp > 0 ? mon.hp / mon.stats.hp : 1
 
