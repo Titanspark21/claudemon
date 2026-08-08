@@ -1,10 +1,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { DAY_MS, GYMS } from '../constants.mjs'
+import { achievementEntries, earnedCount } from '../achievements.mjs'
+import { GYMS } from '../constants.mjs'
 import { species } from '../data.mjs'
 import { HOME, monSpriteFile } from '../paths.mjs'
 import { decodePng, encodePng } from '../png.mjs'
 import { displayName, levelOf } from '../pokemon.mjs'
-import { readWorked } from '../worked.mjs'
+import { daysOnTheRoad } from '../state.mjs'
+import { readWorked, workedHours } from '../worked.mjs'
 import {
   createCanvas,
   drawArt,
@@ -17,6 +19,9 @@ import {
 } from './canvas.mjs'
 import { money } from './widgets.mjs'
 import {
+  CARD_ACHIEVEMENT_GAP,
+  CARD_ACHIEVEMENT_RADIUS,
+  CARD_ACHIEVEMENT_TOP,
   CARD_BADGE_GAP,
   CARD_BADGE_RADIUS,
   CARD_CELL_GAP,
@@ -92,14 +97,6 @@ const fitScale = (sprite, boxWidth, boxHeight) => {
   return Math.max(1, Math.floor(scale))
 }
 
-const daysOnTheRoad = (save, now) => {
-  const started = Date.parse(save.trainer.startedAt)
-
-  if (Number.isNaN(started)) return 1
-
-  return Math.max(1, Math.floor((now - started) / DAY_MS) + 1)
-}
-
 const hpColour = (fraction) => {
   const step = CARD_HP_THRESHOLDS.find((entry) => fraction > entry.above)
 
@@ -128,6 +125,12 @@ const drawRule = (canvas, x, y, width) => {
   fillRect(canvas, x, y, width, 1, CARD_PALETTE.line)
 }
 
+const daysLabel = (days) => {
+  const word = days === 1 ? CARD_LABELS.day : CARD_LABELS.days
+
+  return `${days} ${word}`
+}
+
 const drawHeader = (canvas, save, now) => {
   const top = CARD_MARGIN
 
@@ -145,7 +148,7 @@ const drawHeader = (canvas, save, now) => {
   )
   drawText(
     canvas,
-    `${daysOnTheRoad(save, now)} ${CARD_LABELS.days}`,
+    daysLabel(daysOnTheRoad(save, now)),
     nameX,
     top + textHeight(CARD_TITLE_SCALE) + 10,
     CARD_PALETTE.dim,
@@ -307,11 +310,23 @@ const drawBadges = (canvas, save, y) => {
   }
 }
 
-const hoursWorked = (totalMs) => Math.floor(totalMs / 3_600_000)
+const drawAchievements = (canvas, entries, y) => {
+  for (let index = 0; index < entries.length; index++) {
+    const centreX =
+      CARD_MARGIN + CARD_ACHIEVEMENT_RADIUS + index * CARD_ACHIEVEMENT_GAP
+    const colour = entries[index].earnedAt
+      ? CARD_PALETTE.achievement
+      : CARD_PALETTE.line
+
+    drawDiamond(canvas, centreX, y, CARD_ACHIEVEMENT_RADIUS, colour)
+  }
+}
 
 const drawFooter = (canvas, save, worked) => {
   const top = CARD_HEIGHT - CARD_FOOTER_HEIGHT
   const badgeY = top + 30
+  const entries = achievementEntries(save, worked)
+  const achievementY = top + CARD_ACHIEVEMENT_TOP
 
   drawRule(canvas, CARD_MARGIN, top, CARD_WIDTH - CARD_MARGIN * 2)
   drawBadges(canvas, save, badgeY)
@@ -324,9 +339,19 @@ const drawFooter = (canvas, save, worked) => {
     CARD_LABEL_SCALE,
   )
 
+  drawAchievements(canvas, entries, achievementY)
+  drawText(
+    canvas,
+    `${earnedCount(entries)}/${entries.length} ${CARD_LABELS.achievements}`,
+    CARD_MARGIN,
+    achievementY + CARD_ACHIEVEMENT_RADIUS + 16,
+    CARD_PALETTE.dim,
+    CARD_LABEL_SCALE,
+  )
+
   const right = CARD_WIDTH - CARD_MARGIN
   const figures = [
-    [`${hoursWorked(worked.totalMs)}H`, CARD_LABELS.worked],
+    [`${workedHours(worked)}H`, CARD_LABELS.worked],
     [`${save.stats.streak}`, CARD_LABELS.streak],
     [`${save.stats.battles}`, CARD_LABELS.battles],
     [money(save.money), CARD_LABELS.money],

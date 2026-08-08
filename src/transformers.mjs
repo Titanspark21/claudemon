@@ -42,6 +42,13 @@ const mapStats = (stats) => {
   }
 }
 
+const mapAchievement = (achievement) => {
+  return {
+    id: achievement.id,
+    earnedAt: achievement.earnedAt,
+  }
+}
+
 const mapSave = (save) => {
   return {
     version: save.version,
@@ -53,6 +60,9 @@ const mapSave = (save) => {
     badges: save.badges ?? [],
     dex: mapDex(save.dex),
     stats: mapStats(save.stats),
+    achievements: save.achievements
+      ? save.achievements.map(mapAchievement)
+      : [],
   }
 }
 

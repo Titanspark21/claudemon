@@ -21,12 +21,7 @@ import {
 import { isDataReady } from '../src/data.mjs'
 import { CARD_FILE, HOME, QUEUE_FILE } from '../src/paths.mjs'
 import { revealFile } from '../src/reveal.mjs'
-import {
-  loadSave,
-  publishStatus,
-  recordPlayday,
-  saveGame,
-} from '../src/state.mjs'
+import { loadSave, publishStatus, recordPlayday } from '../src/state.mjs'
 import { bold, brightYellow, dim } from '../src/ui/ansi.mjs'
 import { writeCard } from '../src/ui/card.mjs'
 import { createScreen } from '../src/ui/screen.mjs'
@@ -46,7 +41,7 @@ const openSave = (app) => {
   if (!app.save) return
 
   if (recordPlayday(app.save)) {
-    saveGame(app.save)
+    app.persist()
     return
   }
 

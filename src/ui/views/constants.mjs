@@ -33,7 +33,7 @@ export const BASE_MENU = [
   { id: 'gyms', label: 'GYM' },
   { id: 'shop', label: 'SHOP' },
   { id: 'heal', label: 'HEAL' },
-  { id: 'card', label: 'SHARE' },
+  { id: 'trainer', label: 'TRAINER' },
   { id: 'options', label: 'OPTION' },
   { id: 'quit', label: 'QUIT' },
 ]
@@ -322,4 +322,36 @@ export const UPDATE_CLOSING_MESSAGES = {
 export const UPDATE_FOOTERS = {
   running: ' working — this cannot be interrupted safely',
   done: ' [esc] back',
+}
+
+export const TRAINER_TITLE = 'TRAINER'
+export const TRAINER_HINTS = ' ↑ ↓ read · [s] share as a card · [esc] back'
+export const TRAINER_RECORD_TITLE = 'RECORD'
+export const TRAINER_ACHIEVEMENTS_TITLE = 'ACHIEVEMENTS'
+export const TRAINER_RECORD_WIDTH = 26
+export const TRAINER_RECORD_LABEL_WIDTH = 9
+export const TRAINER_ACHIEVEMENT_WIDTH = 24
+export const TRAINER_LIST_WIDTH = 40
+export const TRAINER_ROWS_RESERVED = 9
+
+export const ACHIEVEMENT_MARKS = { earned: '●', locked: '○' }
+
+export const TRAINER_RECORD_LABELS = {
+  caught: 'Caught',
+  shiny: 'Shiny',
+  battles: 'Battles',
+  won: 'Won',
+  lost: 'Lost',
+  ran: 'Ran',
+  streak: 'Streak',
+  worked: 'Worked',
+  money: 'Money',
+}
+
+export const TRAINER_NOTES = {
+  day: 'day',
+  days: 'days',
+  onTheRoad: 'on the road',
+  earned: 'Earned',
+  badges: 'badges',
 }

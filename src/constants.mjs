@@ -297,6 +297,114 @@ export const EMPTY_STATS = {
 
 export const STARTER_CAUGHT_COUNT = 1
 
+export const ACHIEVEMENTS = [
+  {
+    id: 'first-catch',
+    label: 'First catch',
+    hint: 'Catch something that was not handed to you.',
+    metric: 'caught',
+    goal: 2,
+  },
+  {
+    id: 'first-badge',
+    label: 'First badge',
+    hint: 'Beat a gym leader and take the badge home.',
+    metric: 'badges',
+    goal: 1,
+  },
+  {
+    id: 'dex-25',
+    label: 'Dex at 25',
+    hint: 'Fill twenty-five entries of the Pokédex.',
+    metric: 'caught',
+    goal: 25,
+  },
+  {
+    id: 'first-shiny',
+    label: 'First shiny',
+    hint: 'Catch one of the rare ones. Nothing you do makes it likelier.',
+    metric: 'shiny',
+    goal: 1,
+  },
+  {
+    id: 'wins-10',
+    label: 'Ten wins',
+    hint: 'Win ten battles.',
+    metric: 'wins',
+    goal: 10,
+  },
+  {
+    id: 'streak-7',
+    label: 'A week straight',
+    hint: 'Open the game seven days in a row.',
+    metric: 'streak',
+    goal: 7,
+  },
+  {
+    id: 'worked-24',
+    label: 'A day with Claude',
+    hint: 'Spend twenty-four hours of work with Claude alongside you.',
+    metric: 'hours',
+    goal: 24,
+  },
+  {
+    id: 'dex-50',
+    label: 'Dex at 50',
+    hint: 'Fill fifty entries of the Pokédex.',
+    metric: 'caught',
+    goal: 50,
+  },
+  {
+    id: 'level-50',
+    label: 'Level 50',
+    hint: 'Raise one of yours to level fifty.',
+    metric: 'level',
+    goal: 50,
+  },
+  {
+    id: 'all-badges',
+    label: 'All eight badges',
+    hint: 'Beat every gym in Kanto.',
+    metric: 'badges',
+    goal: 8,
+  },
+  {
+    id: 'wins-100',
+    label: 'A hundred wins',
+    hint: 'Win a hundred battles.',
+    metric: 'wins',
+    goal: 100,
+  },
+  {
+    id: 'dex-100',
+    label: 'Dex at 100',
+    hint: 'Fill a hundred entries of the Pokédex.',
+    metric: 'caught',
+    goal: 100,
+  },
+  {
+    id: 'streak-30',
+    label: 'Thirty days straight',
+    hint: 'Open the game thirty days in a row.',
+    metric: 'streak',
+    goal: 30,
+  },
+  {
+    id: 'worked-100',
+    label: 'A hundred hours',
+    hint: 'Spend a hundred hours of work with Claude alongside you.',
+    metric: 'hours',
+    goal: 100,
+  },
+  {
+    id: 'dex-151',
+    label: 'Kanto complete',
+    hint: 'Catch all one hundred and fifty-one.',
+    metric: 'caught',
+    goal: 151,
+  },
+]
+
 export const SPRITE_SCALE_MIN = 0.4
 export const SPRITE_SCALE_MAX = 1
 
@@ -326,6 +434,7 @@ export const DEFAULT_CONFIG = {
   probeRows: null,
 }
 
+export const HOUR_MS = 60 * 60_000
 export const DAY_MS = 24 * 60 * 60_000
 
 export const EMPTY_WORKED = { totalMs: 0, updatedAt: null }

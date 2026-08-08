@@ -1,3 +1,4 @@
+import { recordAchievements } from '../src/achievements.mjs'
 import { createApp } from '../src/app.mjs'
 import { createBattle } from '../src/battle.mjs'
 import { createBattleFlow } from '../src/battleFlow.mjs'
@@ -14,8 +15,10 @@ import {
 import { bold, dim } from '../src/ui/ansi.mjs'
 import {
   PREVIEW_COLS,
+  PREVIEW_EARNED_AT,
   PREVIEW_ROWS,
   PREVIEW_UPDATE_STEPS,
+  PREVIEW_WORKED_MS,
 } from './constants.mjs'
 
 const [requested, colsArg, rowsArg] = process.argv.slice(2)
@@ -71,6 +74,7 @@ const MODULES = {
   team: await import('../src/ui/views/team.mjs'),
   shop: await import('../src/ui/views/shop.mjs'),
   options: await import('../src/ui/views/options.mjs'),
+  trainer: await import('../src/ui/views/trainer.mjs'),
   update: await import('../src/ui/views/update.mjs'),
 }
 
@@ -315,6 +319,24 @@ const SCENES = {
   options: () => {
     const app = makeApp(sampleSave())
     app.mode = 'options'
+
+    return app
+  },
+  trainer: () => {
+    const save = sampleSave()
+
+    save.badges = ['pewter', 'cerulean']
+    save.stats.battles = 148
+    save.stats.wins = 131
+    save.stats.losses = 12
+    save.stats.runs = 5
+    save.stats.streak = 9
+
+    const app = makeApp(save)
+
+    app.mode = 'trainer'
+    app.worked = { totalMs: PREVIEW_WORKED_MS, updatedAt: null }
+    recordAchievements(app.save, app.worked, Date.parse(PREVIEW_EARNED_AT))
 
     return app
   },

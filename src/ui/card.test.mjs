@@ -18,7 +18,7 @@ if (!isDataReady()) {
   throw new Error('dataset missing — run: node tools/fetch-data.mjs')
 }
 
-const aSave = (party, badges) => {
+const aSave = (party, badges, achievements = []) => {
   return {
     trainer: { name: 'TESTER', startedAt: '2026-07-01T00:00:00.000Z' },
     party,
@@ -26,7 +26,7 @@ const aSave = (party, badges) => {
     bag: {},
     money: 12400,
     badges,
-    dex: { seen: [1], caught: [1], faced: {} },
+    dex: { seen: [1], caught: [1], shiny: [], faced: {} },
     stats: {
       battles: 148,
       wins: 131,
@@ -36,6 +36,7 @@ const aSave = (party, badges) => {
       streak: 6,
       lastPlayedAt: null,
     },
+    achievements,
   }
 }
 
@@ -135,6 +136,23 @@ test('Should put the shiny mark beside a shiny one and beside nobody else', () =
   expect(
     shows(ordinary, CARD_PALETTE.shiny),
     'an ordinary one goes unmarked',
+  ).toBe(false)
+})
+
+test('Should light up an earned achievement on the card and leave an empty record dark', () => {
+  const earned = drawCard(
+    aSave(
+      [aMon(25, 20, 1)],
+      [],
+      [{ id: 'first-catch', earnedAt: '2026-07-04T00:00:00.000Z' }],
+    ),
+  )
+  const none = drawCard(aSave([aMon(25, 20, 1)], []))
+
+  expect(shows(earned, CARD_PALETTE.achievement)).toBe(true)
+  expect(
+    shows(none, CARD_PALETTE.achievement),
+    'nothing earned, nothing lit',
   ).toBe(false)
 })
 

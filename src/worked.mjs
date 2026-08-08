@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { EMPTY_WORKED, STALE_MS } from './constants.mjs'
+import { EMPTY_WORKED, HOUR_MS, STALE_MS } from './constants.mjs'
 import { HOME, WORKED_FILE } from './paths.mjs'
 import {
   transformRequestWriteWorked,
@@ -34,6 +34,8 @@ const writeWorked = (worked) => {
 
   return worked
 }
+
+export const workedHours = (worked) => Math.floor(worked.totalMs / HOUR_MS)
 
 export const workedSince = (previous, now) => {
   if (previous?.state !== 'working') return 0

@@ -345,14 +345,17 @@ export const GLYPHS = {
 }
 
 export const CARD_WIDTH = 1200
-export const CARD_HEIGHT = 858
+export const CARD_HEIGHT = 908
 export const CARD_MARGIN = 36
 export const CARD_HEADER_HEIGHT = 112
-export const CARD_FOOTER_HEIGHT = 146
+export const CARD_FOOTER_HEIGHT = 196
 export const CARD_CELL_GAP = 16
 export const CARD_CELL_TEXT_HEIGHT = 84
 export const CARD_BADGE_RADIUS = 13
 export const CARD_BADGE_GAP = 38
+export const CARD_ACHIEVEMENT_RADIUS = 7
+export const CARD_ACHIEVEMENT_GAP = 22
+export const CARD_ACHIEVEMENT_TOP = 100
 export const CARD_HP_BAR_HEIGHT = 8
 export const CARD_TITLE_SCALE = 5
 export const CARD_NAME_SCALE = 3
@@ -368,6 +371,7 @@ export const CARD_PALETTE = {
   amber: [224, 179, 65],
   red: [224, 96, 84],
   shiny: [120, 224, 232],
+  achievement: [186, 137, 224],
 }
 
 export const CARD_SHINY_RADIUS = 6
@@ -380,10 +384,12 @@ export const CARD_HP_THRESHOLDS = [
 export const CARD_LABELS = {
   pokedex: 'POKEDEX',
   badges: 'BADGES',
+  achievements: 'ACHIEVEMENTS',
   battles: 'BATTLES',
   won: 'WON',
   streak: 'DAY STREAK',
   worked: 'WITH CLAUDE',
+  day: 'DAY ON THE ROAD',
   days: 'DAYS ON THE ROAD',
   money: 'MONEY',
   source: 'claudemon · github.com/zamarrowski/claudemon',

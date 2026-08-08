@@ -105,6 +105,10 @@ export const PREVIEW_COLS = 100
 
 export const PREVIEW_ROWS = 34
 
+export const PREVIEW_WORKED_MS = 41 * 60 * 60_000
+
+export const PREVIEW_EARNED_AT = '2026-08-04T09:00:00.000Z'
+
 export const PREVIEW_UPDATE_STEPS = [
   ['refreshing the marketplace', 'refreshed the marketplace'],
   ['fetching the new version', 'fetched the new version'],
