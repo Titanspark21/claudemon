@@ -936,3 +936,10 @@ export const CARD_NO_SAVE_HINT =
   'Run claudemon, pick a starter, then try again.'
 export const CARD_WRITTEN_PREFIX = 'Trainer card written to '
 export const CARD_OUT_FLAG = '--out'
+export const CARD_NO_OPEN_FLAG = '--no-open'
+
+export const REVEAL_COMMANDS = {
+  darwin: { command: 'open', args: (path) => [path] },
+  win32: { command: 'explorer.exe', args: (path) => [path] },
+  default: { command: 'xdg-open', args: (path) => [path] },
+}

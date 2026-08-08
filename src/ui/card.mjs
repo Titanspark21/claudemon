@@ -342,12 +342,27 @@ const drawFooter = (canvas, save, worked) => {
   }
 }
 
+const drawSource = (canvas) => {
+  const y = CARD_HEIGHT - CARD_MARGIN + 4
+
+  drawRule(canvas, CARD_MARGIN, y - 20, CARD_WIDTH - CARD_MARGIN * 2)
+  drawCentredText(
+    canvas,
+    CARD_LABELS.source,
+    CARD_WIDTH / 2,
+    y,
+    CARD_PALETTE.dim,
+    CARD_LABEL_SCALE,
+  )
+}
+
 export const drawCard = (save, now = Date.now()) => {
   const canvas = createCanvas(CARD_WIDTH, CARD_HEIGHT, CARD_PALETTE.background)
 
   drawHeader(canvas, save, now)
   drawTeam(canvas, save.party)
   drawFooter(canvas, save, readWorked())
+  drawSource(canvas)
 
   return canvas
 }

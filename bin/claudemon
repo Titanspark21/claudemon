@@ -5,6 +5,7 @@ import { basename, resolve } from 'node:path'
 import { createApp } from '../src/app.mjs'
 import { loadConfig } from '../src/config.mjs'
 import {
+  CARD_NO_OPEN_FLAG,
   CARD_NO_SAVE_HINT,
   CARD_NO_SAVE_MESSAGE,
   CARD_OUT_FLAG,
@@ -19,6 +20,7 @@ import {
 } from '../src/constants.mjs'
 import { isDataReady } from '../src/data.mjs'
 import { CARD_FILE, HOME, QUEUE_FILE } from '../src/paths.mjs'
+import { revealFile } from '../src/reveal.mjs'
 import {
   loadSave,
   publishStatus,
@@ -69,6 +71,8 @@ const exportCard = (args) => {
   const path = writeCard(save, outPath(args))
 
   process.stdout.write(`${CARD_WRITTEN_PREFIX}${bold(path)}\n`)
+
+  if (!args.includes(CARD_NO_OPEN_FLAG)) revealFile(path)
 }
 
 const main = () => {

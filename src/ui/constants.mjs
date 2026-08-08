@@ -344,10 +344,10 @@ export const GLYPHS = {
 }
 
 export const CARD_WIDTH = 1200
-export const CARD_HEIGHT = 820
+export const CARD_HEIGHT = 858
 export const CARD_MARGIN = 36
 export const CARD_HEADER_HEIGHT = 112
-export const CARD_FOOTER_HEIGHT = 108
+export const CARD_FOOTER_HEIGHT = 146
 export const CARD_CELL_GAP = 16
 export const CARD_CELL_TEXT_HEIGHT = 84
 export const CARD_BADGE_RADIUS = 13
@@ -382,5 +382,6 @@ export const CARD_LABELS = {
   worked: 'WITH CLAUDE',
   days: 'DAYS ON THE ROAD',
   money: 'MONEY',
+  source: 'claudemon · github.com/zamarrowski/claudemon',
   empty: '- - -',
 }
