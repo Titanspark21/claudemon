@@ -181,6 +181,10 @@ floor at once — five seconds, near enough. It reads the working tree rather th
 index, so a half-staged change is checked as whatever is on disk, and `git commit
 --no-verify` skips the lot when that is what you want.
 
+[CONTRIBUTING.md](CONTRIBUTING.md) has the rest of it: the sprites the tests need,
+previewing a screen without playing to it, and what a pull request is expected to
+carry.
+
 ## Controls
 
 Arrow keys move, `enter` confirms, `esc` goes back, `q` quits. Any key advances a
@@ -241,6 +245,16 @@ battle message. That is the whole scheme — it is the same everywhere.
   are generated from a few lines of notes rather than shipped, so a new one costs three
   numbers; the two tracks are mono WAV in `assets/`, which is the one format every
   player on every platform will open.
+
+## Contributing
+
+Bugs and ideas go in [issues](https://github.com/zamarrowski/claudemon/issues/new/choose),
+and there is a template for each. For code, [CONTRIBUTING.md](CONTRIBUTING.md) is the
+place to start — how to set a clone up, the three commands that have to pass, and
+what a pull request should carry. [CLAUDE.md](CLAUDE.md) is the house style behind
+it, written for humans and agents alike, and it is what a review holds a change to.
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) applies everywhere in the project, and
+[SECURITY.md](SECURITY.md) is where a vulnerability goes instead of an issue.
 
 ## Credits
 

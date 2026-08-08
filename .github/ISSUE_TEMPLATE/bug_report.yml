@@ -1,0 +1,81 @@
+name: Bug report
+description: Something in the game, the status line or the install does not work
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The more of this you fill in, the faster it gets fixed.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+      placeholder: |
+        The wild Pokemon disappeared from the home screen while the battle was still open.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The screen, the keys, and the state you were in.
+      placeholder: |
+        1. Send a long prompt in the Claude tab
+        2. Open the battle from the game tab
+        3. Wait 30 seconds
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: claudemon version
+      description: The bottom-right corner of the home screen.
+      placeholder: '1.3.0'
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      description: Output of `node --version`. The floor is 20.19.
+      placeholder: 'v22.11.0'
+    validations:
+      required: true
+
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal and OS
+      description: |
+        For anything about colours, sprite size or layout, `node tools/probe-terminal.mjs`
+        prints what it detects — paste that instead.
+      placeholder: 'Ghostty on macOS 15.2'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How is it installed
+      options:
+        - Plugin (/plugin install claudemon@claudemon)
+        - A clone (node tools/install.mjs)
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Screenshot or log
+      description: |
+        A screenshot of the screen carries most of it. `~/.claudemon/claudemon.log`
+        has the rest — paste anything from around the time it went wrong.
+      render: shell
+    validations:
+      required: false

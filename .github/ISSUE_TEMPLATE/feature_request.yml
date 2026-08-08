@@ -1,0 +1,49 @@
+name: Feature request
+description: A new screen, mechanic, item or quality-of-life change
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        claudemon is a small game that plays alongside a Claude Code session. The
+        best ideas are the ones that fit that: something you can pick up in the gaps
+        while Claude works, and put down again without losing anything.
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you want
+      description: The change itself, in a couple of sentences.
+      placeholder: |
+        A way to rename a Pokemon from the team screen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What is awkward today, and what this would make easier.
+    validations:
+      required: true
+
+  - type: textarea
+    id: shape
+    attributes:
+      label: How it might work
+      description: |
+        Which screen it lives on, which keys it uses, what it looks like. Rough is
+        fine — arrow keys move, `enter` confirms, `esc` goes back, and that scheme
+        is the same everywhere.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraints
+      description: These are the shape of the project, not a test.
+      options:
+        - label: This needs no new runtime dependency (the game has zero, on purpose)
+        - label: This works in a terminal, with no build step
+        - label: I would be up for opening the pull request myself
