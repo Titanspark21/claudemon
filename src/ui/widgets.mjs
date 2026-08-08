@@ -187,14 +187,13 @@ export const menuList = (
 }
 
 export const withFooter = (lines, footer, rows) => {
-  const usable = Math.max(0, rows - 2)
+  const footerRows = Array.isArray(footer) ? footer : [footer]
+  const usable = Math.max(0, rows - 1 - footerRows.length)
   const out = lines.slice(0, usable)
 
   while (out.length < usable) out.push('')
 
-  out.push(footer)
-
-  return out
+  return [...out, ...footerRows]
 }
 
 export const statusTag = (status) => {

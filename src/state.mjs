@@ -64,6 +64,7 @@ export const createSave = ({ trainer, starterId, rng }) => {
     },
     stats: { ...EMPTY_STATS, caught: STARTER_CAUGHT_COUNT },
     achievements: [],
+    trades: { received: [] },
   }
 
   recordPlayday(save)
@@ -121,7 +122,7 @@ export const markShiny = (save, speciesId) => {
   return save
 }
 
-const recordInDex = (save, mon) => {
+export const recordInDex = (save, mon) => {
   if (mon.shiny) return markShiny(save, mon.species)
 
   return markCaught(save, mon.species)

@@ -150,6 +150,44 @@ export const BOX_MESSAGES = {
   back: ' [esc] back to your team',
 }
 
+export const TRADE_TITLE = 'TRADE'
+export const MAX_TRADE_WIDTH = 64
+export const TRADE_SPRITE_RESERVED_ROWS = 14
+export const TRADE_CODE_ROWS = 10
+export const TRADE_INPUT_ROWS = 3
+export const TRADE_WARNING_TITLE = 'One way'
+export const TRADE_PROMPT_MARK = '>'
+
+export const TRADE_WARNING = {
+  leaves: 'leaves your game the moment the code exists.',
+  noWayBack: 'You cannot take it back, and the code will not work here.',
+  exact: 'Whoever pastes it gets this exact Pokémon — level,',
+  andAll: 'moves, nickname and all.',
+}
+
+export const TRADE_PROMPTS = {
+  ask: 'Give',
+  away: 'away?',
+  onItsWay: 'is on its way. Hand this code over:',
+  copied: 'Copied to your clipboard.',
+  notCopied: 'Nothing here to copy with, so take it off the screen.',
+  writtenTo: 'Written to',
+  notWritten: 'It could not be written to a file, so take it off the screen.',
+  gone: 'It is out of your game now.',
+  paste: 'Paste the code you were given.',
+  onceOnly: 'A code works once, and never in the game it came from.',
+  arrived: 'arrived from',
+  joinedTeam: 'It joined your team.',
+  wentToBox: 'Your team was full, so it went to the box.',
+}
+
+export const TRADE_KEY_HINTS =
+  ' [t] trade the one you are on away · [r] take one in from a code'
+export const TRADE_CONFIRM_HINTS =
+  ' [enter] make the code · [esc] keep it where it is'
+export const TRADE_CODE_HINTS = ' [esc] back'
+export const TRADE_RECEIVE_HINTS = ' [enter] take it in · [esc] never mind'
+
 export const SHOP_TITLE = 'SHOP'
 export const MAX_SHOP_WIDTH = 68
 export const SHOP_NAME_WIDTH = 18

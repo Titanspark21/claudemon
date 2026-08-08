@@ -12,11 +12,14 @@ import {
   markFaced,
   markSeen,
 } from '../src/state.mjs'
+import { TRADE_FILE } from '../src/paths.mjs'
+import { encodeTrade } from '../src/trade.mjs'
 import { bold, dim } from '../src/ui/ansi.mjs'
 import {
   PREVIEW_COLS,
   PREVIEW_EARNED_AT,
   PREVIEW_ROWS,
+  PREVIEW_TRADE_ID,
   PREVIEW_UPDATE_STEPS,
   PREVIEW_WORKED_MS,
 } from './constants.mjs'
@@ -74,6 +77,7 @@ const MODULES = {
   team: await import('../src/ui/views/team.mjs'),
   shop: await import('../src/ui/views/shop.mjs'),
   options: await import('../src/ui/views/options.mjs'),
+  trade: await import('../src/ui/views/trade.mjs'),
   trainer: await import('../src/ui/views/trainer.mjs'),
   update: await import('../src/ui/views/update.mjs'),
 }
@@ -337,6 +341,42 @@ const SCENES = {
     app.mode = 'trainer'
     app.worked = { totalMs: PREVIEW_WORKED_MS, updatedAt: null }
     recordAchievements(app.save, app.worked, Date.parse(PREVIEW_EARNED_AT))
+
+    return app
+  },
+  trade: () => {
+    const app = makeApp(sampleSave())
+
+    app.mode = 'trade'
+    app.tradeStep = 'confirm'
+    app.tradeGiving = { mon: app.save.party[1], source: 'party', index: 1 }
+
+    return app
+  },
+  'trade-code': () => {
+    const app = SCENES.trade()
+
+    app.tradeStep = 'code'
+    app.tradeGone = app.save.party[1]
+    app.tradeCode = encodeTrade(
+      app.save.party[1],
+      app.save.trainer,
+      PREVIEW_TRADE_ID,
+    )
+    app.tradeCopied = true
+    app.tradePath = TRADE_FILE
+
+    return app
+  },
+  'trade-receive': () => {
+    const app = SCENES.trade()
+
+    app.tradeStep = 'receive'
+    app.tradeInput = encodeTrade(
+      app.save.party[1],
+      app.save.trainer,
+      PREVIEW_TRADE_ID,
+    )
 
     return app
   },

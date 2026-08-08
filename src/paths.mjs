@@ -31,6 +31,8 @@ export const WORKED_FILE = join(HOME, 'worked.json')
 
 export const CARD_FILE = join(HOME, 'card.png')
 
+export const TRADE_FILE = join(HOME, 'trade.txt')
+
 export const SESSIONS_DIR = join(HOME, 'sessions')
 
 export const CONFIG_FILE = join(HOME, 'config.json')

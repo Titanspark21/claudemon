@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import {
   transformRequestSaveGame,
+  transformRequestTrade,
   transformRequestWriteActivity,
   transformRequestWriteConfig,
   transformRequestWriteEncounter,
@@ -13,6 +14,7 @@ import {
   transformResponseManifest,
   transformResponseSave,
   transformResponseStatus,
+  transformResponseTrade,
   transformResponseUpdateState,
   transformResponseWorked,
 } from './transformers.mjs'
@@ -83,6 +85,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
     'money',
     'party',
     'stats',
+    'trades',
     'trainer',
     'version',
   ])
@@ -566,4 +569,66 @@ test('Should write the update state with the same three fields', () => {
 
   expect(Object.keys(written).sort()).toEqual(['checkedAt', 'error', 'latest'])
   expect(written.force).toBeUndefined()
+})
+
+test('Should carry a save with no trades yet as an empty list of them', () => {
+  expect(transformResponseSave(rawSave).trades).toEqual({ received: [] })
+})
+
+test('Should map only the fields a trade code carries', () => {
+  const trade = transformResponseTrade({
+    v: 1,
+    id: 'abc123',
+    mon: {
+      species: 25,
+      nickname: 'SPARKY',
+      exp: 1728,
+      ivs: { hp: 22, attack: 9 },
+      stats: { hp: 33, attack: 19 },
+      hp: 30,
+      moves: [{ move: 'thunder-shock', pp: 28, maxPp: 30, learnedAt: 1 }],
+      status: 'paralysis',
+      statusTurns: 1,
+      shiny: true,
+      level: 14,
+    },
+    from: { name: 'ASH', at: '2026-01-01T00:00:00.000Z', save: '/home/ash' },
+    cheatMode: true,
+  })
+
+  expect(Object.keys(trade).sort()).toEqual(['from', 'id', 'mon', 'v'])
+  expect(trade.from).toEqual({ name: 'ASH', at: '2026-01-01T00:00:00.000Z' })
+  expect(trade.mon.moves).toEqual([
+    { move: 'thunder-shock', pp: 28, maxPp: 30 },
+  ])
+  expect(trade.mon.stats, 'stats are rebuilt on arrival').toBeUndefined()
+  expect(trade.mon.level).toBeUndefined()
+  expect(trade.cheatMode).toBeUndefined()
+})
+
+test('Should read a code with nothing in it as nothing', () => {
+  expect(transformResponseTrade(null)).toBeNull()
+})
+
+test('Should write a trade with the same fields it reads', () => {
+  const written = transformRequestTrade({
+    v: 1,
+    id: 'abc123',
+    mon: {
+      species: 25,
+      nickname: null,
+      exp: 1728,
+      ivs: { hp: 22 },
+      stats: { hp: 33 },
+      hp: 30,
+      moves: [],
+      status: null,
+      statusTurns: 0,
+    },
+    from: { name: 'ASH', at: '2026-01-01T00:00:00.000Z' },
+  })
+
+  expect(Object.keys(written).sort()).toEqual(['from', 'id', 'mon', 'v'])
+  expect(written.mon.shiny, 'an older save has no shiny flag').toBe(false)
+  expect(written.mon.stats).toBeUndefined()
 })

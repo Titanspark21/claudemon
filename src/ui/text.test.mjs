@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 
-import { stripAnsi, truncate, visibleLength } from './text.mjs'
+import { chunk, stripAnsi, truncate, visibleLength } from './text.mjs'
 
 const ESC = '\x1b'
 const RED = `${ESC}[31m`
@@ -69,4 +69,13 @@ test('Should not stall the cut on a lone escape with nothing after it', () => {
 
   expect(visibleLength(cut)).toBeLessThanOrEqual(5)
   expect(cut.endsWith('…')).toBe(true)
+})
+
+test('Should cut a long code into rows that fit the screen', () => {
+  expect(chunk('abcdefgh', 3)).toEqual(['abc', 'def', 'gh'])
+  expect(chunk('abc', 10), 'a short one stays whole').toEqual(['abc'])
+  expect(chunk('', 4), 'nothing typed yet is no rows at all').toEqual([])
+  expect(chunk('abc', 0), 'a window too narrow to split gives up').toEqual([
+    'abc',
+  ])
 })

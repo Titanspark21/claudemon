@@ -23,6 +23,7 @@ import {
   LIST_WIDTH,
   MON_NAME_WIDTH,
   MON_SPRITE_RESERVED_ROWS,
+  TRADE_KEY_HINTS,
 } from './constants.mjs'
 import {
   nextPartySort,
@@ -94,13 +95,21 @@ export const draw = (ctx, size) => {
     lines.push(` ${ctx.boxMessage}`)
   }
 
-  return { lines: withFooter(lines, dim(BOX_HINTS), rows), overlays }
+  return {
+    lines: withFooter(lines, [dim(BOX_HINTS), dim(TRADE_KEY_HINTS)], rows),
+    overlays,
+  }
 }
 
 export const onKey = (ctx, key) => {
   if (key.name === 'escape' || key.name === 'q') {
     ctx.boxMessage = null
     ctx.setMode('team')
+    return
+  }
+
+  if (key.name === 'r') {
+    ctx.openTradeReceive('box')
     return
   }
 
@@ -128,6 +137,15 @@ export const onKey = (ctx, key) => {
     )
     ctx.boxSort = nextSort
     ctx.boxMessage = null
+  } else if (key.name === 't') {
+    const entry = partyEntryAt(box, ctx.boxSelection, sort)
+
+    ctx.askToGiveAway({
+      from: 'box',
+      source: 'box',
+      index: entry.index,
+      mon: entry.mon,
+    })
   } else if (key.name === 'enter' || key.name === 'space')
     ctx.withdrawFromBox(partyEntryAt(box, ctx.boxSelection, sort).index)
 }

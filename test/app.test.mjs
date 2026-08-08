@@ -29,6 +29,7 @@ const { expFromTrainerMon } = await import('../src/exp.mjs')
 const { clearEncounter, peekQueue, writeEncounter } =
   await import('../src/queue.mjs')
 const { addPokemon, createSave, loadSave } = await import('../src/state.mjs')
+const { giveAway } = await import('../src/trade.mjs')
 const { createPokemon, makeMoveSlot } = await import('../src/pokemon.mjs')
 const { ballsInBag, countOf, itemsInBag, SHOP_STOCK } =
   await import('../src/shop.mjs')
@@ -37,6 +38,8 @@ const { SETTINGS } = await import('../src/ui/views/options.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
 const battleView = await import('../src/ui/views/battle.mjs')
 const gymView = await import('../src/ui/views/gym.mjs')
+const teamView = await import('../src/ui/views/team.mjs')
+const tradeView = await import('../src/ui/views/trade.mjs')
 const dexView = await import('../src/ui/views/dex.mjs')
 const trainerView = await import('../src/ui/views/trainer.mjs')
 const { stripAnsi } = await import('../src/ui/text.mjs')
@@ -105,6 +108,20 @@ const press = (app, name, char) => app.handleKey({ name, char })
 
 const gymText = (app) => {
   return gymView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+}
+
+const teamText = (app) => {
+  return teamView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+}
+
+const tradeText = (app) => {
+  return tradeView
     .draw(app, { cols: 100, rows: 34 })
     .lines.map(stripAnsi)
     .join('\n')
@@ -877,6 +894,192 @@ test('Should write the trainer card from the trainer screen and say where it lan
   expect(trainerText(app), 'and the screen says where it went').toContain(
     CARD_WRITTEN_PREFIX,
   )
+})
+
+test('Should warn what a trade costs before it lets the Pokémon go', () => {
+  const copyCode = vi.fn(() => true)
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    copyCode,
+  })
+
+  app.save.party.push(createPokemon(25, 12, makeRng(7)))
+
+  walkHomeTo(app, 'team')
+  press(app, 'enter')
+  press(app, 'down')
+  press(app, 't')
+
+  expect(tradeText(app), 'it asks about whoever the cursor was on').toContain(
+    'Give PIKACHU',
+  )
+  expect(tradeText(app), 'and warns before anything happens').toContain(
+    'leaves your game the moment the code exists',
+  )
+  expect(app.save.party, 'nothing has moved yet').toHaveLength(2)
+
+  press(app, 'escape')
+
+  expect(app.mode, 'backing out goes straight back to the team').toBe('team')
+  expect(app.save.party, 'and keeps it').toHaveLength(2)
+
+  press(app, 't')
+  press(app, 'enter')
+
+  const screen = tradeText(app)
+
+  expect(app.save.party, 'making the code is what gives it away').toHaveLength(
+    1,
+  )
+  expect(loadSave().party, 'and the disk agrees').toHaveLength(1)
+  expect(screen, 'the code is on the screen to be copied').toContain('CMON1-')
+  expect(copyCode).toHaveBeenCalledTimes(1)
+  expect(copyCode).toHaveBeenCalledWith(expect.stringContaining('CMON1-'))
+  expect(
+    readFileSync(join(sandbox, 'trade.txt'), 'utf8').trim(),
+    'and it is in a file as well',
+  ).toContain('CMON1-')
+
+  press(app, 'escape')
+
+  expect(app.mode, 'and it puts you back where you came from').toBe('team')
+})
+
+test('Should trade what is in the box, from the list or from the box itself', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.save.box.push(createPokemon(120, 15, makeRng(3)))
+
+  walkHomeTo(app, 'team')
+  press(app, 'enter')
+  press(app, 'b')
+  press(app, 't')
+
+  expect(tradeText(app), 'the one in the box, not the lead').toContain(
+    'Give STARYU',
+  )
+
+  press(app, 'enter')
+
+  expect(app.save.box, 'and it leaves the box').toHaveLength(0)
+  expect(loadSave().box).toHaveLength(0)
+
+  press(app, 'escape')
+
+  expect(app.mode, 'and it goes back to the box behind it').toBe('box')
+
+  press(app, 'r')
+
+  expect(tradeText(app), 'and the box can take one in as well').toContain(
+    'Paste the code you were given',
+  )
+
+  press(app, 'escape')
+
+  expect(app.mode).toBe('box')
+})
+
+test('Should still hand you the code when there is nowhere to put it', () => {
+  const saveCode = () => {
+    throw new Error('EACCES')
+  }
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    copyCode: () => false,
+    saveCode,
+  })
+
+  app.save.party.push(createPokemon(25, 12, makeRng(7)))
+
+  walkHomeTo(app, 'team')
+  press(app, 'enter')
+  press(app, 'down')
+  press(app, 't')
+  press(app, 'enter')
+
+  const screen = tradeText(app)
+
+  expect(screen, 'the code is on the screen either way').toContain('CMON1-')
+  expect(screen, 'and it says the clipboard was no help').toContain(
+    'Nothing here to copy with',
+  )
+  expect(screen, 'nor the file').toContain('could not be written to a file')
+})
+
+test('Should take a Pokémon in from a pasted code and say where it came from', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+  const misty = createSave({ trainer: 'Misty', starterId: 7, rng: makeRng(9) })
+
+  misty.party.push(createPokemon(120, 15, makeRng(3)))
+
+  const code = giveAway(misty, 'party', 1).code
+
+  walkHomeTo(app, 'team')
+  press(app, 'enter')
+  press(app, 'r')
+  type(app, 'nonsense')
+  press(app, 'enter')
+
+  expect(tradeText(app), 'a bad code is said so on the spot').toContain(
+    'not a trade code',
+  )
+  expect(app.save.party, 'and nothing arrives').toHaveLength(1)
+
+  press(app, 'escape')
+  press(app, 'r')
+  press(app, 'x', 'x')
+
+  expect(tradeText(app), 'what you type shows up').toContain('> x')
+
+  press(app, 'backspace')
+
+  expect(tradeText(app), 'and backspace takes it off again').not.toContain(
+    '> x',
+  )
+
+  press(app, code, code)
+  press(app, 'enter')
+
+  expect(app.mode, 'it drops you back where you were').toBe('team')
+  expect(app.save.party).toHaveLength(2)
+  expect(app.save.party[1].species).toBe(120)
+  expect(loadSave().party[1].species, 'and it is on disk').toBe(120)
+  expect(teamText(app)).toContain('STARYU arrived from MISTY')
+})
+
+test('Should refuse to trade away the only Pokémon you have', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  walkHomeTo(app, 'team')
+  press(app, 'enter')
+  press(app, 't')
+
+  expect(app.mode, 'a trade that cannot happen opens nothing').toBe('team')
+  expect(teamText(app)).toContain('somebody has to fight')
+  expect(app.save.party).toHaveLength(1)
+
+  press(app, 'up')
+
+  expect(
+    teamText(app),
+    'and moving the cursor puts the refusal away',
+  ).not.toContain('somebody has to fight')
 })
 
 test('Should own up and open nothing when the card cannot be written', () => {

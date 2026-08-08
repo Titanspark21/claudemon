@@ -287,6 +287,7 @@
     <nav>
       <a href="#screens">Screens</a>
       <a href="#card">Card</a>
+      <a href="#trade">Trade</a>
       <a href="#install">Install</a>
       <a href="#inside">Inside</a>
       <a href="https://github.com/zamarrowski/claudemon">GitHub</a>
@@ -411,6 +412,21 @@
     </div>
 
     <p class="dim">Either way it lands in <code>~/.claudemon/card.png</code> and opens in whatever shows PNGs on your desktop. The game writes the file itself — the same pixel font and palette you see in the terminal, encoded with nothing but <code>node:zlib</code>. No browser, no canvas library, no dependency.</p>
+  </section>
+
+  <section id="trade">
+    <h2>Trading, by code</h2>
+    <p class="lede">The only social thing in here, and it needs no server at all. <code>t</code>, on any Pokémon of yours — in the team screen or in the box — tells you what it is about to cost you, and then writes a code.</p>
+
+    <div class="code">
+<pre>CMON1-eJxNkMFugzAMht_F53QChxXIrdIeYNJ62rRDBKYgIKAEKBPi3edAWSfl...</pre>
+    </div>
+
+    <p>It lands on your clipboard and in <code>~/.claudemon/trade.txt</code>, and getting it to whoever is taking the Pokémon is your business rather than the game's. On the other side, <code>r</code> — on either of those two screens — takes a pasted code, and the Pokémon turns up with its nickname, its level, its IVs, its bruises and the PP it had when it left.</p>
+
+    <p>A trade only goes one way, and the game holds you to it: the Pokémon leaves your game the moment the code is made rather than when somebody uses it, and there is no undo — which is why the screen asks first. Every code carries who made it, so your own is refused in your own game, and a code that has been taken in once brings nothing the second time it is pasted. Your last Pokémon stays where it is; somebody has to fight.</p>
+
+    <p class="dim">The code <em>is</em> the Pokémon — deflated and written out in base64, about three hundred characters of it. Nothing opens a socket, and nothing about it leaves your machine unless you are the one who sends it.</p>
   </section>
 
   <section id="install">
