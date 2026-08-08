@@ -1,5 +1,9 @@
 import { existsSync } from 'node:fs'
-import { spriteFile, trainerSpriteFile } from '../src/paths.mjs'
+import {
+  shinySpriteFile,
+  spriteFile,
+  trainerSpriteFile,
+} from '../src/paths.mjs'
 import { TRAINER_CLASSES } from '../src/constants.mjs'
 import { loadData } from '../src/data.mjs'
 import { bold, brightGreen, brightRed, dim } from '../src/ui/ansi.mjs'
@@ -135,6 +139,10 @@ for (const mon of pokedex) {
     check(
       `${label} ${side} sprite is on disk`,
       existsSync(spriteFile(side, mon.id, 'png')),
+    )
+    check(
+      `${label} shiny ${side} sprite is on disk`,
+      existsSync(shinySpriteFile(side, mon.id, 'png')),
     )
   }
 }

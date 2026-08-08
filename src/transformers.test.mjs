@@ -31,6 +31,7 @@ const rawSave = {
       moves: [{ move: 'ember', pp: 24, maxPp: 25, learnedAt: 9 }],
       status: 'burn',
       statusTurns: 2,
+      shiny: true,
       level: 7,
     },
   ],
@@ -50,7 +51,7 @@ const rawSave = {
   bag: { 'poke-ball': 5 },
   money: 3000,
   badges: ['pewter', 'cerulean'],
-  dex: { seen: [4, 19], caught: [4], faced: { 19: 2 } },
+  dex: { seen: [4, 19], caught: [4], shiny: [4], faced: { 19: 2 } },
   stats: {
     battles: 3,
     wins: 2,
@@ -79,7 +80,12 @@ test('Should map every field of a save on the way in and drop the rest', () => {
   ])
   expect(save.trainer).toEqual(rawSave.trainer)
   expect(save.badges).toEqual(['pewter', 'cerulean'])
-  expect(save.dex).toEqual({ seen: [4, 19], caught: [4], faced: { 19: 2 } })
+  expect(save.dex).toEqual({
+    seen: [4, 19],
+    caught: [4],
+    shiny: [4],
+    faced: { 19: 2 },
+  })
   expect(save.stats).toEqual({
     battles: 3,
     wins: 2,
@@ -91,7 +97,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
   })
 })
 
-test('Should map a Pokemon to the nine stored fields and its slots to three', () => {
+test('Should map a Pokemon to the ten stored fields and its slots to three', () => {
   const [mon] = transformResponseSave(rawSave).party
 
   expect(Object.keys(mon).sort()).toEqual([
@@ -100,12 +106,14 @@ test('Should map a Pokemon to the nine stored fields and its slots to three', ()
     'ivs',
     'moves',
     'nickname',
+    'shiny',
     'species',
     'stats',
     'status',
     'statusTurns',
   ])
   expect(mon.level).toBeUndefined()
+  expect(mon.shiny).toBe(true)
   expect(mon.moves).toEqual([{ move: 'ember', pp: 24, maxPp: 25 }])
 })
 
@@ -113,11 +121,12 @@ test('Should give a save written before a field existed an empty one instead', (
   const save = transformResponseSave({ version: 1, party: [{ species: 4 }] })
 
   expect(save.party[0].moves).toEqual([])
+  expect(save.party[0].shiny, 'a save from before shinies has none').toBe(false)
   expect(save.box).toEqual([])
   expect(save.bag).toEqual({})
   expect(save.money).toBe(0)
   expect(save.badges).toEqual([])
-  expect(save.dex).toEqual({ seen: [], caught: [], faced: {} })
+  expect(save.dex).toEqual({ seen: [], caught: [], shiny: [], faced: {} })
   expect(save.stats).toEqual({
     battles: 0,
     wins: 0,
@@ -169,7 +178,7 @@ test('Should keep a field the game attached during play out of the save file', (
     box: [],
     bag: {},
     money: 0,
-    dex: { seen: [], caught: [], faced: {} },
+    dex: { seen: [], caught: [], shiny: [], faced: {} },
     stats: { battles: 0, wins: 0, losses: 0, caught: 0, runs: 0 },
     battle: { turn: 3 },
   })
@@ -369,6 +378,7 @@ test('Should map an encounter to the fields the queue file carries, and call one
     name: 'Pidgey',
     level: 4,
     seed: 777,
+    shiny: true,
     session: 'abc',
     at: '2026-01-01T00:00:00.000Z',
     weight: 20,
@@ -381,6 +391,7 @@ test('Should map an encounter to the fields the queue file carries, and call one
     name: 'Pidgey',
     level: 4,
     seed: 777,
+    shiny: true,
     session: 'abc',
     at: '2026-01-01T00:00:00.000Z',
   })
@@ -468,6 +479,7 @@ test('Should write an encounter with the same fields and nothing more', () => {
     'name',
     'seed',
     'session',
+    'shiny',
     'species',
     'v',
   ])

@@ -8,6 +8,7 @@ import {
 } from './constants.mjs'
 import { loadPokedex } from './data.mjs'
 import { pickLevel } from './helpers.mjs'
+import { rollShiny } from './pokemon.mjs'
 import { chance, randInt, weightedPick } from './rng.mjs'
 import { rollTrainer } from './trainer.mjs'
 
@@ -77,6 +78,7 @@ const rollWild = (rng, leadLevel, species) => {
     name: chosen.name,
     level: pickLevel(rng, leadLevel, WILD_LEVEL_SPREAD),
     seed: randInt(rng, 0, 0xffffffff),
+    shiny: rollShiny(rng),
   }
 }
 

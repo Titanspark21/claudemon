@@ -22,6 +22,7 @@ import {
   isFainted,
   levelOf,
   refreshStats,
+  rollShiny,
 } from './pokemon.mjs'
 import { writeStatus } from './status.mjs'
 import { countOfKind } from './shop.mjs'
@@ -43,7 +44,7 @@ export const recordPlayday = (save, now = Date.now()) => {
 }
 
 export const createSave = ({ trainer, starterId, rng }) => {
-  const starter = createPokemon(starterId, STARTER_LEVEL, rng)
+  const starter = createPokemon(starterId, STARTER_LEVEL, rng, rollShiny(rng))
   const save = {
     version: SAVE_VERSION,
     trainer: { name: trainer, startedAt: new Date().toISOString() },
@@ -52,7 +53,12 @@ export const createSave = ({ trainer, starterId, rng }) => {
     bag: { ...STARTING_BAG },
     money: STARTING_MONEY,
     badges: [],
-    dex: { seen: [starterId], caught: [starterId], faced: {} },
+    dex: {
+      seen: [starterId],
+      caught: [starterId],
+      shiny: starter.shiny ? [starterId] : [],
+      faced: {},
+    },
     stats: { ...EMPTY_STATS, caught: STARTER_CAUGHT_COUNT },
   }
 
@@ -95,8 +101,22 @@ export const markCaught = (save, speciesId) => {
   return save
 }
 
+export const markShiny = (save, speciesId) => {
+  markCaught(save, speciesId)
+
+  if (!save.dex.shiny.includes(speciesId)) save.dex.shiny.push(speciesId)
+
+  return save
+}
+
+const recordInDex = (save, mon) => {
+  if (mon.shiny) return markShiny(save, mon.species)
+
+  return markCaught(save, mon.species)
+}
+
 const migrate = (save) => {
-  for (const mon of [...save.party, ...save.box]) markCaught(save, mon.species)
+  for (const mon of [...save.party, ...save.box]) recordInDex(save, mon)
 
   for (const mon of [...save.party, ...save.box]) refreshStats(mon)
 
@@ -192,7 +212,7 @@ export const saveGame = (save) => {
 }
 
 export const addPokemon = (save, mon) => {
-  markCaught(save, mon.species)
+  recordInDex(save, mon)
   save.stats.caught++
 
   if (save.party.length < PARTY_LIMIT) {

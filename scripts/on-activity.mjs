@@ -75,6 +75,7 @@ const walkWhileWorking = (sessionId, now) => {
         level: encounter.level,
         trainer: encounter.trainer,
         seed: encounter.seed,
+        shiny: encounter.shiny,
         session: sessionId,
       },
       ttlMs,

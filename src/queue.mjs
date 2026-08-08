@@ -89,6 +89,7 @@ export const writeEncounter = (entry) => {
     level: entry.level,
     trainer: entry.trainer,
     seed: entry.seed,
+    shiny: entry.shiny,
     session: entry.session,
     at: entry.at ?? new Date().toISOString(),
   })

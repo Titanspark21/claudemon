@@ -1,7 +1,7 @@
 import { createApp } from '../src/app.mjs'
 import { createBattle } from '../src/battle.mjs'
 import { createBattleFlow } from '../src/battleFlow.mjs'
-import { DEFAULT_CONFIG } from '../src/constants.mjs'
+import { BATTLE_MESSAGES, DEFAULT_CONFIG } from '../src/constants.mjs'
 import { createPokemon } from '../src/pokemon.mjs'
 import { makeRng } from '../src/rng.mjs'
 import {
@@ -200,6 +200,37 @@ const SCENES = {
     })
 
     app.battle = createBattleFlow(state)
+
+    return app
+  },
+  'home-shiny': () => {
+    const app = SCENES.home()
+
+    app.encounter = {
+      kind: 'wild',
+      species: 130,
+      name: 'Gyarados',
+      level: 25,
+      seed: 3,
+      shiny: true,
+      expiresAt: Date.now() + 22_000,
+    }
+
+    return app
+  },
+  'battle-shiny': () => {
+    const app = makeApp(sampleSave())
+
+    app.mode = 'battle'
+
+    const state = createBattle({
+      playerMon: app.save.party[0],
+      wildMon: createPokemon(130, 25, makeRng(9), true),
+      seed: 5,
+    })
+
+    app.battle = createBattleFlow(state)
+    app.battle.message = BATTLE_MESSAGES.shiny
 
     return app
   },

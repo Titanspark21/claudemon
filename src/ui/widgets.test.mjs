@@ -2,9 +2,9 @@ import { expect, test } from 'vitest'
 
 import { createPokemon } from '../pokemon.mjs'
 import { makeRng } from '../rng.mjs'
-import { EVOLVES_MARK, LEVEL_EVO_PREFIX } from './constants.mjs'
+import { EVOLVES_MARK, LEVEL_EVO_PREFIX, SHINY_MARK } from './constants.mjs'
 import { stripAnsi } from './text.mjs'
-import { evolutionTag } from './widgets.mjs'
+import { evolutionTag, shinyTag } from './widgets.mjs'
 
 test('Should tag a stone evolution with a star and a level evolution with its level', () => {
   const rng = makeRng(7)
@@ -16,6 +16,11 @@ test('Should tag a stone evolution with a star and a level evolution with its le
     ` ${LEVEL_EVO_PREFIX}16`,
   )
   expect(evolutionTag(createPokemon(6, 40, rng))).toBe('')
+})
+
+test('Should tag a shiny with a star and leave an ordinary one unmarked', () => {
+  expect(stripAnsi(shinyTag(true))).toBe(` ${SHINY_MARK}`)
+  expect(shinyTag(false)).toBe('')
 })
 
 test('Should brighten the level tag once the Pokemon is old enough to evolve', () => {
