@@ -77,7 +77,11 @@ waiting. Send a longish prompt in the Claude tab and watch the status line.
 |---|---|
 | **Claude Code** | You are already in it |
 | **Node.js 20.19 or newer** | `node --version`. The game and the hooks run on it, and Claude Code ships as its own binary so it does not bring one. Nothing else to install — no dependencies, no build step |
-| **A terminal with truecolor** | iTerm2, Ghostty, WezTerm, Kitty, Alacritty, VS Code's terminal and macOS Terminal are all fine |
+| **A terminal with truecolor** | iTerm2, Ghostty, WezTerm, Kitty, Alacritty and VS Code's terminal are all fine. Not macOS Terminal |
+
+> [!WARNING]
+> In macOS Terminal the sprites come out striped and stretched, and no setting fixes
+> it. Use any of the other terminals above.
 
 The 151 Pokemon ship with the plugin, so the only thing the install downloads is the
 sprites, which takes a few seconds. After that the only thing that ever goes out is
