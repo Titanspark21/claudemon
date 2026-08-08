@@ -47,6 +47,14 @@ const aMon = (speciesId, level, hpFraction) => {
   return mon
 }
 
+const aShiny = (speciesId, level) => {
+  const mon = aMon(speciesId, level, 1)
+
+  mon.shiny = true
+
+  return mon
+}
+
 const shows = (canvas, [r, g, b]) => {
   for (let at = 0; at < canvas.pixels.length; at += 4) {
     if (
@@ -117,6 +125,17 @@ test('Should still hand back a card when the save cannot say when it started', (
   expect(shows(canvas, TYPE_COLORS.electric), 'the team is still on it').toBe(
     true,
   )
+})
+
+test('Should put the shiny mark beside a shiny one and beside nobody else', () => {
+  const shiny = drawCard(aSave([aShiny(25, 20)], []))
+  const ordinary = drawCard(aSave([aMon(25, 20, 1)], []))
+
+  expect(shows(shiny, CARD_PALETTE.shiny)).toBe(true)
+  expect(
+    shows(ordinary, CARD_PALETTE.shiny),
+    'an ordinary one goes unmarked',
+  ).toBe(false)
 })
 
 test('Should turn the health bar red for a Pokemon that is nearly down', () => {

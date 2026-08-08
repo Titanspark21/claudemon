@@ -1,5 +1,14 @@
 import { canEvolveByStone, levelOf, levelUpEvolution } from '../pokemon.mjs'
-import { bg, bold, brightYellow, CLEAR, dim, fg, gray } from './ansi.mjs'
+import {
+  bg,
+  bold,
+  brightCyan,
+  brightYellow,
+  CLEAR,
+  dim,
+  fg,
+  gray,
+} from './ansi.mjs'
 import {
   BADGE_LUMINANCE_CUTOFF,
   BADGE_TEXT_COLOURS,
@@ -17,6 +26,7 @@ import {
   HP_BAR_COLOURS,
   HP_BAR_EMPTY_GLYPH,
   HP_BAR_THRESHOLDS,
+  SHINY_MARK,
   STATUS_TAGS,
   TRAINER_TRAY_COLOUR,
   TRAINER_TRAY_GLYPHS,
@@ -203,6 +213,12 @@ export const genderTag = (gender) => {
   const [glyph, [r, g, b]] = mark
 
   return `${fg(r, g, b)}${glyph}${CLEAR}`
+}
+
+export const shinyTag = (shiny) => {
+  if (!shiny) return ''
+
+  return ` ${brightCyan(SHINY_MARK)}`
 }
 
 export const evolutionTag = (mon) => {

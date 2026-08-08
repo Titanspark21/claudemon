@@ -2,6 +2,7 @@ import { isWorking, readSessions, summariseActivity } from './activity.mjs'
 import {
   BAG_MESSAGES,
   BAG_MODES,
+  BATTLE_MESSAGES,
   BOX_MESSAGES,
   CARD_WRITTEN_PREFIX,
   FRAMES_PER_SPIN,
@@ -241,6 +242,8 @@ export const createApp = ({
 
     ctx.encounter = { ...next, expiresAt: encounterExpiresAt(next, ttlMs) }
     ctx.homeSelection = 0
+
+    if (next.shiny) ctx.playSound('shiny')
 
     if (ctx.save) {
       markSeen(ctx.save, encounterSpecies(next))
@@ -698,11 +701,20 @@ const isSameEncounter = (entry, held) => {
   return held != null && entry.at === held.at && entry.seed === held.seed
 }
 
+const wildIntro = (wild) => {
+  const appeared = `A wild ${displayName(wild).toUpperCase()} appeared!`
+
+  if (!wild.shiny) return [appeared]
+
+  return [appeared, BATTLE_MESSAGES.shiny]
+}
+
 const wildBattle = (save, encounter, lead) => {
   const wild = createPokemon(
     encounter.species,
     encounter.level,
     makeRng(encounter.seed),
+    encounter.shiny,
   )
 
   markFaced(save, encounter.species)
@@ -713,7 +725,7 @@ const wildBattle = (save, encounter, lead) => {
       wildMon: wild,
       seed: encounter.seed,
     }),
-    intro: [`A wild ${displayName(wild).toUpperCase()} appeared!`],
+    intro: wildIntro(wild),
   }
 }
 

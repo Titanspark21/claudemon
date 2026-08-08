@@ -272,6 +272,7 @@ export const GENDER_MARKS = {
   female: ['♀', [240, 128, 168]],
 }
 
+export const SHINY_MARK = '✧'
 export const EVOLVES_MARK = '✦'
 export const LEVEL_EVO_PREFIX = '→'
 
@@ -366,7 +367,10 @@ export const CARD_PALETTE = {
   green: [127, 207, 106],
   amber: [224, 179, 65],
   red: [224, 96, 84],
+  shiny: [120, 224, 232],
 }
+
+export const CARD_SHINY_RADIUS = 6
 
 export const CARD_HP_THRESHOLDS = [
   { above: 0.5, colour: [127, 207, 106] },

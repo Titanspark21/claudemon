@@ -1,7 +1,7 @@
 import { ITEMS } from '../../constants.mjs'
 import { move as moveData } from '../../data.mjs'
 import { expProgress } from '../../exp.mjs'
-import { spriteFile, trainerSpriteFile } from '../../paths.mjs'
+import { monSpriteFile, trainerSpriteFile } from '../../paths.mjs'
 import { displayName, genderOf, levelOf } from '../../pokemon.mjs'
 import { monsLeft, trainerLabel } from '../../trainer.mjs'
 import { isMoveDisabled } from '../../volatile.mjs'
@@ -24,6 +24,7 @@ import {
   padLeft,
   padRight,
   panel,
+  shinyTag,
   statusTag,
   trainerTray,
   typeBadge,
@@ -49,7 +50,7 @@ const foeTray = (trainer) => {
 }
 
 const foeInfo = (mon, hp, width, caught, trainer) => {
-  const name = `${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))} ${dim(`Lv${levelOf(mon)}`)}`
+  const name = `${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))}${shinyTag(mon.shiny)} ${dim(`Lv${levelOf(mon)}`)}`
   const tag = statusTag(mon.status)
   const mark = caught ? ` ${CAUGHT_MARK}` : ''
 
@@ -81,11 +82,11 @@ const foeHeader = (battle, width, caught) => {
 const foeSpriteFile = (battle) => {
   if (battle.trainerIntro) return trainerSpriteFile(battle.state.trainer.sprite)
 
-  return spriteFile('front', battle.foeMon.species, 'png')
+  return monSpriteFile('front', battle.foeMon.species, battle.foeMon.shiny)
 }
 
 const playerInfo = (mon, hp, width) => {
-  const name = `${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))} ${dim(`Lv${levelOf(mon)}`)}`
+  const name = `${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))}${shinyTag(mon.shiny)} ${dim(`Lv${levelOf(mon)}`)}`
   const tag = statusTag(mon.status)
   const progress = expProgress(mon.species, mon.exp)
 
@@ -131,7 +132,7 @@ const moveMenu = (actor, rawSelection, width) => {
 const partyLabels = (save) => {
   return save.party.map((mon) => {
     const fainted = mon.hp <= 0 ? gray(FAINTED_TAG) : ''
-    const name = `${displayName(mon).toUpperCase()}${genderTag(genderOf(mon))}`
+    const name = `${displayName(mon).toUpperCase()}${genderTag(genderOf(mon))}${shinyTag(mon.shiny)}`
 
     return `${padRight(name, 14)} ${dim(`Lv${levelOf(mon)}`)} ${hpBar(
       mon.hp,
@@ -154,7 +155,7 @@ export const draw = (ctx, size) => {
   const fitted = fitBattleSprites(
     size,
     foeSpriteFile(battle),
-    spriteFile('back', player.species, 'png'),
+    monSpriteFile('back', player.species, player.shiny),
     ctx.spriteScale,
   )
 

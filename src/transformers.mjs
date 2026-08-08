@@ -17,6 +17,7 @@ const mapPokemon = (mon) => {
     moves: mon.moves ? mon.moves.map(mapMoveSlot) : [],
     status: mon.status,
     statusTurns: mon.statusTurns,
+    shiny: mon.shiny ?? false,
   }
 }
 
@@ -24,6 +25,7 @@ const mapDex = (dex) => {
   return {
     seen: dex?.seen ?? [],
     caught: dex?.caught ?? [],
+    shiny: dex?.shiny ?? [],
     faced: dex?.faced ?? {},
   }
 }
@@ -190,6 +192,7 @@ const mapWildEncounter = (entry) => {
     name: entry.name,
     level: entry.level,
     seed: entry.seed,
+    shiny: entry.shiny ?? false,
     session: entry.session,
     at: entry.at,
   }

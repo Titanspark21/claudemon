@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { DAY_MS, GYMS } from '../constants.mjs'
 import { species } from '../data.mjs'
-import { HOME, spriteFile } from '../paths.mjs'
+import { HOME, monSpriteFile } from '../paths.mjs'
 import { decodePng, encodePng } from '../png.mjs'
 import { displayName, levelOf } from '../pokemon.mjs'
 import { readWorked } from '../worked.mjs'
@@ -31,6 +31,7 @@ import {
   CARD_NAME_SCALE,
   CARD_PALETTE,
   CARD_CELL_TEXT_HEIGHT,
+  CARD_SHINY_RADIUS,
   CARD_TITLE_SCALE,
   CARD_WIDTH,
   DEFAULT_TYPE_COLOR,
@@ -40,9 +41,11 @@ import {
 } from './constants.mjs'
 import { KANTO_TOTAL } from './views/constants.mjs'
 
-const loadSpriteImage = (id) => {
+const loadSpriteImage = (mon) => {
   try {
-    return decodePng(readFileSync(spriteFile('front', id, 'png')))
+    return decodePng(
+      readFileSync(monSpriteFile('front', mon.species, mon.shiny)),
+    )
   } catch {
     return null
   }
@@ -192,7 +195,7 @@ const drawHpBar = (canvas, mon, x, y, width) => {
 }
 
 const drawCellSprite = (canvas, mon, cell, centre) => {
-  const image = loadSpriteImage(mon.species)
+  const image = loadSpriteImage(mon)
 
   if (!image) return
 
@@ -211,6 +214,24 @@ const drawCellSprite = (canvas, mon, cell, centre) => {
   )
 }
 
+const drawMemberName = (canvas, mon, centre, y) => {
+  const name = displayName(mon)
+  const width = textWidth(name, CARD_NAME_SCALE)
+  const x = Math.round(centre - width / 2)
+
+  drawText(canvas, name, x, y, CARD_PALETTE.text, CARD_NAME_SCALE)
+
+  if (!mon.shiny) return
+
+  drawDiamond(
+    canvas,
+    x + width + CARD_SHINY_RADIUS * 2,
+    y + CARD_SHINY_RADIUS + 2,
+    CARD_SHINY_RADIUS,
+    CARD_PALETTE.shiny,
+  )
+}
+
 const drawMemberCell = (canvas, mon, cell) => {
   fillRect(canvas, cell.x, cell.y, cell.width, cell.height, CARD_PALETTE.panel)
   fillRect(canvas, cell.x, cell.y, cell.width, 2, typeColour(mon.species))
@@ -221,14 +242,7 @@ const drawMemberCell = (canvas, mon, cell) => {
 
   const nameY = cell.y + cell.height - CARD_CELL_TEXT_HEIGHT + 10
 
-  drawCentredText(
-    canvas,
-    displayName(mon),
-    centre,
-    nameY,
-    CARD_PALETTE.text,
-    CARD_NAME_SCALE,
-  )
+  drawMemberName(canvas, mon, centre, nameY)
   drawCentredText(
     canvas,
     `L${levelOf(mon)}`,

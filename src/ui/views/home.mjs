@@ -1,7 +1,7 @@
 import { isWorking } from '../../activity.mjs'
 import { TRAINER_MESSAGES } from '../../constants.mjs'
 import { encounterSpecies } from '../../encounter.mjs'
-import { spriteFile, trainerSpriteFile } from '../../paths.mjs'
+import { monSpriteFile, trainerSpriteFile } from '../../paths.mjs'
 import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import {
   activePokemon,
@@ -25,6 +25,7 @@ import {
   money,
   padRight,
   panel,
+  shinyTag,
   trainerTray,
   wrap,
 } from '../widgets.mjs'
@@ -133,14 +134,14 @@ const encounterHeading = (encounter) => {
     return `${brightYellow('✦')} ${bold(trainerLabel(encounter.trainer))} ${TRAINER_MESSAGES.wantsToBattle}`
   }
 
-  return `${brightYellow('✦')} ${bold(`${ENCOUNTER_MESSAGES.wild} ${encounter.name.toUpperCase()}`)} ${ENCOUNTER_MESSAGES.appeared}`
+  return `${brightYellow('✦')} ${bold(`${ENCOUNTER_MESSAGES.wild} ${encounter.name.toUpperCase()}`)}${shinyTag(encounter.shiny)} ${ENCOUNTER_MESSAGES.appeared}`
 }
 
 const encounterSpriteFile = (encounter) => {
   if (encounter.kind === 'trainer' && encounter.trainer.sprite)
     return trainerSpriteFile(encounter.trainer.sprite)
 
-  return spriteFile('front', encounterSpecies(encounter), 'png')
+  return monSpriteFile('front', encounterSpecies(encounter), encounter.shiny)
 }
 
 const pushEncounterField = (lines, ctx, encounter, size) => {
@@ -232,7 +233,7 @@ export const draw = (ctx, size) => {
 
       const level = `${dim(`Lv${levelOf(mon)}`)}${evolutionTag(mon)}`
 
-      return `${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${padRight(level, MON_LEVEL_WIDTH)} ${hpBar(
+      return `${padRight(`${name}${genderTag(genderOf(mon))}${shinyTag(mon.shiny)}`, MON_NAME_WIDTH)} ${padRight(level, MON_LEVEL_WIDTH)} ${hpBar(
         mon.hp,
         mon.stats.hp,
         10,

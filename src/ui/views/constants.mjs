@@ -107,6 +107,7 @@ export const DEX_MESSAGES = {
   notCaught: 'Seen, but not yet caught.',
   fillItIn: 'Catch one to fill in its entry.',
   noData: 'No data.',
+  shinyCaught: 'A shiny one is in your collection',
 }
 
 export const EVOLUTION_WORDING = {

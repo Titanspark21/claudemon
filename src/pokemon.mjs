@@ -1,7 +1,8 @@
-import { AILMENT_IMMUNE_TYPES } from './constants.mjs'
+import { AILMENT_IMMUNE_TYPES, SHINY_ODDS } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
 import { expForLevel, levelFromExp } from './exp.mjs'
 import { movesAtLevel } from './learnset.mjs'
+import { chance } from './rng.mjs'
 import { rollIvs, statsAtLevel } from './stats.mjs'
 
 export const makeMoveSlot = (name) => {
@@ -10,13 +11,15 @@ export const makeMoveSlot = (name) => {
   return { move: name, pp: data.pp, maxPp: data.pp }
 }
 
-export const createPokemon = (speciesId, level, rng, nickname = null) => {
+export const rollShiny = (rng) => chance(rng, SHINY_ODDS)
+
+export const createPokemon = (speciesId, level, rng, shiny = false) => {
   const ivs = rollIvs(rng)
   const stats = statsAtLevel(speciesId, level, ivs)
 
   return {
     species: speciesId,
-    nickname,
+    nickname: null,
     exp: expForLevel(speciesId, level),
     ivs,
     stats,
@@ -24,6 +27,7 @@ export const createPokemon = (speciesId, level, rng, nickname = null) => {
     moves: movesAtLevel(speciesId, level).map(makeMoveSlot),
     status: null,
     statusTurns: 0,
+    shiny,
   }
 }
 

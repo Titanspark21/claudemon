@@ -349,7 +349,20 @@ test('Should meet a certain encounter once per step, and have it look like one',
     )
     expect(one.seed).toBeGreaterThanOrEqual(0)
     expect(one.seed).toBeLessThanOrEqual(0xffffffff)
+    expect(one.shiny, 'an ordinary walk turns up ordinary colours').toBe(false)
   }
+})
+
+test('Should hand the encounter its shiny colours when the rare draw lands', () => {
+  const [one] = rollEncounters({
+    steps: 1,
+    leadLevel: 10,
+    rng: lowest,
+    config: ALWAYS,
+    species: PIKACHU_ONLY,
+  })
+
+  expect(one.shiny, 'the lowest draw there is clears any odds').toBe(true)
 })
 
 test('Should send out of the grass something worth fighting at your level', () => {

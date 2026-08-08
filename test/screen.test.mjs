@@ -22,7 +22,12 @@ import { draw as drawGym } from '../src/ui/views/gym.mjs'
 import { draw as drawGyms } from '../src/ui/views/gyms.mjs'
 import { DEFAULT_CONFIG } from '../src/constants.mjs'
 import { itemsInBag } from '../src/shop.mjs'
-import { MIN_CANVAS_COLS, NATIVE_CANVAS_COLS } from '../src/ui/constants.mjs'
+import {
+  MIN_CANVAS_COLS,
+  NATIVE_CANVAS_COLS,
+  SHINY_MARK,
+} from '../src/ui/constants.mjs'
+import { DEX_MESSAGES } from '../src/ui/views/constants.mjs'
 import { BLOCK_GRIDS, blockRows, fitCanvasCols } from '../src/ui/sprite.mjs'
 import { genderTag, hpBar } from '../src/ui/widgets.mjs'
 import { CURSOR, gray, RESET, SCREEN_CODES } from '../src/ui/ansi.mjs'
@@ -747,7 +752,7 @@ const POKEMON = {
 const BATTLE_SAVE = {
   trainer: 'X',
   money: 0,
-  dex: { caught: [], seen: [] },
+  dex: { caught: [], seen: [], shiny: [] },
   bag: { 'poke-ball': 3 },
   party: [POKEMON],
   box: [],
@@ -939,7 +944,7 @@ test('Should wear a ball on a foe already in the Pokedex, and none on a new one'
   const owned = nameRow(
     {
       ...BATTLE_CTX,
-      save: { ...BATTLE_SAVE, dex: { caught: [143], seen: [] } },
+      save: { ...BATTLE_SAVE, dex: { caught: [143], seen: [], shiny: [] } },
     },
     size,
   )
@@ -951,7 +956,7 @@ test('Should wear a ball on a foe already in the Pokedex, and none on a new one'
   const other = nameRow(
     {
       ...BATTLE_CTX,
-      save: { ...BATTLE_SAVE, dex: { caught: [4, 25], seen: [] } },
+      save: { ...BATTLE_SAVE, dex: { caught: [4, 25], seen: [], shiny: [] } },
     },
     size,
   )
@@ -1007,7 +1012,7 @@ const MENU_SAVE = {
   money: 3000,
   bag: { 'poke-ball': 5, potion: 2, 'thunder-stone': 1 },
   badges: ['pewter'],
-  dex: { seen: [4, 25], caught: [4], faced: {} },
+  dex: { seen: [4, 25], caught: [4], shiny: [], faced: {} },
   party: [POKEMON, { ...POKEMON, species: 25 }],
   box: [{ ...POKEMON, species: 19 }],
   stats: {},
@@ -1230,7 +1235,7 @@ test('Should tell the two Nidoran apart in the Pokedex without their suffixes', 
       ...MENU_CTX,
       save: {
         ...MENU_SAVE,
-        dex: { seen: [29, 32], caught: [29], faced: {} },
+        dex: { seen: [29, 32], caught: [29], shiny: [], faced: {} },
       },
     },
     { cols: 100, rows: 40 },
@@ -1240,6 +1245,27 @@ test('Should tell the two Nidoran apart in the Pokedex without their suffixes', 
   expect(plain, 'the PokeAPI suffix is gone').not.toMatch(/Nidoran-[fm]/)
   expect(plain).toMatch(/Nidoran♀/)
   expect(plain).toMatch(/Nidoran♂/)
+})
+
+test('Should star the species you own a shiny of in the Pokedex and say so in its entry', () => {
+  const plain = drawDex(
+    {
+      ...MENU_CTX,
+      dexSelection: 3,
+      save: {
+        ...MENU_SAVE,
+        dex: { seen: [4, 25], caught: [4], shiny: [4], faced: {} },
+      },
+    },
+    { cols: 100, rows: 40 },
+  )
+    .lines.map(stripAnsi)
+    .join('\n')
+
+  expect(plain, 'the list marks it').toContain(`Charmander ${SHINY_MARK}`)
+  expect(plain, 'and the entry spells it out').toContain(
+    DEX_MESSAGES.shinyCaught,
+  )
 })
 
 test('Should say how many of one you have faced in the Pokedex, and stay quiet at none', () => {
@@ -1258,7 +1284,7 @@ test('Should say how many of one you have faced in the Pokedex, and stay quiet a
       dexSelection: 3,
       save: {
         ...MENU_SAVE,
-        dex: { seen: [4, 25], caught: [4], faced: { 4: 1 } },
+        dex: { seen: [4, 25], caught: [4], shiny: [], faced: { 4: 1 } },
       },
     },
     { cols: 100, rows: 40 },
@@ -1276,7 +1302,7 @@ test('Should say how many of one you have faced in the Pokedex, and stay quiet a
       dexSelection: 3,
       save: {
         ...MENU_SAVE,
-        dex: { seen: [4, 25], caught: [4], faced: { 4: 12, 25: 3 } },
+        dex: { seen: [4, 25], caught: [4], shiny: [], faced: { 4: 12, 25: 3 } },
       },
     },
     { cols: 100, rows: 40 },

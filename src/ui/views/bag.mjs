@@ -1,5 +1,5 @@
 import { ITEMS } from '../../constants.mjs'
-import { spriteFile } from '../../paths.mjs'
+import { monSpriteFile } from '../../paths.mjs'
 import { displayName, speciesName, stoneEvolution } from '../../pokemon.mjs'
 import { countOf, itemsInBag, usableOnParty } from '../../shop.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
@@ -74,9 +74,10 @@ export const draw = (ctx, size) => {
     width: LIST_WIDTH,
   })
 
-  const sprite = loadSprite(spriteFile('front', selected.species, 'png'), {
-    cols: fitCanvasCols(size, MON_SPRITE_RESERVED_ROWS, ctx.spriteScale),
-  })
+  const sprite = loadSprite(
+    monSpriteFile('front', selected.species, selected.shiny),
+    { cols: fitCanvasCols(size, MON_SPRITE_RESERVED_ROWS, ctx.spriteScale) },
+  )
   const spriteBlock = sprite ? sprite.rows : []
   const right = [...monDetail(selected), '', ...spriteBlock]
 

@@ -152,6 +152,7 @@ export const BALLS = {
 export const MAX_LEVEL = 100
 export const MOVE_LIMIT = 4
 export const IV_MAX = 31
+export const SHINY_ODDS = 1 / 4096
 export const EXP_DIVISOR = 7
 export const MONEY_PER_LEVEL = 12
 export const MONEY_JITTER_PER_LEVEL = 4
@@ -805,6 +806,15 @@ export const SOUNDS = {
       { hz: 440, ms: 34 },
     ],
   },
+
+  shiny: {
+    gain: 0.18,
+    notes: [
+      { hz: 1568, ms: 34 },
+      { hz: 2093, ms: 34 },
+      { hz: 2637, ms: 90 },
+    ],
+  },
 }
 
 export const HEARTBEAT_STALE_MS = 15_000
@@ -921,6 +931,7 @@ export const BATTLE_MESSAGES = {
   ],
   noRest: 'There is no rest while Claude works — your team stays down.',
   forgetting: '1, 2 and... poof!',
+  shiny: 'It sparkles with a strange light!',
 }
 
 export const HEARTBEAT_MS = 5000
