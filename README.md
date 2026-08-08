@@ -213,6 +213,25 @@ battle message. That is the whole scheme — it is the same everywhere.
 </tr>
 </table>
 
+## The trainer card
+
+```bash
+claudemon card
+```
+
+Writes `~/.claudemon/card.png`: your six, drawn at the size they deserve, over your
+name, the days you have been at it, the badges in the colour of the type that gave
+them, and the hours Claude has spent working while you played. `--out somewhere.png`
+puts it elsewhere.
+
+![The trainer card: six Pokémon in two rows of three, each with its name, level and
+health, under the trainer name and the Pokédex count, with the eight badges and the
+totals along the bottom](docs/card-team.png)
+
+The PNG is written by the game itself — the same pixel font and palette you see in
+the terminal, encoded with nothing but `node:zlib`. No browser, no canvas library,
+no dependency.
+
 ## What is in it
 
 - The original 151, with real base stats, types, catch rates and Red/Blue movesets.
