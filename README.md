@@ -192,7 +192,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 
 | Screen | What it does |
 |---|---|
-| Home | Whatever is in the grass and how long is left to face it, your team, and the menu |
+| Home | Whatever is in the grass and how long is left to face it, your team, and the menu. SHARE writes your trainer card and opens it |
 | Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP. The bag asks which of your team an item is for, so a Revive reaches somebody already down. A ◓ by the foe's name means it is already in your Pokédex |
 | Pokédex | All 151, with how many of each you have faced, and base stats and evolution requirements for the ones you caught. `s` toggles sort between number and A–Z |
 | Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box. `s` sorts by party order or level. `i` opens the bag on whoever the cursor is on: a potion between fights, and the evolution stones, which are used nowhere else. A ✦ on the team list marks a mon that evolves by stone; `→N` is the level it evolves at. In the bag, a ✦ still marks an item that would evolve the selected mon |
@@ -215,18 +215,22 @@ battle message. That is the whole scheme — it is the same everywhere.
 
 ## The trainer card
 
+**SHARE**, from the home menu. Or from a terminal, if you would rather not open the
+game:
+
 ```bash
 claudemon card
 ```
 
-Writes `~/.claudemon/card.png` and opens it in whatever your desktop shows PNGs in —
-Preview, the Photos viewer, an image viewer on Linux. Your six, drawn at the size
-they deserve, over your name, the days you have been at it, the badges in the colour
-of the type that gave them, and the hours Claude has spent working while you played.
-It says where it came from along the bottom, so the picture carries its own link.
+Either way it writes `~/.claudemon/card.png` and opens it in whatever shows PNGs on
+your desktop — Preview, the Photos viewer, an image viewer on Linux. Your six, drawn
+at the size they deserve, over your name, the days you have been at it, the badges in
+the colour of the type that gave them, and the hours Claude has spent working while
+you played. It says where it came from along the bottom, so the picture carries its
+own link.
 
-`--out somewhere.png` writes it elsewhere, and `--no-open` leaves the window shut,
-which is what you want from a script.
+The command takes `--out somewhere.png` to write it elsewhere, and `--no-open` to
+leave the window shut, which is what you want from a script.
 
 ![The trainer card: six Pokémon in two rows of three, each with its name, level and
 health, under the trainer name and the Pokédex count, with the eight badges and the

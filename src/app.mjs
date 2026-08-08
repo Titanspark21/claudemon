@@ -3,6 +3,7 @@ import {
   BAG_MESSAGES,
   BAG_MODES,
   BOX_MESSAGES,
+  CARD_WRITTEN_PREFIX,
   FRAMES_PER_SPIN,
   FRAMES_PER_STEP,
   GYM_MESSAGES,
@@ -42,8 +43,10 @@ import { applyItem } from './itemUse.mjs'
 import { describeStep } from './progression.mjs'
 import { createPokemon, displayName } from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
+import { CARD_FILE } from './paths.mjs'
 import { makeRng, randomSeed } from './rng.mjs'
 import { buy, itemsInBag, usableOnParty } from './shop.mjs'
+import { revealFile } from './reveal.mjs'
 import { play, startMusic, stopMusic } from './sound.mjs'
 import {
   activePokemon,
@@ -61,6 +64,7 @@ import {
 import { sentOutLine, trainerClass, trainerLabel } from './trainer.mjs'
 import { checkForUpdate, createUpdateRun, currentNotice } from './update.mjs'
 
+import { writeCard } from './ui/card.mjs'
 import * as bagView from './ui/views/bag.mjs'
 import * as battleView from './ui/views/battle.mjs'
 import * as boxView from './ui/views/box.mjs'
@@ -102,6 +106,8 @@ export const createApp = ({
   config,
   makeUpdateRun = createUpdateRun,
   playSound = play,
+  revealCard = revealFile,
+  saveCard = writeCard,
   playMusic = startMusic,
   endMusic = stopMusic,
 }) => {
@@ -305,6 +311,8 @@ export const createApp = ({
       return
     }
 
+    ctx.notice = null
+
     activeView(ctx).onKey(ctx, key)
     ctx.paint()
   }
@@ -402,11 +410,25 @@ export const createApp = ({
         ctx.persist()
         ctx.notice = HOME_NOTICES.healed
         break
+      case 'card':
+        ctx.exportCard()
+        break
       case 'quit':
         ctx.quit()
         break
       default:
         break
+    }
+  }
+
+  ctx.exportCard = () => {
+    try {
+      const path = saveCard(ctx.save, CARD_FILE)
+
+      revealCard(path)
+      ctx.notice = `${CARD_WRITTEN_PREFIX}${path}`
+    } catch {
+      ctx.notice = HOME_NOTICES.cardFailed
     }
   }
 

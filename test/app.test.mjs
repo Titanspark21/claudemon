@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import {
   existsSync,
   mkdirSync,
@@ -15,7 +15,8 @@ const sandbox = useSandboxHome('claudemon-app-')
 const { createApp } = await import('../src/app.mjs')
 const { endSession, writeActivity } = await import('../src/activity.mjs')
 const { loadConfig, spriteScale } = await import('../src/config.mjs')
-const { DEFAULT_CONFIG, GYM_MESSAGES } = await import('../src/constants.mjs')
+const { CARD_WRITTEN_PREFIX, DEFAULT_CONFIG, GYM_MESSAGES, HOME_NOTICES } =
+  await import('../src/constants.mjs')
 const { GYM_MESSAGES: GYM_SCREEN_MESSAGES } =
   await import('../src/ui/views/constants.mjs')
 const { isDataReady } = await import('../src/data.mjs')
@@ -792,7 +793,85 @@ test('Should leave the cursor on the entry it was on when an encounter times out
   expect(app.mode, 'there was nothing to fight, so HEAL is what ran').toBe(
     'home',
   )
-  expect(app.notice).toMatch(/full health/i)
+
+  const home = homeView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+
+  expect(home, 'and it says so on the screen').toMatch(/full health/i)
+})
+
+test('Should write the trainer card, hand it to the desktop and say where it landed', () => {
+  const revealCard = vi.fn()
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    revealCard,
+  })
+  const card = join(sandbox, 'card.png')
+
+  walkHomeTo(app, 'card')
+  press(app, 'enter')
+
+  const home = homeView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+
+  expect(existsSync(card), 'the PNG is on disk').toBe(true)
+  expect(revealCard).toHaveBeenCalledTimes(1)
+  expect(revealCard).toHaveBeenCalledWith(card)
+  expect(app.mode, 'sharing does not take you off the home screen').toBe('home')
+  expect(home, 'and the screen says where it went').toContain(
+    CARD_WRITTEN_PREFIX,
+  )
+})
+
+test('Should own up and open nothing when the card cannot be written', () => {
+  const revealCard = vi.fn()
+  const saveCard = vi.fn(() => {
+    throw new Error('EACCES')
+  })
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    revealCard,
+    saveCard,
+  })
+
+  walkHomeTo(app, 'card')
+  press(app, 'enter')
+
+  const home = homeView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+
+  expect(home).toContain(HOME_NOTICES.cardFailed)
+  expect(revealCard, 'nothing to open').not.toHaveBeenCalled()
+})
+
+test('Should drop the message the moment you press anything else', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    revealCard: vi.fn(),
+  })
+
+  walkHomeTo(app, 'card')
+  press(app, 'enter')
+  press(app, 'right')
+
+  const home = homeView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+
+  expect(home).not.toContain(CARD_WRITTEN_PREFIX)
 })
 
 test('Should pull a cursor left past the end of the menu back inside it', () => {
@@ -1559,6 +1638,7 @@ test('Should open each screen from the home menu and come back', () => {
     'gyms',
     'shop',
     'heal',
+    'card',
     'options',
     'quit',
   ])

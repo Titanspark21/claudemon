@@ -33,6 +33,7 @@ export const BASE_MENU = [
   { id: 'gyms', label: 'GYM' },
   { id: 'shop', label: 'SHOP' },
   { id: 'heal', label: 'HEAL' },
+  { id: 'card', label: 'SHARE' },
   { id: 'options', label: 'OPTION' },
   { id: 'quit', label: 'QUIT' },
 ]

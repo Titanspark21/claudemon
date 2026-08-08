@@ -884,6 +884,7 @@ export const HOME_NOTICES = {
   working: 'Not while Claude is working — rest when it does.',
   healed: 'Your team and box are back to full health.',
   wipedOut: 'Your whole team has fainted. Heal before heading out.',
+  cardFailed: 'The trainer card could not be written.',
 }
 
 export const BOX_MESSAGES = {
