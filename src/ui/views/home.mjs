@@ -14,7 +14,7 @@ import { VERSION } from '../../version.mjs'
 import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
 import { bandRows, bandScale, grassLines } from '../grass.mjs'
 import { fitCanvasCols, loadSprite, placeSprite } from '../sprite.mjs'
-import { visibleLength } from '../text.mjs'
+import { truncate, visibleLength } from '../text.mjs'
 import {
   centre,
   elapsed,
@@ -247,6 +247,8 @@ export const draw = (ctx, size) => {
   const rest = restRow(ctx)
 
   if (rest) lines.push(` ${rest}`)
+
+  if (ctx.notice) lines.push(` ${dim(truncate(ctx.notice, width))}`)
 
   const items = menuItems(ctx)
   const labels = items.map((item) =>
