@@ -272,5 +272,6 @@ export const GENDER_MARKS = {
   female: ['♀', [240, 128, 168]],
 }
 
+export const SHINY_MARK = '✧'
 export const EVOLVES_MARK = '✦'
 export const LEVEL_EVO_PREFIX = '→'

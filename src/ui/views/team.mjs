@@ -1,5 +1,5 @@
 import { PARTY_LIMIT } from '../../constants.mjs'
-import { spriteFile } from '../../paths.mjs'
+import { monSpriteFile } from '../../paths.mjs'
 import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
@@ -9,6 +9,7 @@ import {
   genderTag,
   menuList,
   padRight,
+  shinyTag,
   withFooter,
   wrap,
 } from '../widgets.mjs'
@@ -39,7 +40,7 @@ const partyRow = (mon, partyIndex) => {
     : displayName(mon).toUpperCase()
   const leadMark = partyIndex === 0 ? brightYellow(LEAD_MARK) : ' '
 
-  return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${evolutionTag(mon)}`
+  return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}${shinyTag(mon.shiny)}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${evolutionTag(mon)}`
 }
 
 export const draw = (ctx, size) => {
@@ -78,9 +79,10 @@ export const draw = (ctx, size) => {
     width: LIST_WIDTH,
   })
 
-  const sprite = loadSprite(spriteFile('front', selected.species, 'png'), {
-    cols: fitCanvasCols(size, MON_SPRITE_RESERVED_ROWS, ctx.spriteScale),
-  })
+  const sprite = loadSprite(
+    monSpriteFile('front', selected.species, selected.shiny),
+    { cols: fitCanvasCols(size, MON_SPRITE_RESERVED_ROWS, ctx.spriteScale) },
+  )
   const spriteBlock = sprite ? sprite.rows : []
   const right = [...monDetail(selected), '', ...spriteBlock]
 

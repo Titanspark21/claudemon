@@ -73,6 +73,20 @@ export const spriteFile = (side, id, ext) => {
   return join(SPRITES_DIR, side, `${id}.${ext}`)
 }
 
+export const shinySpriteFile = (side, id, ext) => {
+  return join(SPRITES_DIR, side, 'shiny', `${id}.${ext}`)
+}
+
+export const monSpriteFile = (side, id, shiny) => {
+  if (!shiny) return spriteFile(side, id, 'png')
+
+  const rare = shinySpriteFile(side, id, 'png')
+
+  if (existsSync(rare)) return rare
+
+  return spriteFile(side, id, 'png')
+}
+
 export const trainerSpriteFile = (name) => {
   return join(TRAINER_SPRITES_DIR, `${name}.png`)
 }

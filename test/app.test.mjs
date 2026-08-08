@@ -15,7 +15,8 @@ const sandbox = useSandboxHome('claudemon-app-')
 const { createApp } = await import('../src/app.mjs')
 const { endSession, writeActivity } = await import('../src/activity.mjs')
 const { loadConfig, spriteScale } = await import('../src/config.mjs')
-const { DEFAULT_CONFIG, GYM_MESSAGES } = await import('../src/constants.mjs')
+const { BATTLE_MESSAGES, DEFAULT_CONFIG, GYM_MESSAGES } =
+  await import('../src/constants.mjs')
 const { GYM_MESSAGES: GYM_SCREEN_MESSAGES } =
   await import('../src/ui/views/constants.mjs')
 const { isDataReady } = await import('../src/data.mjs')
@@ -26,7 +27,7 @@ const { createSave, loadSave } = await import('../src/state.mjs')
 const { createPokemon, makeMoveSlot } = await import('../src/pokemon.mjs')
 const { ballsInBag, countOf, itemsInBag, SHOP_STOCK } =
   await import('../src/shop.mjs')
-const { HIT_FRAMES } = await import('../src/ui/constants.mjs')
+const { HIT_FRAMES, SHINY_MARK } = await import('../src/ui/constants.mjs')
 const { SETTINGS } = await import('../src/ui/views/options.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
 const battleView = await import('../src/ui/views/battle.mjs')
@@ -167,6 +168,7 @@ const queueEncounter = (app, encounter) => {
     name: encounter.name,
     level: encounter.level,
     seed: encounter.seed,
+    shiny: encounter.shiny,
     at: encounter.at,
   })
 
@@ -513,6 +515,46 @@ test('Should show the trainer in the grass and on the field until they send thei
     sentOut.slice(2, 9).join('\n'),
     'the field changed hands, not just the header',
   ).not.toBe(intro.slice(2, 9).join('\n'))
+})
+
+test('Should star a shiny in the grass, sound it out and say so in the battle', () => {
+  const played = []
+  const playSound = (name) => played.push(name)
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playSound,
+  })
+
+  queueEncounter(app, {
+    species: 10,
+    name: 'Caterpie',
+    level: 3,
+    seed: 5,
+    shiny: true,
+  })
+
+  const grass = homeView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+
+  expect(grass, 'the grass shows what it is').toContain(
+    `CATERPIE ${SHINY_MARK}`,
+  )
+  expect(played, 'a shiny is worth a sound of its own').toEqual(['shiny'])
+
+  press(app, 'enter')
+
+  expect(
+    app.battle.state.foe.mon.shiny,
+    'the one you face is the one that appeared',
+  ).toBe(true)
+
+  press(app, 'enter')
+
+  expect(app.battle.message).toBe(BATTLE_MESSAGES.shiny)
 })
 
 test('Should keep the fallen Pokémon on screen until the trainer announces the next one', () => {

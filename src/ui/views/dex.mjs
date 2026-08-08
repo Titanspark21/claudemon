@@ -1,6 +1,6 @@
 import { STAT_NAMES } from '../../constants.mjs'
 import { loadData, species } from '../../data.mjs'
-import { spriteFile } from '../../paths.mjs'
+import { monSpriteFile } from '../../paths.mjs'
 import { speciesGender, speciesName } from '../../pokemon.mjs'
 import { timesFaced } from '../../state.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
@@ -10,6 +10,7 @@ import {
   hpBar,
   menuList,
   padRight,
+  shinyTag,
   typeBadge,
   withFooter,
   wrap,
@@ -51,6 +52,7 @@ export const draw = (ctx, size) => {
   const selected = dex[ctx.dexSelection]
   const caught = ctx.save.dex.caught.includes(selected.id)
   const seen = caught || ctx.save.dex.seen.includes(selected.id)
+  const shiny = ctx.save.dex.shiny.includes(selected.id)
 
   const detailLeft = DEX_LIST_WIDTH + DEX_DETAIL_GAP
   const sortLabel = DEX_SORT_LABELS[ctx.dexSort]
@@ -68,7 +70,9 @@ export const draw = (ctx, size) => {
     const isSeen = isCaught || ctx.save.dex.seen.includes(mon.id)
     const mark = dexMark(isCaught, isSeen)
     const name = isSeen
-      ? `${speciesName(mon.id)}${genderTag(speciesGender(mon.id))}`
+      ? `${speciesName(mon.id)}${genderTag(speciesGender(mon.id))}${shinyTag(
+          ctx.save.dex.shiny.includes(mon.id),
+        )}`
       : gray(DEX_UNKNOWN_NAME)
 
     return `${number} ${mark} ${name}`
@@ -87,7 +91,7 @@ export const draw = (ctx, size) => {
     detail.push(
       `${bold(speciesName(selected.id).toUpperCase())}${genderTag(
         speciesGender(selected.id),
-      )}  ${dim(`#${String(selected.id).padStart(3, '0')}`)}`,
+      )}${shinyTag(shiny)}  ${dim(`#${String(selected.id).padStart(3, '0')}`)}`,
     )
     detail.push(selected.types.map(typeBadge).join(' '))
 
@@ -95,6 +99,8 @@ export const draw = (ctx, size) => {
 
     if (faced > 0)
       detail.push(dim(`Faced ${faced === 1 ? 'once' : `${faced} times`}`))
+
+    if (shiny) detail.push(dim(DEX_MESSAGES.shinyCaught))
 
     detail.push('')
 
@@ -130,7 +136,7 @@ export const draw = (ctx, size) => {
   }
 
   const sprite = seen
-    ? loadSprite(spriteFile('front', selected.id, 'png'), {
+    ? loadSprite(monSpriteFile('front', selected.id, shiny), {
         cols: Math.min(
           fitCanvasCols(size, DEX_SPRITE_RESERVED_ROWS, ctx.spriteScale),
           (cols - detailLeft - 4) * 2,

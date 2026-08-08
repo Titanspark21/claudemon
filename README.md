@@ -194,7 +194,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 |---|---|
 | Home | Whatever is in the grass and how long is left to face it, your team, and the menu |
 | Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP. The bag asks which of your team an item is for, so a Revive reaches somebody already down. A ◓ by the foe's name means it is already in your Pokédex |
-| Pokédex | All 151, with how many of each you have faced, and base stats and evolution requirements for the ones you caught. `s` toggles sort between number and A–Z |
+| Pokédex | All 151, with how many of each you have faced, and base stats and evolution requirements for the ones you caught. A ✧ marks the ones you caught shiny, and their entry is drawn in those colours. `s` toggles sort between number and A–Z |
 | Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box. `s` sorts by party order or level. `i` opens the bag on whoever the cursor is on: a potion between fights, and the evolution stones, which are used nowhere else. A ✦ on the team list marks a mon that evolves by stone; `→N` is the level it evolves at. In the bag, a ✦ still marks an item that would evolve the selected mon |
 | Box | Everything you caught with a full team, reached with `b` from the team screen. `s` sorts by catch order or level. `enter` takes one back into the team |
 | Gym | The eight Kanto gyms, each one type, listed easiest first with the level range its trainers bring and the badge you have or have not won. `enter` walks in |
@@ -219,6 +219,9 @@ battle message. That is the whole scheme — it is the same everywhere.
 - Battles with critical hits, the type chart, status conditions, PP, one-hit KOs,
   fleeing and switching Pokémon mid-fight.
 - Catching, where weakening and status genuinely help.
+- Shiny Pokémon, at the same 1 in 4096 the modern games use. One in the grass gets
+  its own colours, a ✧ by its name, a sound and a line of its own when the battle
+  opens — and the Pokédex remembers the ones you caught shiny.
 - Levelling, learning moves, and evolution by level or by stone.
 - A Pokédex tracking seen and caught separately and counting how many of each you
   have faced, a team screen with the box behind it and the bag inside it, and a shop.

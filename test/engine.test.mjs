@@ -3,7 +3,7 @@ import { expect, test } from 'vitest'
 import { isDataReady, move as moveOf, species } from '../src/data.mjs'
 import { effectiveness } from '../src/typechart.mjs'
 import { expForLevel, expFromTrainerMon } from '../src/exp.mjs'
-import { TRAINER_MESSAGES } from '../src/constants.mjs'
+import { SHINY_ODDS, TRAINER_MESSAGES } from '../src/constants.mjs'
 import { statsAtLevel } from '../src/stats.mjs'
 import { attemptCatch, catchValue } from '../src/capture.mjs'
 import {
@@ -17,6 +17,7 @@ import {
   levelUpEvolution,
   pendingEvolution,
   refreshStats,
+  rollShiny,
   speciesGender,
   speciesName,
 } from '../src/pokemon.mjs'
@@ -83,6 +84,16 @@ test('Should hand back a created Pokemon ready to battle, at full health with fu
   expect(charmander.hp).toBe(charmander.stats.hp)
   expect(charmander.moves.length).toBeGreaterThanOrEqual(1)
   expect(charmander.moves.every((slot) => slot.pp === slot.maxPp)).toBe(true)
+  expect(charmander.shiny, 'ordinary colours unless told otherwise').toBe(false)
+})
+
+test('Should keep shiny colours to the rare draw and stamp them on the Pokemon', () => {
+  expect(rollShiny(() => 0)).toBe(true)
+  expect(
+    rollShiny(() => SHINY_ODDS),
+    'the odds are the cutoff',
+  ).toBe(false)
+  expect(createPokemon(4, 5, makeRng(42), true).shiny).toBe(true)
 })
 
 test('Should add the HP gained on levelling up rather than healing the damage', () => {

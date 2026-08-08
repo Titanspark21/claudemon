@@ -5,6 +5,7 @@ import { gymRoster } from '../src/gym.mjs'
 import {
   SPRITES_DIR,
   TRAINER_SPRITES_DIR,
+  shinySpriteFile,
   spriteFile,
   trainerSpriteFile,
 } from '../src/paths.mjs'
@@ -20,17 +21,34 @@ import {
 } from './constants.mjs'
 
 const SIDES = [
-  { name: 'front', url: (id) => `${SPRITE_BASE_URL}/${id}.png` },
-  { name: 'back', url: (id) => `${SPRITE_BASE_URL}/back/${id}.png` },
+  { name: 'front', path: '' },
+  { name: 'back', path: 'back/' },
 ]
+
+const VARIANTS = [
+  { shiny: false, path: '', label: '' },
+  { shiny: true, path: 'shiny/', label: 'shiny/' },
+]
+
+const spriteDestination = (side, shiny, id) => {
+  if (shiny) return shinySpriteFile(side, id, 'png')
+
+  return spriteFile(side, id, 'png')
+}
+
+const spriteJob = (side, variant, id) => {
+  return {
+    label: `${side.name}/${variant.label}${id}.png`,
+    url: `${SPRITE_BASE_URL}/${side.path}${variant.path}${id}.png`,
+    destination: spriteDestination(side.name, variant.shiny, id),
+  }
+}
 
 const pokemonJobs = (ids) => {
   return ids.flatMap((id) =>
-    SIDES.map((side) => ({
-      label: `${side.name}/${id}.png`,
-      url: side.url(id),
-      destination: spriteFile(side.name, id, 'png'),
-    })),
+    SIDES.flatMap((side) =>
+      VARIANTS.map((variant) => spriteJob(side, variant, id)),
+    ),
   )
 }
 
@@ -87,7 +105,7 @@ const main = async () => {
       : Array.from({ length: KANTO }, (_, i) => i + 1)
 
   for (const side of SIDES)
-    mkdirSync(join(SPRITES_DIR, side.name), { recursive: true })
+    mkdirSync(join(SPRITES_DIR, side.name, 'shiny'), { recursive: true })
 
   mkdirSync(TRAINER_SPRITES_DIR, { recursive: true })
 

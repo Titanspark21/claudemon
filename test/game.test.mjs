@@ -91,7 +91,12 @@ test('Should fill in the fields a save is missing rather than failing to load it
   const loaded = loadSave()
 
   expect(loaded.box).toEqual([])
-  expect(loaded.dex).toStrictEqual({ seen: [4], caught: [4], faced: {} })
+  expect(loaded.dex).toStrictEqual({
+    seen: [4],
+    caught: [4],
+    shiny: [],
+    faced: {},
+  })
   expect(loaded.stats).toStrictEqual(EMPTY_STATS)
   expect(loaded.money, 'a save from before money starts at nothing').toBe(0)
   expect(loaded.party, 'the team survives the migration').toHaveLength(1)
@@ -119,6 +124,23 @@ test('Should put a caught Pokemon in the party until it is full, then in the box
 
   expect(addPokemon(save, createPokemon(19, 5, makeRng(99)))).toBe('box')
   expect(save.box).toHaveLength(1)
+})
+
+test('Should give a caught shiny its own Pokedex entry, and keep it across a save', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
+  addPokemon(save, createPokemon(16, 5, makeRng(1)))
+  addPokemon(save, createPokemon(19, 5, makeRng(2), true))
+
+  expect(save.dex.caught, 'both count as caught').toEqual([4, 16, 19])
+  expect(save.dex.shiny, 'only the rare one is starred').toEqual([19])
+
+  saveGame(save)
+
+  expect(
+    loadSave().dex.shiny,
+    'a shiny is not lost on the way to disk',
+  ).toEqual([19])
 })
 
 test('Should hand a Pokemon back out of the box once there is room for it', () => {

@@ -8,6 +8,7 @@ import {
   genderTag,
   hpBar,
   padRight,
+  shinyTag,
   statusTag,
   typeBadge,
 } from './widgets.mjs'
@@ -16,7 +17,9 @@ export const monDetail = (mon) => {
   const lines = []
 
   lines.push(
-    `${bold(displayName(mon).toUpperCase())}${genderTag(genderOf(mon))} ${dim(
+    `${bold(displayName(mon).toUpperCase())}${genderTag(
+      genderOf(mon),
+    )}${shinyTag(mon.shiny)} ${dim(
       `Lv${levelOf(mon)}`,
     )}${evolutionTag(mon)} ${statusTag(mon.status)}`,
   )
