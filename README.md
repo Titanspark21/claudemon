@@ -215,30 +215,10 @@ battle message. That is the whole scheme — it is the same everywhere.
 
 ## The trainer card
 
-**SHARE**, from the home menu. Or from a terminal, if you would rather not open the
-game:
-
-```bash
-claudemon card
-```
-
-Either way it writes `~/.claudemon/card.png` and opens it in whatever shows PNGs on
-your desktop — Preview, the Photos viewer, an image viewer on Linux. Your six, drawn
-at the size they deserve, over your name, the days you have been at it, the badges in
-the colour of the type that gave them, and the hours Claude has spent working while
-you played. It says where it came from along the bottom, so the picture carries its
-own link.
-
-The command takes `--out somewhere.png` to write it elsewhere, and `--no-open` to
-leave the window shut, which is what you want from a script.
-
-![The trainer card: six Pokémon in two rows of three, each with its name, level and
-health, under the trainer name and the Pokédex count, with the eight badges and the
-totals along the bottom](docs/card-team.png)
-
-The PNG is written by the game itself — the same pixel font and palette you see in
-the terminal, encoded with nothing but `node:zlib`. No browser, no canvas library,
-no dependency.
+**SHARE**, from the home menu, or `claudemon card` from a terminal: your six drawn to
+`~/.claudemon/card.png`, with your badges and the hours Claude has worked while you
+played, opened in whatever shows PNGs on your desktop. There is more about it, and a
+picture of one, [on the site](https://zamarrowski.github.io/claudemon/#card).
 
 ## What is in it
 

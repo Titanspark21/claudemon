@@ -286,6 +286,7 @@
     <a class="name" href="#">claudemon</a>
     <nav>
       <a href="#screens">Screens</a>
+      <a href="#card">Card</a>
       <a href="#install">Install</a>
       <a href="#inside">Inside</a>
       <a href="https://github.com/zamarrowski/claudemon">GitHub</a>
@@ -391,6 +392,25 @@
       <img src="team.png" width="1184" height="782" alt="The team screen: five Pokémon listed on the left, and Ditto on the right with its health, experience, stats and moves" loading="lazy">
       <figcaption><b>Team</b> — details, moves, experience, <code>enter</code> to change your lead, and the box behind it.</figcaption>
     </figure>
+  </section>
+
+  <section id="card">
+    <h2>The trainer card</h2>
+    <p class="lede">Your six, drawn at the size they deserve, over your name, the days you have been at it, the badges in the colour of the type that gave them, and the hours Claude has spent working while you played.</p>
+
+    <figure>
+      <img src="card-team.png" width="1200" height="858" alt="The trainer card: six Pokémon in two rows of three, each with its name, level and health bar, under the trainer name, the days played and the Pokédex count, with the eight badges and the totals along the bottom" loading="lazy">
+      <figcaption><b>SHARE</b>, from the home menu — it writes the card, opens it, and leaves you on the screen you were on. The line along the bottom means the picture carries its own way back here.</figcaption>
+    </figure>
+
+    <p>Or from a terminal, if you would rather not open the game. <code>--out somewhere.png</code> writes it elsewhere, <code>--no-open</code> leaves the window shut.</p>
+
+    <div class="code">
+<pre>claudemon card</pre>
+      <button type="button" aria-label="Copy the card command">COPY</button>
+    </div>
+
+    <p class="dim">Either way it lands in <code>~/.claudemon/card.png</code> and opens in whatever shows PNGs on your desktop. The game writes the file itself — the same pixel font and palette you see in the terminal, encoded with nothing but <code>node:zlib</code>. No browser, no canvas library, no dependency.</p>
   </section>
 
   <section id="install">
