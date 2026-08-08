@@ -25,15 +25,26 @@ import {
 } from './pokemon.mjs'
 import { writeStatus } from './status.mjs'
 import { countOfKind } from './shop.mjs'
+import { advanceStreak } from './streak.mjs'
 import {
   transformRequestSaveGame,
   transformResponseSave,
 } from './transformers.mjs'
 
+export const recordPlayday = (save, now = Date.now()) => {
+  const next = advanceStreak(save.stats, now)
+
+  if (next.lastPlayedAt === save.stats.lastPlayedAt) return false
+
+  save.stats.streak = next.streak
+  save.stats.lastPlayedAt = next.lastPlayedAt
+
+  return true
+}
+
 export const createSave = ({ trainer, starterId, rng }) => {
   const starter = createPokemon(starterId, STARTER_LEVEL, rng)
-
-  return {
+  const save = {
     version: SAVE_VERSION,
     trainer: { name: trainer, startedAt: new Date().toISOString() },
     party: [starter],
@@ -44,6 +55,10 @@ export const createSave = ({ trainer, starterId, rng }) => {
     dex: { seen: [starterId], caught: [starterId], faced: {} },
     stats: { ...EMPTY_STATS, caught: STARTER_CAUGHT_COUNT },
   }
+
+  recordPlayday(save)
+
+  return save
 }
 
 export const hasBadge = (save, gymId) => save.badges.includes(gymId)

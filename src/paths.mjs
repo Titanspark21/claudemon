@@ -27,6 +27,8 @@ export const QUEUE_FILE = join(HOME, 'queue.jsonl')
 
 export const STATUS_FILE = join(HOME, 'status.json')
 
+export const WORKED_FILE = join(HOME, 'worked.json')
+
 export const SESSIONS_DIR = join(HOME, 'sessions')
 
 export const CONFIG_FILE = join(HOME, 'config.json')

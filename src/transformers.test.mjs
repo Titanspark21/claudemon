@@ -6,6 +6,7 @@ import {
   transformRequestWriteEncounter,
   transformRequestWriteStatus,
   transformRequestWriteUpdateState,
+  transformRequestWriteWorked,
   transformResponseActivity,
   transformResponseConfig,
   transformResponseEncounter,
@@ -13,6 +14,7 @@ import {
   transformResponseSave,
   transformResponseStatus,
   transformResponseUpdateState,
+  transformResponseWorked,
 } from './transformers.mjs'
 
 const rawSave = {
@@ -49,7 +51,15 @@ const rawSave = {
   money: 3000,
   badges: ['pewter', 'cerulean'],
   dex: { seen: [4, 19], caught: [4], faced: { 19: 2 } },
-  stats: { battles: 3, wins: 2, losses: 1, caught: 1, runs: 0 },
+  stats: {
+    battles: 3,
+    wins: 2,
+    losses: 1,
+    caught: 1,
+    runs: 0,
+    streak: 6,
+    lastPlayedAt: '2026-08-08T09:00:00.000Z',
+  },
   cheatMode: true,
 }
 
@@ -76,6 +86,8 @@ test('Should map every field of a save on the way in and drop the rest', () => {
     losses: 1,
     caught: 1,
     runs: 0,
+    streak: 6,
+    lastPlayedAt: '2026-08-08T09:00:00.000Z',
   })
 })
 
@@ -112,6 +124,8 @@ test('Should give a save written before a field existed an empty one instead', (
     losses: 0,
     caught: 0,
     runs: 0,
+    streak: 0,
+    lastPlayedAt: null,
   })
 
   expect(transformResponseSave({ version: 1 }).party).toEqual([])
@@ -162,6 +176,38 @@ test('Should keep a field the game attached during play out of the save file', (
 
   expect(written.battle).toBeUndefined()
   expect(written.party[0].flashing).toBeUndefined()
+})
+
+test('Should map the worked ledger to the total and when it last moved', () => {
+  const worked = transformResponseWorked({
+    totalMs: 1_800_000,
+    updatedAt: '2026-08-08T09:00:00.000Z',
+    session: 'abc',
+  })
+
+  expect(worked).toEqual({
+    totalMs: 1_800_000,
+    updatedAt: '2026-08-08T09:00:00.000Z',
+  })
+  expect(worked.session).toBeUndefined()
+})
+
+test('Should read a ledger written before a field existed as an empty total', () => {
+  expect(transformResponseWorked({})).toEqual({
+    totalMs: 0,
+    updatedAt: null,
+  })
+  expect(transformResponseWorked(null)).toBeNull()
+})
+
+test('Should write the worked ledger with the same two fields', () => {
+  const written = transformRequestWriteWorked({
+    totalMs: 60_000,
+    updatedAt: '2026-08-08T09:00:00.000Z',
+    session: 'abc',
+  })
+
+  expect(Object.keys(written).sort()).toEqual(['totalMs', 'updatedAt'])
 })
 
 test('Should map a status to the lead, the counters and the heartbeat', () => {

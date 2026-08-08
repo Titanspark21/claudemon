@@ -290,6 +290,8 @@ export const EMPTY_STATS = {
   losses: 0,
   caught: 0,
   runs: 0,
+  streak: 0,
+  lastPlayedAt: null,
 }
 
 export const STARTER_CAUGHT_COUNT = 1
@@ -322,6 +324,10 @@ export const DEFAULT_CONFIG = {
 
   probeRows: null,
 }
+
+export const DAY_MS = 24 * 60 * 60_000
+
+export const EMPTY_WORKED = { totalMs: 0, updatedAt: null }
 
 export const STALE_MS = 30 * 60_000
 export const PRUNE_MS = 24 * 60 * 60_000

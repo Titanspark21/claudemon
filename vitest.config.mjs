@@ -14,9 +14,9 @@ export default defineConfig({
       exclude: ['**/*.test.mjs'],
       reporter: ['text', 'html', 'json-summary'],
       thresholds: {
-        statements: 94.4,
-        branches: 86.9,
-        functions: 95,
+        statements: 94.5,
+        branches: 87.1,
+        functions: 95.1,
         lines: 95.7,
       },
     },
