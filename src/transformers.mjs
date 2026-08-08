@@ -49,6 +49,12 @@ const mapAchievement = (achievement) => {
   }
 }
 
+const mapTrades = (trades) => {
+  return {
+    received: trades?.received ?? [],
+  }
+}
+
 const mapSave = (save) => {
   return {
     version: save.version,
@@ -63,6 +69,7 @@ const mapSave = (save) => {
     achievements: save.achievements
       ? save.achievements.map(mapAchievement)
       : [],
+    trades: mapTrades(save.trades),
   }
 }
 
@@ -245,3 +252,41 @@ export const transformResponseUpdateState = (state) => {
 }
 
 export const transformRequestWriteUpdateState = (state) => mapUpdateState(state)
+
+const mapTradeMon = (mon) => {
+  return {
+    species: mon.species,
+    nickname: mon.nickname,
+    exp: mon.exp,
+    ivs: mon.ivs,
+    hp: mon.hp,
+    moves: mon.moves.map(mapMoveSlot),
+    status: mon.status,
+    statusTurns: mon.statusTurns,
+    shiny: mon.shiny ?? false,
+  }
+}
+
+const mapTradeOrigin = (from) => {
+  return {
+    name: from.name,
+    at: from.at,
+  }
+}
+
+const mapTrade = (trade) => {
+  return {
+    v: trade.v,
+    id: trade.id,
+    mon: mapTradeMon(trade.mon),
+    from: mapTradeOrigin(trade.from),
+  }
+}
+
+export const transformResponseTrade = (trade) => {
+  if (!trade) return null
+
+  return mapTrade(trade)
+}
+
+export const transformRequestTrade = (trade) => mapTrade(trade)

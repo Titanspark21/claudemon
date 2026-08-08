@@ -26,6 +26,17 @@ export const visibleLength = (text) => {
   return width
 }
 
+export const chunk = (text, width) => {
+  if (width < 1) return [text]
+
+  const rows = []
+
+  for (let start = 0; start < text.length; start += width)
+    rows.push(text.slice(start, start + width))
+
+  return rows
+}
+
 export const truncate = (text, maxWidth) => {
   if (visibleLength(text) <= maxWidth) return text
 

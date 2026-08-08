@@ -12,6 +12,7 @@ import {
   GYM_MESSAGES,
   HOME_NOTICES,
   ITEMS,
+  TRADE_MESSAGES,
   TRAINER_MESSAGES,
 } from './constants.mjs'
 import { species } from './data.mjs'
@@ -47,6 +48,14 @@ import { describeStep } from './progression.mjs'
 import { createPokemon, displayName } from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { CARD_FILE } from './paths.mjs'
+import { copyToClipboard } from './clipboard.mjs'
+import {
+  canGiveAway,
+  decodeTrade,
+  giveAway,
+  takeIn,
+  writeTradeCode,
+} from './trade.mjs'
 import { makeRng, randomSeed } from './rng.mjs'
 import { buy, itemsInBag, usableOnParty } from './shop.mjs'
 import { revealFile } from './reveal.mjs'
@@ -80,6 +89,7 @@ import * as optionsView from './ui/views/options.mjs'
 import * as shopView from './ui/views/shop.mjs'
 import * as starterView from './ui/views/starter.mjs'
 import * as teamView from './ui/views/team.mjs'
+import * as tradeView from './ui/views/trade.mjs'
 import * as trainerView from './ui/views/trainer.mjs'
 import * as updateView from './ui/views/update.mjs'
 import { sortedPartyEntries } from './ui/views/helpers.mjs'
@@ -97,6 +107,7 @@ const VIEWS = {
   update: updateView,
   gyms: gymsView,
   gym: gymView,
+  trade: tradeView,
   trainer: trainerView,
 }
 
@@ -114,6 +125,8 @@ export const createApp = ({
   playSound = play,
   revealCard = revealFile,
   saveCard = writeCard,
+  copyCode = copyToClipboard,
+  saveCode = writeTradeCode,
   playMusic = startMusic,
   endMusic = stopMusic,
 }) => {
@@ -150,6 +163,16 @@ export const createApp = ({
 
     shopSelection: 0,
     shopMessage: null,
+
+    tradeFrom: 'team',
+    tradeStep: 'confirm',
+    tradeGiving: null,
+    tradeInput: '',
+    tradeMessage: null,
+    tradeCode: null,
+    tradeGone: null,
+    tradeCopied: false,
+    tradePath: null,
 
     gym: null,
     gymSelection: 0,
@@ -553,6 +576,75 @@ export const createApp = ({
     ctx.bagSelection = null
   }
 
+  ctx.askToGiveAway = ({ from, source, index, mon }) => {
+    if (!canGiveAway(ctx.save, source)) {
+      ctx.boxMessage = TRADE_MESSAGES.lastOne
+      return
+    }
+
+    ctx.tradeFrom = from
+    ctx.tradeGiving = { mon, source, index }
+    ctx.tradeStep = 'confirm'
+    ctx.setMode('trade')
+  }
+
+  ctx.closeTrade = () => {
+    ctx.tradeMessage = null
+    ctx.setMode(ctx.tradeFrom)
+  }
+
+  ctx.giveSelectedAway = () => {
+    const { source, index } = ctx.tradeGiving
+    const given = giveAway(ctx.save, source, index)
+
+    ctx.persist()
+
+    ctx.teamSelection = clampToList(ctx.teamSelection, ctx.save.party)
+    ctx.boxSelection = clampToList(ctx.boxSelection, ctx.save.box)
+
+    ctx.tradeGone = given.mon
+    ctx.tradeCode = given.code
+    ctx.tradePath = storeTradeCode(saveCode, given.code)
+    ctx.tradeCopied = copyCode(given.code)
+    ctx.tradeMessage = null
+    ctx.tradeStep = 'code'
+
+    ctx.playSound('trade')
+    ctx.setMode('trade')
+  }
+
+  ctx.openTradeReceive = (from) => {
+    ctx.tradeFrom = from
+    ctx.tradeStep = 'receive'
+    ctx.tradeInput = ''
+    ctx.tradeMessage = null
+    ctx.setMode('trade')
+  }
+
+  ctx.takeInCode = () => {
+    const read = decodeTrade(ctx.tradeInput)
+
+    if (!read.ok) {
+      ctx.tradeMessage = read.reason
+      return
+    }
+
+    const taken = takeIn(ctx.save, read.trade)
+
+    if (!taken.ok) {
+      ctx.tradeMessage = taken.reason
+      return
+    }
+
+    ctx.persist()
+
+    ctx.tradeInput = ''
+    ctx.boxMessage = arrivalMessage(taken, read.trade)
+
+    ctx.playSound('trade')
+    ctx.closeTrade()
+  }
+
   ctx.buyItem = (key, quantity) => {
     const result = buy(ctx.save, key, quantity)
 
@@ -703,6 +795,29 @@ export const createApp = ({
   }
 
   return ctx
+}
+
+const clampToList = (selection, list) => {
+  return Math.min(selection, Math.max(0, list.length - 1))
+}
+
+const storeTradeCode = (write, code) => {
+  try {
+    return write(code)
+  } catch {
+    return null
+  }
+}
+
+const arrivalMessage = (taken, trade) => {
+  const name = displayName(taken.mon).toUpperCase()
+  const from = trade.from.name.toUpperCase()
+  const where =
+    taken.where === 'box'
+      ? BATTLE_MESSAGES.wentToBox
+      : BATTLE_MESSAGES.joinedTeam
+
+  return `${name} ${TRADE_MESSAGES.arrivedFrom} ${from}. ${where}`
 }
 
 const leaveForGymList = (ctx, gymId, message) => {

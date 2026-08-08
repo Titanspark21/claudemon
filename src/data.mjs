@@ -41,6 +41,10 @@ export const species = (id) => {
   return mon
 }
 
+export const hasSpecies = (id) => loadData().byId.has(id)
+
+export const hasMove = (name) => Boolean(loadData().moves[name])
+
 export const move = (name) => {
   const found = loadData().moves[name]
 

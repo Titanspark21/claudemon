@@ -22,6 +22,7 @@ import {
   MON_SPRITE_RESERVED_ROWS,
   TEAM_HINTS,
   TEAM_MESSAGES,
+  TRADE_KEY_HINTS,
   TEAM_SORT_LABELS,
   TEAM_TITLE,
 } from './constants.mjs'
@@ -63,7 +64,7 @@ export const draw = (ctx, size) => {
     lines.push(' ' + gray(TEAM_MESSAGES.noPokemon))
 
     return {
-      lines: withFooter(lines, dim(TEAM_MESSAGES.back), rows),
+      lines: withFooter(lines, [dim(TEAM_MESSAGES.back)], rows),
       overlays,
     }
   }
@@ -88,8 +89,12 @@ export const draw = (ctx, size) => {
 
   const note = noteRows(ctx.bagMessage ?? ctx.boxMessage)
   const noteHeight = note.length > 0 ? note.length + 1 : 0
+  const footer = [dim(TEAM_HINTS), dim(TRADE_KEY_HINTS)]
 
-  const budget = Math.max(1, rows - 2 - lines.length - noteHeight)
+  const budget = Math.max(
+    1,
+    rows - 1 - footer.length - lines.length - noteHeight,
+  )
 
   for (const [listRow, detailRow] of zipColumns(list, right).slice(0, budget)) {
     lines.push(
@@ -103,7 +108,7 @@ export const draw = (ctx, size) => {
   }
 
   return {
-    lines: withFooter(lines, dim(TEAM_HINTS), rows),
+    lines: withFooter(lines, footer, rows),
     overlays,
   }
 }
@@ -144,5 +149,13 @@ export const onKey = (ctx, key) => {
     ctx.clearTeamMessages()
   } else if (key.name === 'i') ctx.openBag()
   else if (key.name === 'b') ctx.openBox()
+  else if (key.name === 't')
+    ctx.askToGiveAway({
+      from: 'team',
+      source: 'party',
+      index: selected.index,
+      mon: selected.mon,
+    })
+  else if (key.name === 'r') ctx.openTradeReceive('team')
   else if (key.name === 'd') ctx.depositToBox(selected.index)
 }

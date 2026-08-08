@@ -204,6 +204,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 | Gym | The eight Kanto gyms, each one type, listed easiest first with the level range its trainers bring and the badge you have or have not won. `enter` walks in |
 | Gym run | The gauntlet: two trainers and then the leader, back to back. Between fights you can move the cursor over your team, `l` to change your lead and `i` to reach the bag. There is no door back to the menu — `esc` twice walks out and undoes the whole run |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
+| Trade | `t`, on the team screen or in the box, on whoever the cursor is on: it asks first, because a trade only goes one way, and then hands you the code. `r`, on either screen, takes one in from a code you were sent |
 | Trainer | Everything the game has been counting: battles won, lost and run from, the streak of days you have opened it, the hours Claude has worked beside you, and fifteen achievements with how far along each one is. `s` writes the trainer card |
 | Option | How big sprites are drawn, the menu sounds, the bell, and when the version check runs — daily, every launch, or never. `← →` changes a setting, and the Pokémon underneath redraws as you do |
 
@@ -225,6 +226,35 @@ battle message. That is the whole scheme — it is the same everywhere.
 worked while you played, opened in whatever shows PNGs on your desktop. There is more
 about it, and a picture of one, [on the site](https://zamarrowski.github.io/claudemon/#card).
 
+## Trading
+
+Codes, not sockets. `t`, on any Pokémon of yours — in the team screen or in the box —
+says what it will cost you, and then writes a code:
+
+```
+CMON1-eJxNkMFugzAMht_F53QChxXIrdIeYNJ62rRDBKYgIKAEKBPi3edAWSfl...
+```
+
+That goes to your clipboard and to `~/.claudemon/trade.txt`. Send it however you send
+anything else. On the other side, `r` — on either of those two screens — takes a
+pasted code, and the Pokémon turns up with its nickname, its level, its IVs, its
+bruises and the PP it had when it left.
+
+A trade only goes one way, and the game is strict about it:
+
+- **It leaves your game when the code is made**, not when somebody uses it. There is
+  no undo, which is why the screen asks first.
+- **The code does not work in the game it came from.** Every code carries who made it,
+  and your own is refused with a line telling you so.
+- **A code works once.** The game remembers every one it has taken in, so pasting the
+  same code twice brings nothing the second time.
+- **Your last Pokémon stays.** Somebody has to fight.
+
+No network is involved: the code *is* the Pokémon, deflated and written out in base64,
+and getting it to the other machine is your business rather than the game's. It
+carries the name you play under and the moment you started, which is how a game
+recognises the codes that came out of it.
+
 ## What is in it
 
 - The original 151, with real base stats, types, catch rates and Red/Blue movesets.
@@ -239,6 +269,9 @@ about it, and a picture of one, [on the site](https://zamarrowski.github.io/clau
   have faced, a team screen with the box behind it and the bag inside it, and a shop.
   Items are used on whoever you have picked, which is the only way a stone gets used
   at all.
+- Trading by code, which is the only social thing in here that needs no server at
+  all: one of yours leaves the moment the code exists, arrives in somebody else's
+  game exactly as it was, and never comes back the way it went.
 - Eight gyms, one per type and ordered by difficulty, each a run of two trainers
   and then the leader with no way back to the menu in between. No shop and no rest
   in there: the potions you walk in with are the potions you get. Beat the leader

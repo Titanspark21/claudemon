@@ -924,6 +924,15 @@ export const SOUNDS = {
       { hz: 2637, ms: 90 },
     ],
   },
+
+  trade: {
+    gain: 0.18,
+    notes: [
+      { hz: 988, ms: 26 },
+      { hz: 1319, ms: 26 },
+      { hz: 1760, ms: 72 },
+    ],
+  },
 }
 
 export const HEARTBEAT_STALE_MS = 15_000
@@ -1063,4 +1072,24 @@ export const REVEAL_COMMANDS = {
   darwin: { command: 'open', args: (path) => [path] },
   win32: { command: 'explorer.exe', args: (path) => [path] },
   default: { command: 'xdg-open', args: (path) => [path] },
+}
+
+export const CLIPBOARD_COMMANDS = {
+  darwin: { command: 'pbcopy', args: [] },
+  win32: { command: 'clip', args: [] },
+  default: { command: 'xclip', args: ['-selection', 'clipboard'] },
+}
+
+export const TRADE_VERSION = 1
+export const TRADE_CODE_PREFIX = 'CMON1-'
+export const TRADE_ID_RADIX = 36
+export const TRADE_CODE_PATTERN = /[^A-Za-z0-9._-]/g
+
+export const TRADE_MESSAGES = {
+  arrivedFrom: 'arrived from',
+  lastOne: 'That is your last Pokémon — somebody has to fight.',
+  unreadable: 'That is not a trade code. They start with CMON1-',
+  fromNewer: 'That code comes from a newer claudemon than this one.',
+  ownGame: 'That one came out of your own game. A trade only goes one way.',
+  alreadyTaken: 'You have already taken that one in.',
 }
