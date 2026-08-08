@@ -196,7 +196,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 
 | Screen | What it does |
 |---|---|
-| Home | Whatever is in the grass and how long is left to face it, your team, and the menu. SHARE writes your trainer card and opens it |
+| Home | Whatever is in the grass and how long is left to face it, your team, and the menu |
 | Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP. The bag asks which of your team an item is for, so a Revive reaches somebody already down. A ◓ by the foe's name means it is already in your Pokédex |
 | Pokédex | All 151, with how many of each you have faced, and base stats and evolution requirements for the ones you caught. A ✧ marks the ones you caught shiny, and their entry is drawn in those colours. `s` toggles sort between number and A–Z |
 | Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box. `s` sorts by party order or level. `i` opens the bag on whoever the cursor is on: a potion between fights, and the evolution stones, which are used nowhere else. A ✦ on the team list marks a mon that evolves by stone; `→N` is the level it evolves at. In the bag, a ✦ still marks an item that would evolve the selected mon |
@@ -204,6 +204,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 | Gym | The eight Kanto gyms, each one type, listed easiest first with the level range its trainers bring and the badge you have or have not won. `enter` walks in |
 | Gym run | The gauntlet: two trainers and then the leader, back to back. Between fights you can move the cursor over your team, `l` to change your lead and `i` to reach the bag. There is no door back to the menu — `esc` twice walks out and undoes the whole run |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
+| Trainer | Everything the game has been counting: battles won, lost and run from, the streak of days you have opened it, the hours Claude has worked beside you, and fifteen achievements with how far along each one is. `s` writes the trainer card |
 | Option | How big sprites are drawn, the menu sounds, the bell, and when the version check runs — daily, every launch, or never. `← →` changes a setting, and the Pokémon underneath redraws as you do |
 
 <table>
@@ -219,10 +220,10 @@ battle message. That is the whole scheme — it is the same everywhere.
 
 ## The trainer card
 
-**SHARE**, from the home menu, or `claudemon card` from a terminal: your six drawn to
-`~/.claudemon/card.png`, with your badges and the hours Claude has worked while you
-played, opened in whatever shows PNGs on your desktop. There is more about it, and a
-picture of one, [on the site](https://zamarrowski.github.io/claudemon/#card).
+`s` on the **TRAINER** screen, or `claudemon card` from a terminal: your six drawn to
+`~/.claudemon/card.png`, with your badges, your achievements and the hours Claude has
+worked while you played, opened in whatever shows PNGs on your desktop. There is more
+about it, and a picture of one, [on the site](https://zamarrowski.github.io/claudemon/#card).
 
 ## What is in it
 

@@ -5,7 +5,9 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
+import { recordAchievements } from './achievements.mjs'
 import {
+  DAY_MS,
   EMPTY_STATS,
   PARTY_LIMIT,
   SAVE_VERSION,
@@ -31,6 +33,7 @@ import {
   transformRequestSaveGame,
   transformResponseSave,
 } from './transformers.mjs'
+import { readWorked } from './worked.mjs'
 
 export const recordPlayday = (save, now = Date.now()) => {
   const next = advanceStreak(save.stats, now)
@@ -60,11 +63,20 @@ export const createSave = ({ trainer, starterId, rng }) => {
       faced: {},
     },
     stats: { ...EMPTY_STATS, caught: STARTER_CAUGHT_COUNT },
+    achievements: [],
   }
 
   recordPlayday(save)
 
   return save
+}
+
+export const daysOnTheRoad = (save, now = Date.now()) => {
+  const started = Date.parse(save.trainer.startedAt)
+
+  if (Number.isNaN(started)) return 1
+
+  return Math.max(1, Math.floor((now - started) / DAY_MS) + 1)
 }
 
 export const hasBadge = (save, gymId) => save.badges.includes(gymId)
@@ -119,6 +131,8 @@ const migrate = (save) => {
   for (const mon of [...save.party, ...save.box]) recordInDex(save, mon)
 
   for (const mon of [...save.party, ...save.box]) refreshStats(mon)
+
+  recordAchievements(save, readWorked())
 
   save.version = SAVE_VERSION
 

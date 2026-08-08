@@ -1,3 +1,4 @@
+import { recordAchievements } from './achievements.mjs'
 import { isWorking, readSessions, summariseActivity } from './activity.mjs'
 import {
   BAG_MESSAGES,
@@ -5,6 +6,7 @@ import {
   BATTLE_MESSAGES,
   BOX_MESSAGES,
   CARD_WRITTEN_PREFIX,
+  EMPTY_WORKED,
   FRAMES_PER_SPIN,
   FRAMES_PER_STEP,
   GYM_MESSAGES,
@@ -64,6 +66,7 @@ import {
 } from './state.mjs'
 import { sentOutLine, trainerClass, trainerLabel } from './trainer.mjs'
 import { checkForUpdate, createUpdateRun, currentNotice } from './update.mjs'
+import { readWorked } from './worked.mjs'
 
 import { writeCard } from './ui/card.mjs'
 import * as bagView from './ui/views/bag.mjs'
@@ -77,6 +80,7 @@ import * as optionsView from './ui/views/options.mjs'
 import * as shopView from './ui/views/shop.mjs'
 import * as starterView from './ui/views/starter.mjs'
 import * as teamView from './ui/views/team.mjs'
+import * as trainerView from './ui/views/trainer.mjs'
 import * as updateView from './ui/views/update.mjs'
 import { sortedPartyEntries } from './ui/views/helpers.mjs'
 
@@ -93,6 +97,7 @@ const VIEWS = {
   update: updateView,
   gyms: gymsView,
   gym: gymView,
+  trainer: trainerView,
 }
 
 const activeView = (ctx) => {
@@ -155,6 +160,9 @@ export const createApp = ({
     optionsMessage: null,
     notice: null,
 
+    trainerSelection: 0,
+    worked: { ...EMPTY_WORKED },
+
     updateNotice: currentNotice(),
 
     update: null,
@@ -188,7 +196,12 @@ export const createApp = ({
 
   ctx.persist = () => {
     if (ctx.gym) return
-    if (ctx.save) saveGame(ctx.save)
+    if (!ctx.save) return
+
+    ctx.worked = readWorked()
+
+    recordAchievements(ctx.save, ctx.worked)
+    saveGame(ctx.save)
   }
 
   ctx.playSound = (name) => {
@@ -413,8 +426,8 @@ export const createApp = ({
         ctx.persist()
         ctx.notice = HOME_NOTICES.healed
         break
-      case 'card':
-        ctx.exportCard()
+      case 'trainer':
+        ctx.openTrainer()
         break
       case 'quit':
         ctx.quit()
@@ -422,6 +435,12 @@ export const createApp = ({
       default:
         break
     }
+  }
+
+  ctx.openTrainer = () => {
+    ctx.trainerSelection = 0
+    ctx.worked = readWorked()
+    ctx.setMode('trainer')
   }
 
   ctx.exportCard = () => {

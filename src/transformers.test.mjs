@@ -61,6 +61,13 @@ const rawSave = {
     streak: 6,
     lastPlayedAt: '2026-08-08T09:00:00.000Z',
   },
+  achievements: [
+    {
+      id: 'first-catch',
+      earnedAt: '2026-08-02T09:00:00.000Z',
+      label: 'First catch',
+    },
+  ],
   cheatMode: true,
 }
 
@@ -68,6 +75,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
   const save = transformResponseSave(rawSave)
 
   expect(Object.keys(save).sort()).toEqual([
+    'achievements',
     'badges',
     'bag',
     'box',
@@ -95,6 +103,10 @@ test('Should map every field of a save on the way in and drop the rest', () => {
     streak: 6,
     lastPlayedAt: '2026-08-08T09:00:00.000Z',
   })
+  expect(
+    save.achievements,
+    'an achievement keeps its id and its date, and nothing else',
+  ).toEqual([{ id: 'first-catch', earnedAt: '2026-08-02T09:00:00.000Z' }])
 })
 
 test('Should map a Pokemon to the ten stored fields and its slots to three', () => {
@@ -136,6 +148,10 @@ test('Should give a save written before a field existed an empty one instead', (
     streak: 0,
     lastPlayedAt: null,
   })
+  expect(
+    save.achievements,
+    'a save from before achievements has earned none',
+  ).toEqual([])
 
   expect(transformResponseSave({ version: 1 }).party).toEqual([])
 

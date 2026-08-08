@@ -28,7 +28,7 @@ const { isDataReady } = await import('../src/data.mjs')
 const { expFromTrainerMon } = await import('../src/exp.mjs')
 const { clearEncounter, peekQueue, writeEncounter } =
   await import('../src/queue.mjs')
-const { createSave, loadSave } = await import('../src/state.mjs')
+const { addPokemon, createSave, loadSave } = await import('../src/state.mjs')
 const { createPokemon, makeMoveSlot } = await import('../src/pokemon.mjs')
 const { ballsInBag, countOf, itemsInBag, SHOP_STOCK } =
   await import('../src/shop.mjs')
@@ -38,6 +38,7 @@ const homeView = await import('../src/ui/views/home.mjs')
 const battleView = await import('../src/ui/views/battle.mjs')
 const gymView = await import('../src/ui/views/gym.mjs')
 const dexView = await import('../src/ui/views/dex.mjs')
+const trainerView = await import('../src/ui/views/trainer.mjs')
 const { stripAnsi } = await import('../src/ui/text.mjs')
 const { makeRng } = await import('../src/rng.mjs')
 const { VERSION } = await import('../src/version.mjs')
@@ -111,6 +112,13 @@ const gymText = (app) => {
 
 const dexText = (app) => {
   return dexView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+}
+
+const trainerText = (app) => {
+  return trainerView
     .draw(app, { cols: 100, rows: 34 })
     .lines.map(stripAnsi)
     .join('\n')
@@ -848,7 +856,7 @@ test('Should leave the cursor on the entry it was on when an encounter times out
   expect(home, 'and it says so on the screen').toMatch(/full health/i)
 })
 
-test('Should write the trainer card, hand it to the desktop and say where it landed', () => {
+test('Should write the trainer card from the trainer screen and say where it landed', () => {
   const revealCard = vi.fn()
   const app = createApp({
     screen: stubScreen(),
@@ -858,19 +866,15 @@ test('Should write the trainer card, hand it to the desktop and say where it lan
   })
   const card = join(sandbox, 'card.png')
 
-  walkHomeTo(app, 'card')
+  walkHomeTo(app, 'trainer')
   press(app, 'enter')
-
-  const home = homeView
-    .draw(app, { cols: 100, rows: 34 })
-    .lines.map(stripAnsi)
-    .join('\n')
+  press(app, 's')
 
   expect(existsSync(card), 'the PNG is on disk').toBe(true)
   expect(revealCard).toHaveBeenCalledTimes(1)
   expect(revealCard).toHaveBeenCalledWith(card)
-  expect(app.mode, 'sharing does not take you off the home screen').toBe('home')
-  expect(home, 'and the screen says where it went').toContain(
+  expect(app.mode, 'sharing does not take you off the screen').toBe('trainer')
+  expect(trainerText(app), 'and the screen says where it went').toContain(
     CARD_WRITTEN_PREFIX,
   )
 })
@@ -888,15 +892,11 @@ test('Should own up and open nothing when the card cannot be written', () => {
     saveCard,
   })
 
-  walkHomeTo(app, 'card')
+  walkHomeTo(app, 'trainer')
   press(app, 'enter')
+  press(app, 's')
 
-  const home = homeView
-    .draw(app, { cols: 100, rows: 34 })
-    .lines.map(stripAnsi)
-    .join('\n')
-
-  expect(home).toContain(HOME_NOTICES.cardFailed)
+  expect(trainerText(app)).toContain(HOME_NOTICES.cardFailed)
   expect(revealCard, 'nothing to open').not.toHaveBeenCalled()
 })
 
@@ -908,16 +908,36 @@ test('Should drop the message the moment you press anything else', () => {
     revealCard: vi.fn(),
   })
 
-  walkHomeTo(app, 'card')
+  walkHomeTo(app, 'trainer')
   press(app, 'enter')
-  press(app, 'right')
+  press(app, 's')
+  press(app, 'down')
 
-  const home = homeView
-    .draw(app, { cols: 100, rows: 34 })
-    .lines.map(stripAnsi)
-    .join('\n')
+  expect(trainerText(app)).not.toContain(CARD_WRITTEN_PREFIX)
+})
 
-  expect(home).not.toContain(CARD_WRITTEN_PREFIX)
+test('Should earn an achievement from playing and keep it on the trainer screen', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  expect(app.save.achievements, 'a fresh save has earned nothing').toEqual([])
+
+  addPokemon(app.save, createPokemon(16, 5, makeRng(2)))
+  app.persist()
+
+  walkHomeTo(app, 'trainer')
+  press(app, 'enter')
+
+  expect(app.save.achievements.map((entry) => entry.id)).toEqual([
+    'first-catch',
+  ])
+  expect(trainerText(app)).toContain('● First catch')
+  expect(trainerText(app), 'and the rest are still ahead').toContain(
+    '○ First badge',
+  )
 })
 
 test('Should pull a cursor left past the end of the menu back inside it', () => {
@@ -1684,12 +1704,12 @@ test('Should open each screen from the home menu and come back', () => {
     'gyms',
     'shop',
     'heal',
-    'card',
+    'trainer',
     'options',
     'quit',
   ])
 
-  for (const mode of ['dex', 'team', 'gyms', 'shop', 'options']) {
+  for (const mode of ['dex', 'team', 'gyms', 'shop', 'trainer', 'options']) {
     walkHomeTo(app, mode)
     press(app, 'enter')
 
