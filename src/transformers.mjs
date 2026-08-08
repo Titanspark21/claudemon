@@ -35,6 +35,8 @@ const mapStats = (stats) => {
     losses: stats?.losses ?? 0,
     caught: stats?.caught ?? 0,
     runs: stats?.runs ?? 0,
+    streak: stats?.streak ?? 0,
+    lastPlayedAt: stats?.lastPlayedAt ?? null,
   }
 }
 
@@ -86,6 +88,21 @@ export const transformResponseStatus = (status) => {
 }
 
 export const transformRequestWriteStatus = (status) => mapStatus(status)
+
+const mapWorked = (worked) => {
+  return {
+    totalMs: worked.totalMs ?? 0,
+    updatedAt: worked.updatedAt ?? null,
+  }
+}
+
+export const transformResponseWorked = (worked) => {
+  if (!worked) return null
+
+  return mapWorked(worked)
+}
+
+export const transformRequestWriteWorked = (worked) => mapWorked(worked)
 
 const mapActivity = (entry) => {
   return {

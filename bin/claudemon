@@ -15,7 +15,12 @@ import {
 } from '../src/constants.mjs'
 import { isDataReady } from '../src/data.mjs'
 import { HOME, QUEUE_FILE } from '../src/paths.mjs'
-import { loadSave, publishStatus } from '../src/state.mjs'
+import {
+  loadSave,
+  publishStatus,
+  recordPlayday,
+  saveGame,
+} from '../src/state.mjs'
 import { bold, brightYellow, dim } from '../src/ui/ansi.mjs'
 import { createScreen } from '../src/ui/screen.mjs'
 
@@ -28,6 +33,17 @@ const bail = (message, hint) => {
 
   process.stderr.write('\n')
   process.exit(1)
+}
+
+const openSave = (app) => {
+  if (!app.save) return
+
+  if (recordPlayday(app.save)) {
+    saveGame(app.save)
+    return
+  }
+
+  publishStatus(app.save)
 }
 
 const main = () => {
@@ -50,7 +66,9 @@ const main = () => {
   }
 
   const tickHeartbeat = () => {
-    if (app.save && !app.gym) publishStatus(app.save)
+    if (app.gym) return
+
+    openSave(app)
   }
 
   const handleQueueChange = (_event, filename) => {
@@ -97,7 +115,7 @@ const main = () => {
   app.refreshActivity()
   app.paint()
 
-  if (app.save) publishStatus(app.save)
+  openSave(app)
 
   app.checkForUpdates({ atLaunch: true }).then(handleUpdateChecked)
 

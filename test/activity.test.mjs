@@ -88,6 +88,23 @@ const rewindSession = (home, id, ms) => {
   )
 }
 
+const rewindLastEvent = (home, id, ms) => {
+  const session = sessionIn(home, id)
+
+  writeFileSync(
+    join(home, 'sessions', `${id}.json`),
+    JSON.stringify({ ...session, at: session.at - ms }),
+  )
+}
+
+const workedIn = (home) => {
+  try {
+    return JSON.parse(readFileSync(join(home, 'worked.json'), 'utf8'))
+  } catch {
+    return null
+  }
+}
+
 test('Should buy the turn a walk rather than take one the instant a prompt is submitted', () => {
   const home = freshHome()
 
@@ -524,6 +541,67 @@ test('Should not cash in the time spent stopped on the next tool call', () => {
   expect(queueIn(home), 'the clock restarted with the tool call').toHaveLength(
     0,
   )
+})
+
+test('Should bank the time Claude spent working and none of the time it spent waiting on you', () => {
+  const home = freshHome()
+
+  writeConfig(home, { encounterChance: 0 })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'www',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Bash',
+  })
+
+  expect(workedIn(home), 'no time has passed yet').toBeNull()
+
+  rewindLastEvent(home, 'www', 60_000)
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'www',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Read',
+  })
+
+  const worked = workedIn(home)
+
+  expect(worked.totalMs, 'a minute of work is a minute banked').toBeGreaterThan(
+    59_000,
+  )
+  expect(worked.totalMs).toBeLessThan(65_000)
+
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'www',
+    hook_event_name: 'Notification',
+    message: 'permission?',
+  })
+  rewindLastEvent(home, 'www', 600_000)
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'www',
+    hook_event_name: 'Stop',
+  })
+
+  expect(
+    workedIn(home).totalMs,
+    'ten minutes waiting on you is not ten minutes of work',
+  ).toBeLessThan(65_000)
+})
+
+test('Should forget a stretch longer than a session stays live rather than bank a night of sleep', () => {
+  const home = freshHome()
+
+  writeConfig(home, { encounterChance: 0 })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'zzz',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Bash',
+  })
+  rewindLastEvent(home, 'zzz', STALE_MS + 60_000)
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'zzz',
+    hook_event_name: 'Stop',
+  })
+
+  expect(workedIn(home)).toBeNull()
 })
 
 test('Should say what is waiting in the status line and how long is left of it', () => {

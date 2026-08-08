@@ -1,0 +1,57 @@
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { EMPTY_WORKED, STALE_MS } from './constants.mjs'
+import { HOME, WORKED_FILE } from './paths.mjs'
+import {
+  transformRequestWriteWorked,
+  transformResponseWorked,
+} from './transformers.mjs'
+
+const readWorkedFile = () => {
+  try {
+    return JSON.parse(readFileSync(WORKED_FILE, 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+export const readWorked = () => {
+  const worked = transformResponseWorked(readWorkedFile())
+
+  if (!worked) return { ...EMPTY_WORKED }
+
+  return worked
+}
+
+const writeWorked = (worked) => {
+  try {
+    mkdirSync(HOME, { recursive: true })
+
+    const tmp = `${WORKED_FILE}.${process.pid}.tmp`
+
+    writeFileSync(tmp, JSON.stringify(transformRequestWriteWorked(worked)))
+    renameSync(tmp, WORKED_FILE)
+  } catch {}
+
+  return worked
+}
+
+export const workedSince = (previous, now) => {
+  if (previous?.state !== 'working') return 0
+
+  const elapsed = now - previous.at
+
+  if (elapsed <= 0 || elapsed >= STALE_MS) return 0
+
+  return elapsed
+}
+
+export const accrueWorked = (elapsedMs, now) => {
+  const worked = readWorked()
+
+  if (elapsedMs <= 0) return worked
+
+  return writeWorked({
+    totalMs: worked.totalMs + elapsedMs,
+    updatedAt: new Date(now).toISOString(),
+  })
+}

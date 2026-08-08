@@ -19,6 +19,7 @@ const {
   markFaced,
   markSeen,
   partyIsWipedOut,
+  recordPlayday,
   saveGame,
   setLead,
   timesFaced,
@@ -44,6 +45,24 @@ test('Should start a new save with a level 5 starter and some supplies', () => {
   expect(save.money).toBeGreaterThan(0)
   expect(totalBalls(save)).toBeGreaterThan(0)
   expect(save.dex.caught, 'the starter counts as caught').toEqual([4])
+})
+
+test('Should open the streak on a new save and only move it on a later day', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+  const started = new Date(save.stats.lastPlayedAt)
+  const tomorrow = new Date(started)
+
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  expect(save.stats.streak).toBe(1)
+  expect(
+    recordPlayday(save, started.getTime() + 60_000),
+    'the same day again',
+  ).toBe(false)
+  expect(save.stats.streak).toBe(1)
+
+  expect(recordPlayday(save, tomorrow.getTime()), 'the day after').toBe(true)
+  expect(save.stats.streak).toBe(2)
 })
 
 test('Should hand a save back from disk exactly as it was written', () => {

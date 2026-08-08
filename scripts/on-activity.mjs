@@ -17,6 +17,7 @@ import { logError } from '../src/log.mjs'
 import { offerEncounter, readEncounter } from '../src/queue.mjs'
 import { makeRng, randomSeed } from '../src/rng.mjs'
 import { readStatus } from '../src/status.mjs'
+import { accrueWorked, workedSince } from '../src/worked.mjs'
 import { DEFAULT_LEAD_LEVEL } from './constants.mjs'
 import { readStdin } from './stdin.mjs'
 import { transformResponseHookEvent } from './transformers.mjs'
@@ -82,6 +83,10 @@ const walkWhileWorking = (sessionId, now) => {
   return walked
 }
 
+const accrueWorkedTime = (sessionId, now) => {
+  accrueWorked(workedSince(readActivity(sessionId), now), now)
+}
+
 const main = async () => {
   const raw = await readStdin()
 
@@ -94,10 +99,13 @@ const main = async () => {
 
   const cwd = payload.cwd ?? null
   const event = payload.hook_event_name
+  const now = Date.now()
+
+  accrueWorkedTime(session, now)
 
   switch (event) {
     case 'PreToolUse': {
-      const walked = walkWhileWorking(session, Date.now())
+      const walked = walkWhileWorking(session, now)
 
       noteTool(session, cwd, payload.tool_name, walked)
       break
@@ -108,7 +116,7 @@ const main = async () => {
       break
 
     case 'Stop': {
-      const walked = walkWhileWorking(session, Date.now())
+      const walked = walkWhileWorking(session, now)
 
       endTurn(session, cwd, walked)
       break
