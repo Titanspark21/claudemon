@@ -66,6 +66,13 @@
   .top nav a { color: var(--dim); }
   .top nav a:hover { color: var(--fg); border-bottom-color: var(--dim); }
 
+  /* Wrapped to three rows on a phone, the links end up 24px tall and a thumb's width
+     apart. The padding is what makes each one a target rather than a line of text. */
+  @media (max-width: 40rem) {
+    .top nav { gap: 0 1.1rem; }
+    .top nav a { padding: .6rem 0; }
+  }
+
   /* ---------- hero ---------- */
 
   header.hero { padding: clamp(2.5rem, 7vw, 4.5rem) 0 0; }
@@ -117,8 +124,14 @@
 
   /* Charmander's line, standing on the band rather than on top of it. */
   .grass .line { --zoom: 3; display: flex; align-items: flex-end; gap: 2rem; margin-bottom: -6px; }
+  .grass .line .sprite { flex: none; }
   @media (max-width: 64rem) { .grass .line { --zoom: 2; gap: 1.5rem; } }
-  @media (max-width: 40rem) { .grass .line { --zoom: 1; gap: 1rem; } }
+  @media (max-width: 40rem) { .grass .line { gap: 1rem; } }
+
+  /* Three of them at 2x need 376px and a phone has 327px to give. Dropping to 1x fits,
+     but a 38px Charmander standing on a 28px band reads as a mistake — so the middle
+     of the three goes instead and the line keeps its size. */
+  @media (max-width: 27rem) { .grass .line .sprite:nth-child(2) { display: none; } }
 
   .cta { display: flex; flex-wrap: wrap; gap: .75rem; margin: 2rem 0 0; }
   .btn {
@@ -134,11 +147,13 @@
 
   /* ---------- terminal mock ---------- */
 
+  /* The pre scrolls, not the panel: scroll the panel and the title bar slides out of
+     its own frame, because the bar is only as wide as the box. */
   .term {
     margin: 2.5rem 0 0;
     border: 1px solid var(--line); border-radius: 3px;
     background: var(--panel);
-    overflow-x: auto;
+    overflow: hidden;
   }
   .term .bar {
     display: flex; align-items: center; gap: .5rem;
@@ -150,7 +165,9 @@
     margin: 0; padding: .9rem 1rem;
     font-size: clamp(.75rem, 2.2vw, .875rem); line-height: 1.7;
     white-space: pre;
+    overflow-x: auto;
   }
+  @media (max-width: 40rem) { .term pre { padding: .75rem .6rem; } }
   .term .prompt { color: var(--dim); }
   .term .bar-full { color: var(--green); }
   .term .bar-empty { color: #3f4539; }
@@ -182,9 +199,9 @@
   /* ---------- screenshots ---------- */
 
   figure { margin: 0 0 2rem; }
-  /* Scoped: the sprites are figures too, and a screenshot's frame around one of them
-     is a box with a Pokemon rattling about inside it. */
-  #screens figure img, #daycare figure img {
+  /* Only the captures: the sprites are figures too, and a screenshot's frame around one
+     of them is a box with a Pokemon rattling about inside it. */
+  figure.shot img {
     display: block; width: 100%; height: auto;
     border: 1px solid var(--line); border-radius: 3px;
     background: var(--bg);
@@ -203,7 +220,9 @@
      the wider shot gets the extra pixels it needs to stay readable. */
   .pair.uneven { grid-template-columns: 1.65fr 1fr; }
 
-  @media (max-width: 40rem) { .pair, .pair.uneven { grid-template-columns: 1fr; } }
+  /* A column of the pair is ~480px on a desktop, which is the narrowest a capture of a
+     terminal stays readable at. Below that the pair is worth less than the size. */
+  @media (max-width: 60rem) { .pair, .pair.uneven { grid-template-columns: 1fr; } }
 
   /* ---------- code ---------- */
 
@@ -226,6 +245,14 @@
   .code button:hover { color: var(--fg); border-color: var(--dim); }
   .code button.done { color: var(--green); border-color: var(--green); }
 
+  /* The right-hand gutter only keeps the button off the end of the command. Once the
+     block is narrow enough to scroll, what sits under the button is the middle of the
+     line — so the block gives up a row at the top instead of a gutter at the end. */
+  @media (max-width: 40rem) {
+    .code pre { padding: 2.4rem 1rem .85rem; }
+    .code button { top: .5rem; }
+  }
+
   code { font-family: var(--mono); font-size: .9em; color: var(--fg); background: var(--panel); padding: .1em .35em; border-radius: 2px; }
 
   /* ---------- steps ---------- */
@@ -238,6 +265,7 @@
     margin-left: .6rem;
   }
   ol.steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  @media (max-width: 40rem) { ol.steps > li { padding-left: 1.75rem; } }
   ol.steps > li::before {
     content: counter(step);
     position: absolute; left: -.6rem; top: .15rem;
@@ -257,14 +285,6 @@
   .starters .sprite { --box: 42; border-bottom: 2px solid var(--green); }
   .starters figcaption { margin: .5rem 0 0; font-size: .8125rem; letter-spacing: .06em; }
   @media (max-width: 40rem) { .starters { --zoom: 2; gap: 1rem; } }
-
-  /* ---------- table ---------- */
-
-  .scroll { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; font-size: .9375rem; }
-  th, td { text-align: left; padding: .6rem .75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); font-weight: 400; }
-  td:first-child { white-space: nowrap; }
 
   /* ---------- footer ---------- */
 
@@ -288,12 +308,13 @@
   <div class="top">
     <a class="name" href="#">claudemon</a>
     <nav>
+      <a href="#how">How it works</a>
       <a href="#screens">Screens</a>
+      <a href="#gyms">Gyms</a>
+      <a href="#install">Install</a>
       <a href="#card">Card</a>
       <a href="#daycare">Day care</a>
       <a href="#trade">Trade</a>
-      <a href="#install">Install</a>
-      <a href="#inside">Inside</a>
       <a href="https://github.com/zamarrowski/claudemon">GitHub</a>
     </nav>
   </div>
@@ -338,130 +359,90 @@
 
 <div class="wrap">
 
-  <section>
-    <h2>The idea</h2>
-    <p class="lede">The walking happens while Claude does, not the moment you press enter: a prompt buys you the steps and the turn takes them, so anything that jumps out does it with the grass already moving. So is the waiting — every twenty seconds Claude spends working is another step, because that is the half of the session you actually have free.</p>
-    <p>One at a time, and only for half a minute: a Pokemon that appears while you are busy wanders off if you leave it there, so a long session never leaves a queue of battles waiting for you.</p>
-    <p>Not everything out there is wild, either. Roughly one step in seven that turns something up turns up a trainer instead — a class, a name and a team behind them, on the same timer as anything else.</p>
-    <p>And when you would rather go looking for a fight than wait for one, there are the eight gyms: two trainers and then the leader, back to back, with no shop and no rest in between. Nothing is written to disk while you are in there — beat the leader and the badge is yours, lose or walk out or close the terminal and the run is undone, down to the last potion.</p>
-    <p>The original 151. Fully local — no account, no backend, nothing about you leaving the machine.</p>
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="lede">Two things decide when something appears: how much you type, and how long Claude works. A prompt buys the steps and the turn spends them, so whatever jumps out does it with the grass already moving. Every twenty seconds Claude keeps working is another step — that half of the session is the half you actually have free.</p>
+
+    <p><strong>One at a time, and only for half a minute.</strong> A Pokemon that appears while you are busy wanders off if you leave it there, so a long session never leaves a queue of battles waiting for you.</p>
+
+    <p><strong>Not everything out there is wild.</strong> Roughly one step in seven that turns something up turns up a trainer instead — a class, a name and a team behind them, on the same timer as anything else.</p>
+
+    <p><strong>The original 151, and none of it leaves the machine.</strong> No account, no backend, nothing about you going anywhere. The plugin's hooks tell the game what Claude is doing, and that is the whole of the wiring.</p>
   </section>
 
   <section id="screens">
     <h2>Screens</h2>
+    <p class="lede">The loop, in the order you meet it: you wait, something steps out of the grass, you fight it, and what you catch lands in the Pokédex and on your team.</p>
 
-    <figure>
+    <figure class="shot">
       <img src="home.png" width="1058" height="788" alt="The home screen: an activity line reading Claude is working, Read, 3m09s, someone standing in a band of grass, and a team of five listed below">
       <figcaption><b>Home</b> — waiting, which is most of it. The walk only moves while Claude does, so you can tell from across the desk without reading anything.</figcaption>
     </figure>
 
     <div class="pair uneven">
-      <figure>
+      <figure class="shot">
         <img src="trainer.png" width="1930" height="1400" alt="The home screen with a trainer waiting in the grass: Bug Catcher Marc, drawn as a pixel sprite, over a line reading BUG CATCHER MARC wants to battle! and two Poké Balls marking a team of two" loading="lazy">
         <figcaption><b>Trainers</b> — sometimes what steps out of the grass is a person. The balls under the sprite are how many Pokemon they are carrying, and the timer runs the same as a wild one: leave them there and they walk off.</figcaption>
       </figure>
-      <figure>
+      <figure class="shot">
         <img src="trainer-battle.png" width="1182" height="1420" alt="A trainer battle: Bug Catcher Marc at the top with two Poké Ball markers, facing your Pikachu" loading="lazy">
         <figcaption><b>Trainer battle</b> — they send out their team one after another, no running and no throwing balls at somebody else's Pokemon. Beating them pays out, and their Pokemon are worth more experience than a wild one.</figcaption>
       </figure>
     </div>
 
     <div class="pair">
-      <figure>
-        <img src="gyms.png" width="1204" height="1450" alt="The gym screen: the eight Kanto gyms listed down the left with their type and level range, Pewter selected, and Brock on the right under the Boulder Badge" loading="lazy">
-        <figcaption><b>Gyms</b> — the eight, easiest first, with the type they run, the levels their trainers bring and the badge marked won or not. <code>enter</code> walks in.</figcaption>
-      </figure>
-      <figure>
-        <img src="gym-leader.png" width="1352" height="1522" alt="The gym screen with Cerulean selected: the Cascade Badge not yet won, Leader Misty and her Water type, two trainers before the leader at Lv16 to 21, and a count of the potions and revives in the bag" loading="lazy">
-        <figcaption><b>Before you walk in</b> — who is waiting, and what you are carrying. The potions in your bag are the potions you get: there is no shop and no healing past that door.</figcaption>
-      </figure>
-    </div>
-
-    <figure>
-      <img src="gym-run.png" width="1094" height="649" alt="Inside the Pewter gym: a Gauntlet panel listing Camper Liam beaten, Hiker Wade next and Leader Brock still to come, the team below it, and a line reading enter, face the next one, Hiker Wade" loading="lazy">
-      <figcaption><b>The run</b> — the gauntlet on the way down, your team underneath it and nothing else: <code>i</code> for the bag, <code>l</code> to change your lead, and <code>esc</code> twice to walk out on all of it.</figcaption>
-    </figure>
-
-    <div class="pair">
-      <figure>
+      <figure class="shot">
         <img src="battle.png" width="1196" height="1656" alt="A battle: a wild Venonat facing your Squirtle, both drawn as pixel sprites, with health bars and a FIGHT / BAG / POKÉMON / RUN menu" loading="lazy">
         <figcaption><b>Battle</b> — critical hits, the type chart, status conditions, PP. A ◓ by the foe's name means it is already in your Pokédex.</figcaption>
       </figure>
-      <figure>
+      <figure class="shot">
         <img src="pokedex.png" width="1114" height="1574" alt="The Pokédex: the list of all 151 down the left with seen and caught markers, and Charmander on the right with its base stats, catch rate and what it evolves into" loading="lazy">
         <figcaption><b>Pokédex</b> — seen and caught are tracked apart, and the stats fill in for the ones you caught.</figcaption>
       </figure>
     </div>
 
-    <figure>
+    <figure class="shot">
       <img src="team.png" width="1184" height="782" alt="The team screen: five Pokémon listed on the left, and Ditto on the right with its health, experience, stats and moves" loading="lazy">
       <figcaption><b>Team</b> — details, moves, experience, <code>enter</code> to change your lead, and the box behind it.</figcaption>
     </figure>
   </section>
 
-  <section id="card">
-    <h2>The trainer card</h2>
-    <p class="lede">Your six, drawn at the size they deserve, over your name, the days you have been at it, the badges in the colour of the type that gave them, the achievements you have earned, and the hours Claude has spent working while you played.</p>
+  <section id="gyms">
+    <h2>The gyms</h2>
+    <p class="lede">For when you would rather go looking for a fight than wait for one. Eight of them, one per type and easiest first: two trainers and then the leader, back to back, with no shop, no rest and nothing wild interrupting.</p>
 
-    <figure>
-      <img src="card-team.png" width="1200" height="908" alt="The trainer card: six Pokémon in two rows of three, each with its name, level and health bar, under the trainer name, the days played and the Pokédex count, with the eight badges, the fifteen achievements and the totals along the bottom. The Gyarados is red rather than blue, with a mark beside its name saying it is shiny" loading="lazy">
-      <figcaption><b>s</b>, on the TRAINER screen — it writes the card, opens it, and leaves you where you were. A shiny is drawn shiny and marked, so the one you spent four thousand encounters on is the one people see. The line along the bottom means the picture carries its own way back here.</figcaption>
-    </figure>
+    <p><strong>Nothing is written to disk while you are in there.</strong> Beat the leader and the badge is yours. Lose, give up or close the terminal and the whole run is undone — the experience, the money, the potions and the bruises, as if you had never gone in.</p>
 
-    <p>Or from a terminal, if you would rather not open the game. <code>--out somewhere.png</code> writes it elsewhere, <code>--no-open</code> leaves the window shut.</p>
-
-    <div class="code">
-<pre>claudemon card</pre>
-      <button type="button" aria-label="Copy the card command">COPY</button>
+    <div class="pair">
+      <figure class="shot">
+        <img src="gyms.png" width="1204" height="1450" alt="The gym screen: the eight Kanto gyms listed down the left with their type and level range, Pewter selected, and Brock on the right under the Boulder Badge" loading="lazy">
+        <figcaption><b>The eight</b> — easiest first, with the type they run, the levels their trainers bring and the badge marked won or not. <code>enter</code> walks in.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="gym-leader.png" width="1352" height="1522" alt="The gym screen with Cerulean selected: the Cascade Badge not yet won, Leader Misty and her Water type, two trainers before the leader at Lv16 to 21, and a count of the potions and revives in the bag" loading="lazy">
+        <figcaption><b>Before you walk in</b> — who is waiting, and what you are carrying. The potions in your bag are the potions you get: there is no shop and no healing past that door.</figcaption>
+      </figure>
     </div>
 
-    <p class="dim">Either way it lands in <code>~/.claudemon/card.png</code> and opens in whatever shows PNGs on your desktop. The game writes the file itself — the same pixel font and palette you see in the terminal, encoded with nothing but <code>node:zlib</code>. No browser, no canvas library, no dependency.</p>
-  </section>
-
-  <section id="daycare">
-    <h2>The day care</h2>
-    <p class="lede"><strong>DAY CARE</strong> on the home menu, or <code>c</code> on the team screen. Two slots, filled from your team or your box, and two things happen to whoever waits in them — both only while Claude is working and the tab is open.</p>
-
-    <p><strong>They keep growing.</strong> A Pok&eacute;mon left there gains EXP for every step the game counts, levels up where it stands and restats as it does. It does not learn moves and it does not evolve in there; you take it out for that.</p>
-
-    <p><strong>A pair leaves an egg.</strong> Two that can breed leave one behind &mdash; drawn on the screen, with how far along it is beside it &mdash; and the screen tells you whether they get on before you wait for it. The rules are the ones the games use, and Ditto is the centre of them: <strong>Ditto plus anything that can breed at all</strong> — genderless, always-male, always-female — with the egg taking the <em>other</em> parent&rsquo;s base form, which is what makes one Ditto a tool rather than a curiosity. <strong>Two of one evolution line, opposite genders</strong>, with the egg taking the mother&rsquo;s base form, so a Nidorina and a Nidorino leave a Nidoran&#9792; even though the two Nidoran lines are separate Pok&eacute;dex entries. And <strong>Ditto with Ditto, two of a gender, two unrelated lines and anything legendary leave nothing</strong> — not even with a Ditto.</p>
-
-    <p><strong>It only comes along while you are there.</strong> The egg has steps of its own &mdash; one for every six seconds Claude works with this tab open, counted by the game rather than by the hooks. So there is no offline progress, nothing hatches in a closed tab, and an egg you left at 420 steps is at 420 steps when you come back. Six hundred of them, which is about an hour of Claude actually working.</p>
-
-    <p><strong>Which is what makes it a shiny hunt.</strong> An egg rolls its own shiny check at 1 in 512 rather than the 1 in 4096 the grass uses, so a hatch is the one shiny roll in the game you can work towards instead of wait for. It gets the line, the colours and the sound a shiny in the grass gets, and the Pok&eacute;dex remembers it the same way.</p>
-
-    <figure>
-      <img src="daycare.png" width="1380" height="823" alt="The day care screen: an egg drawn as a pixel sprite beside the line Something is moving inside and a progress bar reading 214 of 600 steps, over a line saying The two seem to get along, with Ditto at Lv19 and a shiny Pikachu at Lv22 in the two slots" loading="lazy">
-      <figcaption><b>An egg on the way</b> &mdash; Ditto in one slot and whatever you are hunting in the other. The bar is the only thing that tells you how far along it is, and it only moves while Claude does.</figcaption>
+    <figure class="shot">
+      <img src="gym-run.png" width="1094" height="649" alt="Inside the Pewter gym: a Gauntlet panel listing Camper Liam beaten, Hiker Wade next and Leader Brock still to come, the team below it, and a line reading enter, face the next one, Hiker Wade" loading="lazy">
+      <figcaption><b>The run</b> — the gauntlet on the way down, your team underneath it and nothing else: <code>i</code> for the bag, <code>l</code> to change your lead, and <code>esc</code> twice to walk out on all of it.</figcaption>
     </figure>
-
-    <figure>
-      <img src="daycare-raising.png" width="1366" height="657" alt="The day care screen with no egg: Rattata at Lv15 and Magnemite at Lv16 in the two slots, under a line reading The two prefer to play with other Pokémon, and Magnemite's experience bar part of the way to the next level" loading="lazy">
-      <figcaption><b>Or just raising them</b> &mdash; a pair that leaves no egg still gains EXP for every step. The screen says so before you spend an hour waiting for something that is not coming.</figcaption>
-    </figure>
-
-    <p class="dim">One egg at a time, and taking a parent back does not take the egg with it.</p>
-  </section>
-
-  <section id="trade">
-    <h2>Trading, by code</h2>
-    <p class="lede">The only social thing in here, and it needs no server at all. <code>t</code>, on any Pokémon of yours — in the team screen or in the box — tells you what it is about to cost you, and then writes a code.</p>
-
-    <div class="code">
-<pre>CMON1-eJxNkMFugzAMht_F53QChxXIrdIeYNJ62rRDBKYgIKAEKBPi3edAWSfl...</pre>
-    </div>
-
-    <p>It lands on your clipboard and in <code>~/.claudemon/trade.txt</code>, and getting it to whoever is taking the Pokémon is your business rather than the game's. On the other side, <code>r</code> — on either of those two screens — takes a pasted code, and the Pokémon turns up with its nickname, its level, its IVs, its bruises and the PP it had when it left.</p>
-
-    <p>A trade only goes one way, and the game holds you to it: the Pokémon leaves your game the moment the code is made rather than when somebody uses it, and there is no undo — which is why the screen asks first. Every code carries who made it, so your own is refused in your own game, and a code that has been taken in once brings nothing the second time it is pasted. Your last Pokémon stays where it is; somebody has to fight.</p>
-
-    <p class="dim">The code <em>is</em> the Pokémon — deflated and written out in base64, about three hundred characters of it. Nothing opens a socket, and nothing about it leaves your machine unless you are the one who sends it.</p>
   </section>
 
   <section id="install">
     <h2>Install</h2>
-    <p>Typed inside Claude Code. Nothing to clone.</p>
+    <p class="lede">Typed inside Claude Code. Nothing to clone.</p>
 
+    <h3>What you need first</h3>
+    <ul>
+      <li><b>Claude Code</b> — you are already in it.</li>
+      <li><b>Node.js 20.19 or newer</b> — <code>node --version</code>. The game and the hooks run on it, and Claude Code ships as its own binary so it does not bring one. Nothing else to install: no dependencies, no build step.</li>
+      <li><b>A terminal with truecolor</b> — iTerm2, Ghostty, WezTerm, Kitty, Alacritty and VS Code's terminal are all fine.</li>
+    </ul>
+    <p><span class="warn">Not macOS Terminal.</span> The sprites come out striped and stretched there, and no setting fixes it. Use any of the others.</p>
+
+    <h3>Five steps</h3>
     <ol class="steps">
       <li>
         <p>Add the marketplace and install the plugin — that puts the hooks that make Pokemon appear in place.</p>
@@ -515,19 +496,6 @@
 
     <p style="margin-top:1.5rem">Then send a longish prompt in the Claude tab and watch the status line.</p>
 
-    <h3>What you need first</h3>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>Requirement</th><th>How to check</th></tr></thead>
-        <tbody>
-          <tr><td><b>Claude Code</b></td><td>You are already in it</td></tr>
-          <tr><td><b>Node.js 20.19+</b></td><td><code>node --version</code>. The game and the hooks run on it, and Claude Code ships as its own binary so it does not bring one. Nothing else to install — no dependencies, no build step</td></tr>
-          <tr><td><b>A truecolor terminal</b></td><td>iTerm2, Ghostty, WezTerm, Kitty, Alacritty and VS Code's terminal are all fine. Not macOS Terminal</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p><span class="warn">Not macOS Terminal.</span> The sprites come out striped and stretched there, and no setting fixes it. Use any of the others.</p>
-
     <h3>From a clone instead</h3>
     <p>For hacking on it, a clone works the same way and takes precedence over the installed copy.</p>
     <div class="code">
@@ -539,6 +507,65 @@ node tools/install.mjs</pre>
     <p class="dim">The 151 Pokemon ship with the plugin, so the only thing the install downloads is the sprites, which takes a few seconds. <a href="https://github.com/zamarrowski/claudemon#updating">Updating and uninstalling</a> are in the README.</p>
   </section>
 
+  <section id="card">
+    <h2>The trainer card</h2>
+    <p class="lede">Your six, drawn at the size they deserve, over your name, the days you have been at it, the badges in the colour of the type that gave them, the achievements you have earned, and the hours Claude has spent working while you played.</p>
+
+    <figure>
+      <img src="card-team.png" width="1200" height="908" alt="The trainer card: six Pokémon in two rows of three, each with its name, level and health bar, under the trainer name, the days played and the Pokédex count, with the eight badges, the fifteen achievements and the totals along the bottom. The Gyarados is red rather than blue, with a mark beside its name saying it is shiny" loading="lazy">
+      <figcaption><b>s</b>, on the TRAINER screen — it writes the card, opens it, and leaves you where you were. A shiny is drawn shiny and marked, so the one you spent four thousand encounters on is the one people see. The line along the bottom means the picture carries its own way back here.</figcaption>
+    </figure>
+
+    <p>Or from a terminal, if you would rather not open the game. <code>--out somewhere.png</code> writes it elsewhere, <code>--no-open</code> leaves the window shut.</p>
+
+    <div class="code">
+<pre>claudemon card</pre>
+      <button type="button" aria-label="Copy the card command">COPY</button>
+    </div>
+
+    <p class="dim">Either way it lands in <code>~/.claudemon/card.png</code> and opens in whatever shows PNGs on your desktop. The game writes the file itself — the same pixel font and palette you see in the terminal, encoded with nothing but <code>node:zlib</code>. No browser, no canvas library, no dependency.</p>
+  </section>
+
+  <section id="daycare">
+    <h2>The day care</h2>
+    <p class="lede"><strong>DAY CARE</strong> on the home menu, or <code>c</code> on the team screen. Two slots, filled from your team or your box, and two things happen to whoever waits in them — both only while Claude is working and the tab is open.</p>
+
+    <p><strong>They keep growing.</strong> A Pok&eacute;mon left there gains EXP for every step the game counts, levels up where it stands and restats as it does. It does not learn moves and it does not evolve in there; you take it out for that.</p>
+
+    <p><strong>A pair leaves an egg.</strong> Two that can breed leave one behind &mdash; drawn on the screen, with how far along it is beside it &mdash; and the screen tells you whether they get on before you wait for it. The rules are the ones the games use, and Ditto is the centre of them: <strong>Ditto plus anything that can breed at all</strong> — genderless, always-male, always-female — with the egg taking the <em>other</em> parent&rsquo;s base form, which is what makes one Ditto a tool rather than a curiosity. <strong>Two of one evolution line, opposite genders</strong>, with the egg taking the mother&rsquo;s base form, so a Nidorina and a Nidorino leave a Nidoran&#9792; even though the two Nidoran lines are separate Pok&eacute;dex entries. And <strong>Ditto with Ditto, two of a gender, two unrelated lines and anything legendary leave nothing</strong> — not even with a Ditto.</p>
+
+    <p><strong>It only comes along while you are there.</strong> The egg has steps of its own &mdash; one for every six seconds Claude works with this tab open, counted by the game rather than by the hooks. So there is no offline progress, nothing hatches in a closed tab, and an egg you left at 420 steps is at 420 steps when you come back. Six hundred of them, which is about an hour of Claude actually working.</p>
+
+    <p><strong>Which is what makes it a shiny hunt.</strong> An egg rolls its own shiny check at 1 in 512 rather than the 1 in 4096 the grass uses, so a hatch is the one shiny roll in the game you can work towards instead of wait for. It gets the line, the colours and the sound a shiny in the grass gets, and the Pok&eacute;dex remembers it the same way.</p>
+
+    <figure class="shot">
+      <img src="daycare.png" width="1380" height="823" alt="The day care screen: an egg drawn as a pixel sprite beside the line Something is moving inside and a progress bar reading 214 of 600 steps, over a line saying The two seem to get along, with Ditto at Lv19 and a shiny Pikachu at Lv22 in the two slots" loading="lazy">
+      <figcaption><b>An egg on the way</b> &mdash; Ditto in one slot and whatever you are hunting in the other. The bar is the only thing that tells you how far along it is, and it only moves while Claude does.</figcaption>
+    </figure>
+
+    <figure class="shot">
+      <img src="daycare-raising.png" width="1366" height="657" alt="The day care screen with no egg: Rattata at Lv15 and Magnemite at Lv16 in the two slots, under a line reading The two prefer to play with other Pokémon, and Magnemite's experience bar part of the way to the next level" loading="lazy">
+      <figcaption><b>Or just raising them</b> &mdash; a pair that leaves no egg still gains EXP for every step. The screen says so before you spend an hour waiting for something that is not coming.</figcaption>
+    </figure>
+
+    <p class="dim">One egg at a time, and taking a parent back does not take the egg with it.</p>
+  </section>
+
+  <section id="trade">
+    <h2>Trading, by code</h2>
+    <p class="lede">The only social thing in here, and it needs no server at all. <code>t</code>, on any Pokémon of yours — in the team screen or in the box — tells you what it is about to cost you, and then writes a code.</p>
+
+    <div class="code">
+<pre>CMON1-eJxNkMFugzAMht_F53QChxXIrdIeYNJ62rRDBKYgIKAEKBPi3edAWSfl...</pre>
+    </div>
+
+    <p>It lands on your clipboard and in <code>~/.claudemon/trade.txt</code>, and getting it to whoever is taking the Pokémon is your business rather than the game's. On the other side, <code>r</code> — on either of those two screens — takes a pasted code, and the Pokémon turns up with its nickname, its level, its IVs, its bruises and the PP it had when it left.</p>
+
+    <p>A trade only goes one way, and the game holds you to it: the Pokémon leaves your game the moment the code is made rather than when somebody uses it, and there is no undo — which is why the screen asks first. Every code carries who made it, so your own is refused in your own game, and a code that has been taken in once brings nothing the second time it is pasted. Your last Pokémon stays where it is; somebody has to fight.</p>
+
+    <p class="dim">The code <em>is</em> the Pokémon — deflated and written out in base64, about three hundred characters of it. Nothing opens a socket, and nothing about it leaves your machine unless you are the one who sends it.</p>
+  </section>
+
   <section id="inside">
     <h2>What's in it</h2>
     <ul>
@@ -546,7 +573,7 @@ node tools/install.mjs</pre>
       <li>Battles with critical hits, the type chart, status conditions, PP, one-hit KOs, fleeing and switching Pokemon mid-fight.</li>
       <li>Catching, where weakening and status genuinely help.</li>
       <li>Trainers from nine classes, with a team sized to how far along you are — up to six for an Ace Trainer. They send out one Pokemon after another, you cannot run and you cannot throw a ball at somebody else's Pokemon, and what you get for winning is prize money and half again the experience.</li>
-      <li>Eight gyms, one per type and ordered by difficulty, each a run of two trainers and then the leader with no way back to the menu in between — and no wild Pokemon interrupting it either. Beat the leader and the badge is yours; lose, give up or close the terminal and the whole run is undone: the experience, the money, the potions and the bruises, as if you had never gone in.</li>
+      <li>Eight gyms, one per type and ordered by difficulty, each a run of two trainers and then the leader with no way back to the menu in between — and no wild Pokemon interrupting it either. Win and the badge is yours; lose or walk out and the whole run is undone.</li>
       <li>Levelling, learning moves, and evolution by level or by stone.</li>
       <li>A day care that raises what you leave in it and breeds what can be bred, with Ditto as the universal partner it is in the games. The egg only comes along while Claude works and the tab is open, and it rolls shiny eight times more often than the grass does &mdash; the one shiny in the game you can go after rather than wait for.</li>
       <li>A Pokédex tracking seen and caught separately and counting how many of each you have faced, a team screen with the box behind it and the bag inside it, and a shop. Items are used on whoever you have picked, which is the only way a stone gets used at all.</li>
