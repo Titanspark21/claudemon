@@ -1,9 +1,10 @@
 import { ACHIEVEMENTS } from './constants.mjs'
+import { allPokemon } from './helpers.mjs'
 import { levelOf } from './pokemon.mjs'
 import { workedHours } from './worked.mjs'
 
 const highestLevel = (save) => {
-  return [...save.party, ...save.box].reduce((best, mon) => {
+  return allPokemon(save).reduce((best, mon) => {
     return Math.max(best, levelOf(mon))
   }, 0)
 }

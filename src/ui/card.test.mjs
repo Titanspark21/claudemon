@@ -23,6 +23,7 @@ const aSave = (party, badges, achievements = []) => {
     trainer: { name: 'TESTER', startedAt: '2026-07-01T00:00:00.000Z' },
     party,
     box: [],
+    daycare: { slots: [], egg: null },
     bag: {},
     money: 12400,
     badges,

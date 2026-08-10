@@ -14,6 +14,7 @@ const aSave = ({ caught = [1], badges = [], streak = 1, wins = 0 }) => {
     trainer: { name: 'Ash', startedAt: '2026-08-01T00:00:00.000Z' },
     party: [createPokemon(25, 12, makeRng(1))],
     box: [],
+    daycare: { slots: [], egg: null },
     bag: {},
     money: 3000,
     badges,

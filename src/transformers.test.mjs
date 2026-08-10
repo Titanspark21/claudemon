@@ -81,6 +81,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
     'badges',
     'bag',
     'box',
+    'daycare',
     'dex',
     'money',
     'party',
@@ -573,6 +574,43 @@ test('Should write the update state with the same three fields', () => {
 
 test('Should carry a save with no trades yet as an empty list of them', () => {
   expect(transformResponseSave(rawSave).trades).toEqual({ received: [] })
+})
+
+test('Should carry a save written before the day care existed as an empty one', () => {
+  expect(transformResponseSave(rawSave).daycare).toEqual({
+    slots: [],
+    egg: null,
+  })
+})
+
+test('Should map the day care through the same Pokemon shape and keep only the egg it needs', () => {
+  const { daycare } = transformResponseSave({
+    ...rawSave,
+    daycare: {
+      slots: [rawSave.party[0]],
+      egg: { species: 4, steps: 120, shiny: true, mother: 132 },
+    },
+  })
+
+  expect(daycare.slots).toHaveLength(1)
+  expect(
+    Object.keys(daycare.slots[0]).sort(),
+    'a deposited Pokemon is mapped like any other',
+  ).toEqual(Object.keys(transformResponseSave(rawSave).party[0]).sort())
+  expect(daycare.egg).toEqual({ species: 4, steps: 120, shiny: true })
+})
+
+test('Should write the day care back out with the egg it is holding', () => {
+  const written = transformRequestSaveGame({
+    ...rawSave,
+    daycare: { slots: [], egg: { species: 25, steps: 0 } },
+  })
+
+  expect(written.daycare.egg).toEqual({
+    species: 25,
+    steps: 0,
+    shiny: false,
+  })
 })
 
 test('Should map only the fields a trade code carries', () => {

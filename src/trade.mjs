@@ -2,7 +2,6 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { deflateSync, inflateSync } from 'node:zlib'
 import {
-  PARTY_LIMIT,
   STAT_NAMES,
   TRADE_CODE_PREFIX,
   TRADE_ID_RADIX,
@@ -10,27 +9,16 @@ import {
   TRADE_VERSION,
 } from './constants.mjs'
 import { hasMove, hasSpecies, move as moveData } from './data.mjs'
+import { canSpare, pokemonList } from './helpers.mjs'
 import { TRADE_FILE } from './paths.mjs'
 import { levelOf } from './pokemon.mjs'
 import { randomSeed } from './rng.mjs'
-import { recordInDex } from './state.mjs'
+import { recordInDex, stow } from './state.mjs'
 import { statsAtLevel } from './stats.mjs'
 import {
   transformRequestTrade,
   transformResponseTrade,
 } from './transformers.mjs'
-
-const listOf = (save, source) => {
-  if (source === 'box') return save.box
-
-  return save.party
-}
-
-export const canGiveAway = (save, source) => {
-  if (source === 'box') return true
-
-  return save.party.length > 1
-}
 
 export const newTradeId = () => {
   return `${randomSeed().toString(TRADE_ID_RADIX)}${randomSeed().toString(
@@ -102,11 +90,11 @@ export const decodeTrade = (text) => {
 }
 
 export const giveAway = (save, source, index) => {
-  if (!canGiveAway(save, source)) {
+  if (!canSpare(save, source)) {
     return { ok: false, reason: TRADE_MESSAGES.lastOne }
   }
 
-  const [mon] = listOf(save, source).splice(index, 1)
+  const [mon] = pokemonList(save, source).splice(index, 1)
 
   return { ok: true, mon, code: encodeTrade(mon, save.trainer, newTradeId()) }
 }
@@ -151,9 +139,8 @@ export const takeIn = (save, trade) => {
   }
 
   const mon = arrivingMon(trade.mon)
-  const where = save.party.length < PARTY_LIMIT ? 'party' : 'box'
+  const where = stow(save, mon)
 
-  listOf(save, where).push(mon)
   save.trades.received.push(trade.id)
   recordInDex(save, mon)
 

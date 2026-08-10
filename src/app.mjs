@@ -6,7 +6,10 @@ import {
   BATTLE_MESSAGES,
   BOX_MESSAGES,
   CARD_WRITTEN_PREFIX,
+  DAYCARE_MESSAGES,
+  DAYCARE_STEPS_PER_SAVE,
   EMPTY_WORKED,
+  FRAMES_PER_DAYCARE_STEP,
   FRAMES_PER_SPIN,
   FRAMES_PER_STEP,
   GYM_MESSAGES,
@@ -17,6 +20,15 @@ import {
 } from './constants.mjs'
 import { species } from './data.mjs'
 import { createBattle } from './battle.mjs'
+import {
+  eggFromPair,
+  eggIsReady,
+  hatchEgg,
+  leaveAtDaycare,
+  raiseDaycare,
+  takeBackFromDaycare,
+  walkEgg,
+} from './daycare.mjs'
 import { encounterSpecies } from './encounter.mjs'
 import {
   advanceMessage,
@@ -43,25 +55,21 @@ import {
   isGymCleared,
   rollbackGymRun,
 } from './gym.mjs'
+import { canSpare } from './helpers.mjs'
 import { applyItem } from './itemUse.mjs'
 import { describeStep } from './progression.mjs'
 import { createPokemon, displayName } from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { CARD_FILE } from './paths.mjs'
 import { copyToClipboard } from './clipboard.mjs'
-import {
-  canGiveAway,
-  decodeTrade,
-  giveAway,
-  takeIn,
-  writeTradeCode,
-} from './trade.mjs'
+import { decodeTrade, giveAway, takeIn, writeTradeCode } from './trade.mjs'
 import { makeRng, randomSeed } from './rng.mjs'
 import { buy, itemsInBag, usableOnParty } from './shop.mjs'
 import { revealFile } from './reveal.mjs'
 import { play, startMusic, stopMusic } from './sound.mjs'
 import {
   activePokemon,
+  addPokemon,
   awardBadge,
   createSave,
   depositPokemon,
@@ -81,6 +89,7 @@ import { writeCard } from './ui/card.mjs'
 import * as bagView from './ui/views/bag.mjs'
 import * as battleView from './ui/views/battle.mjs'
 import * as boxView from './ui/views/box.mjs'
+import * as daycareView from './ui/views/daycare.mjs'
 import * as dexView from './ui/views/dex.mjs'
 import * as gymView from './ui/views/gym.mjs'
 import * as gymsView from './ui/views/gyms.mjs'
@@ -102,6 +111,7 @@ const VIEWS = {
   team: teamView,
   bag: bagView,
   box: boxView,
+  daycare: daycareView,
   shop: shopView,
   options: optionsView,
   update: updateView,
@@ -131,6 +141,8 @@ export const createApp = ({
   endMusic = stopMusic,
 }) => {
   let spinFrames = 0
+  let daycareFrames = 0
+  let daycareSteps = 0
   let checking = false
 
   const ctx = {
@@ -157,6 +169,12 @@ export const createApp = ({
     boxSort: 'order',
 
     boxMessage: null,
+
+    daycareFrom: 'home',
+    daycareStep: 'slots',
+    daycareSelection: 0,
+    daycarePickSelection: 0,
+    daycareMessage: null,
 
     bagSelection: null,
     bagMessage: null,
@@ -425,6 +443,9 @@ export const createApp = ({
         ctx.closeBag()
         ctx.setMode('team')
         break
+      case 'daycare':
+        ctx.openDaycare('home')
+        break
       case 'gyms':
         ctx.gymSelection = 0
         ctx.gymMessage = null
@@ -529,6 +550,89 @@ export const createApp = ({
     ctx.persist()
   }
 
+  ctx.openDaycare = (from = 'home') => {
+    ctx.daycareFrom = from
+    ctx.daycareStep = 'slots'
+    ctx.daycareSelection = 0
+    ctx.daycarePickSelection = 0
+    ctx.setMode('daycare')
+  }
+
+  ctx.closeDaycare = () => {
+    ctx.daycareMessage = null
+    ctx.setMode(ctx.daycareFrom)
+  }
+
+  ctx.openDaycarePick = () => {
+    ctx.daycareStep = 'pick'
+    ctx.daycarePickSelection = 0
+    ctx.daycareMessage = null
+  }
+
+  ctx.closeDaycarePick = () => {
+    ctx.daycareStep = 'slots'
+    ctx.daycareMessage = null
+  }
+
+  ctx.leaveAtDaycare = (source, index) => {
+    const result = leaveAtDaycare(ctx.save, source, index)
+
+    if (!result.ok) {
+      ctx.daycareMessage = result.reason
+      return
+    }
+
+    const laid = eggFromPair(ctx.save, ctx.rng)
+    const left = `${displayName(result.mon).toUpperCase()} ${DAYCARE_MESSAGES.leftHere}`
+
+    ctx.teamSelection = clampToList(ctx.teamSelection, ctx.save.party)
+    ctx.boxSelection = clampToList(ctx.boxSelection, ctx.save.box)
+    ctx.daycareStep = 'slots'
+    ctx.daycareSelection = ctx.save.daycare.slots.length - 1
+    ctx.daycarePickSelection = 0
+    ctx.daycareMessage = laid ? [left, DAYCARE_MESSAGES.foundAnEgg] : left
+
+    ctx.persist()
+  }
+
+  ctx.takeBackFromDaycare = (slot) => {
+    const { mon, where } = takeBackFromDaycare(ctx.save, slot)
+    const name = displayName(mon).toUpperCase()
+
+    ctx.daycareSelection = slot
+    ctx.daycareMessage = [
+      `${name} ${DAYCARE_MESSAGES.cameBack}`,
+      arrivalWording(where),
+    ]
+
+    ctx.persist()
+  }
+
+  ctx.tickDaycare = () => {
+    if (ctx.gym) return false
+    if (!ctx.save) return false
+
+    const { slots, egg } = ctx.save.daycare
+
+    if (slots.length === 0 && !egg) return false
+    if (!isWorking(ctx.activity)) return false
+
+    daycareFrames++
+
+    if (daycareFrames % FRAMES_PER_DAYCARE_STEP !== 0) return false
+
+    daycareSteps++
+
+    raiseDaycare(ctx.save)
+
+    if (!egg && layNextEgg(ctx)) return true
+    if (egg && advanceEgg(ctx, egg)) return true
+
+    if (daycareSteps % DAYCARE_STEPS_PER_SAVE === 0) ctx.persist()
+
+    return ctx.mode === 'daycare'
+  }
+
   ctx.clearTeamMessages = () => {
     ctx.boxMessage = null
     ctx.bagMessage = null
@@ -577,7 +681,7 @@ export const createApp = ({
   }
 
   ctx.askToGiveAway = ({ from, source, index, mon }) => {
-    if (!canGiveAway(ctx.save, source)) {
+    if (!canSpare(ctx.save, source)) {
       ctx.boxMessage = TRADE_MESSAGES.lastOne
       return
     }
@@ -794,6 +898,17 @@ export const createApp = ({
     return true
   }
 
+  ctx.tickFrame = () => {
+    const ticks = [
+      ctx.tickBattle,
+      ctx.tickScene,
+      ctx.tickUpdate,
+      ctx.tickDaycare,
+    ]
+
+    return ticks.map((tick) => tick()).some(Boolean)
+  }
+
   return ctx
 }
 
@@ -809,15 +924,59 @@ const storeTradeCode = (write, code) => {
   }
 }
 
+const arrivalWording = (where) => {
+  if (where === 'box') return BATTLE_MESSAGES.wentToBox
+
+  return BATTLE_MESSAGES.joinedTeam
+}
+
 const arrivalMessage = (taken, trade) => {
   const name = displayName(taken.mon).toUpperCase()
   const from = trade.from.name.toUpperCase()
-  const where =
-    taken.where === 'box'
-      ? BATTLE_MESSAGES.wentToBox
-      : BATTLE_MESSAGES.joinedTeam
 
-  return `${name} ${TRADE_MESSAGES.arrivedFrom} ${from}. ${where}`
+  return `${name} ${TRADE_MESSAGES.arrivedFrom} ${from}. ${arrivalWording(taken.where)}`
+}
+
+const hatchLines = (mon, where) => {
+  const opening = `${displayName(mon).toUpperCase()} ${DAYCARE_MESSAGES.hatched}`
+
+  if (!mon.shiny) return [opening, arrivalWording(where)]
+
+  return [`${opening} ${BATTLE_MESSAGES.shiny}`, arrivalWording(where)]
+}
+
+const hatchIntoParty = (ctx, egg) => {
+  const hatched = hatchEgg(egg, ctx.rng)
+
+  ctx.save.daycare.egg = null
+
+  const where = addPokemon(ctx.save, hatched)
+  const [headline, arrival] = hatchLines(hatched, where)
+
+  ctx.persist()
+
+  ctx.notice = headline
+  ctx.daycareMessage = [headline, arrival]
+
+  ctx.playSound(hatched.shiny ? 'shiny' : 'hatch')
+}
+
+const layNextEgg = (ctx) => {
+  if (!eggFromPair(ctx.save, ctx.rng)) return false
+
+  ctx.persist()
+
+  return true
+}
+
+const advanceEgg = (ctx, egg) => {
+  walkEgg(egg)
+
+  if (!eggIsReady(egg)) return false
+
+  hatchIntoParty(ctx, egg)
+
+  return true
 }
 
 const leaveForGymList = (ctx, gymId, message) => {

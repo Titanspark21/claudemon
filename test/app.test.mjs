@@ -18,7 +18,11 @@ const { loadConfig, spriteScale } = await import('../src/config.mjs')
 const {
   BATTLE_MESSAGES,
   CARD_WRITTEN_PREFIX,
+  DAYCARE_EXP_PER_STEP,
   DEFAULT_CONFIG,
+  EGG_LEVEL,
+  EGG_STEPS,
+  FRAMES_PER_DAYCARE_STEP,
   GYM_MESSAGES,
   HOME_NOTICES,
 } = await import('../src/constants.mjs')
@@ -39,6 +43,7 @@ const homeView = await import('../src/ui/views/home.mjs')
 const battleView = await import('../src/ui/views/battle.mjs')
 const gymView = await import('../src/ui/views/gym.mjs')
 const teamView = await import('../src/ui/views/team.mjs')
+const daycareView = await import('../src/ui/views/daycare.mjs')
 const tradeView = await import('../src/ui/views/trade.mjs')
 const dexView = await import('../src/ui/views/dex.mjs')
 const trainerView = await import('../src/ui/views/trainer.mjs')
@@ -1904,6 +1909,7 @@ test('Should open each screen from the home menu and come back', () => {
   expect(homeView.menuItems(app).map((item) => item.id)).toEqual([
     'dex',
     'team',
+    'daycare',
     'gyms',
     'shop',
     'heal',
@@ -1912,7 +1918,15 @@ test('Should open each screen from the home menu and come back', () => {
     'quit',
   ])
 
-  for (const mode of ['dex', 'team', 'gyms', 'shop', 'trainer', 'options']) {
+  for (const mode of [
+    'dex',
+    'team',
+    'daycare',
+    'gyms',
+    'shop',
+    'trainer',
+    'options',
+  ]) {
     walkHomeTo(app, mode)
     press(app, 'enter')
 
@@ -1964,7 +1978,7 @@ test('Should restore the team when you heal at home', () => {
   expect(app.save.party[0].status).toBe(null)
 })
 
-test('Should heal Pokemon in the box as well as the team', () => {
+test('Should heal Pokemon in the box and at the day care as well as the team', () => {
   const app = createApp({
     screen: stubScreen(),
     save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
@@ -1972,15 +1986,23 @@ test('Should heal Pokemon in the box as well as the team', () => {
   })
 
   const boxed = createPokemon(25, 10, makeRng(9))
+  const parked = createPokemon(132, 10, makeRng(8))
 
   boxed.hp = 1
   boxed.status = 'sleep'
   app.save.box.push(boxed)
 
+  parked.hp = 0
+  app.save.daycare.slots.push(parked)
+
   app.openHomeSelection('heal')
 
   expect(app.save.box[0].hp).toBe(app.save.box[0].stats.hp)
   expect(app.save.box[0].status).toBe(null)
+  expect(
+    app.save.daycare.slots[0].hp,
+    'one left at the day care is reachable too, or it could never be healed',
+  ).toBe(app.save.daycare.slots[0].stats.hp)
 })
 
 test('Should make healing wait until Claude stops working', () => {
@@ -3401,4 +3423,352 @@ test('Should leave the grass alone during a gym run and pick the encounter up on
 
   expect(app.encounter?.species, 'it was still there afterwards').toBe(129)
   expect(app.save.dex.seen).toContain(129)
+})
+
+const daycareText = (app) => {
+  return daycareView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+}
+
+const runDaycareFrames = (app, count) => {
+  let moved = 0
+
+  for (let frame = 0; frame < count; frame++) {
+    if (app.tickDaycare()) moved++
+  }
+
+  return moved
+}
+
+const withDitto = (app) => {
+  app.save.party.push(createPokemon(132, 10, makeRng(1)))
+  app.save.party.push(createPokemon(25, 10, makeRng(2)))
+}
+
+const leaveOneAtDaycare = (app, downs) => {
+  press(app, 'enter')
+
+  expect(app.daycareStep, 'the empty slot asks who to leave').toBe('pick')
+
+  for (let step = 0; step < downs; step++) press(app, 'down')
+
+  press(app, 'enter')
+}
+
+test('Should leave two at the day care from the home menu and find an egg between them', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  withDitto(app)
+  walkHomeTo(app, 'daycare')
+  press(app, 'enter')
+
+  expect(app.mode).toBe('daycare')
+  expect(daycareText(app), 'nothing is going on in there yet').toContain(
+    'Leave two here and they might get on',
+  )
+
+  press(app, 'up')
+
+  expect(app.daycareSelection, 'up from the first slot lands on the last').toBe(
+    1,
+  )
+
+  press(app, 'enter')
+  press(app, 'up')
+  press(app, 'escape')
+
+  expect(app.daycareStep, 'and the picker can be backed out of').toBe('slots')
+  expect(app.save.daycare.slots, 'with nobody taken').toEqual([])
+
+  leaveOneAtDaycare(app, 1)
+
+  expect(
+    app.daycareSelection,
+    'the cursor follows the deposit rather than sitting on an empty row',
+  ).toBe(0)
+
+  expect(app.save.daycare.slots.map((mon) => mon.species)).toEqual([132])
+  expect(daycareText(app)).toContain('DITTO was left at the day care')
+
+  press(app, 'down')
+  leaveOneAtDaycare(app, 1)
+
+  expect(app.save.daycare.slots.map((mon) => mon.species)).toEqual([132, 25])
+  expect(
+    app.save.party.map((mon) => mon.species),
+    'both came out of the team',
+  ).toEqual([1])
+
+  expect(
+    app.save.daycare.egg.species,
+    'Ditto fills the egg with the other',
+  ).toBe(25)
+
+  const text = daycareText(app)
+
+  expect(text).toContain('They left an egg behind')
+  expect(text).toContain('The two seem to get along')
+  expect(text).toContain(`0/${EGG_STEPS} steps`)
+})
+
+test('Should say the two do not get on rather than making an egg out of a bad pair', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.save.party.push(createPokemon(19, 10, makeRng(1)))
+  app.save.party.push(createPokemon(81, 10, makeRng(2)))
+
+  app.openDaycare('home')
+  leaveOneAtDaycare(app, 1)
+  press(app, 'down')
+  leaveOneAtDaycare(app, 1)
+
+  expect(app.save.daycare.slots).toHaveLength(2)
+  expect(app.save.daycare.egg).toBe(null)
+
+  const text = daycareText(app)
+
+  expect(text).toContain('The two prefer to play with other Pokémon')
+  expect(text).toContain('No egg yet')
+})
+
+test('Should keep the last one of the team out of the day care and say why', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.openDaycare('home')
+  leaveOneAtDaycare(app, 0)
+
+  expect(app.save.daycare.slots, 'nobody was taken').toEqual([])
+  expect(daycareText(app)).toContain('somebody has to fight')
+})
+
+test('Should take one back out of a slot and into the team', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  withDitto(app)
+  app.openDaycare('home')
+  leaveOneAtDaycare(app, 1)
+  press(app, 'down')
+  leaveOneAtDaycare(app, 1)
+
+  expect(app.daycareSelection, 'the cursor is on the second one').toBe(1)
+
+  press(app, 'enter')
+
+  expect(
+    app.daycareSelection,
+    'taking it back leaves the cursor on the slot it emptied, not on the other parent',
+  ).toBe(1)
+  expect(app.save.daycare.slots.map((mon) => mon.species)).toEqual([132])
+
+  press(app, 'up')
+  press(app, 'enter')
+
+  expect(app.save.daycare.slots, 'the slots are free again').toEqual([])
+  expect(app.save.party.map((mon) => mon.species)).toEqual([1, 25, 132])
+
+  const text = daycareText(app)
+
+  expect(text).toContain('DITTO came back from the day care')
+  expect(text).toContain('It joined your team')
+})
+
+test('Should reach the day care from the team screen and come back to it', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  onHome(app, 'team')
+  press(app, 'enter')
+  press(app, 'c')
+
+  expect(app.mode).toBe('daycare')
+
+  press(app, 'escape')
+
+  expect(app.mode, 'esc goes back where you came from').toBe('team')
+})
+
+test('Should only bring the egg along while Claude works, and never in a gym', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  withDitto(app)
+  app.openDaycare('home')
+  leaveOneAtDaycare(app, 1)
+  press(app, 'down')
+  leaveOneAtDaycare(app, 1)
+
+  expect(
+    runDaycareFrames(app, FRAMES_PER_DAYCARE_STEP * 2),
+    'an unwatched egg goes nowhere',
+  ).toBe(0)
+  expect(app.save.daycare.egg.steps).toBe(0)
+
+  reportSession('working', 'Bash')
+  app.refreshActivity()
+
+  const moved = runDaycareFrames(app, FRAMES_PER_DAYCARE_STEP * 3)
+
+  expect(moved, 'three steps in, three steps worth of frames').toBe(3)
+  expect(app.save.daycare.egg.steps).toBe(3)
+  expect(
+    app.save.daycare.slots[1].exp,
+    'and whoever waits there gained EXP for each one',
+  ).toBe(createPokemon(25, 10, makeRng(2)).exp + DAYCARE_EXP_PER_STEP * 3)
+
+  app.gym = { id: 'pewter', index: 0, seed: 1, snapshot: null }
+
+  expect(
+    runDaycareFrames(app, FRAMES_PER_DAYCARE_STEP),
+    'a gym run must not carry an egg it may undo',
+  ).toBe(0)
+  expect(app.save.daycare.egg.steps).toBe(3)
+
+  endSession('test-session')
+})
+
+test('Should hatch the egg into the team, with its own line and sound', () => {
+  const playSound = vi.fn()
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playSound,
+  })
+
+  withDitto(app)
+  app.openDaycare('home')
+  leaveOneAtDaycare(app, 1)
+  press(app, 'down')
+  leaveOneAtDaycare(app, 1)
+  press(app, 'escape')
+
+  app.save.daycare.egg.steps = EGG_STEPS - 1
+
+  reportSession('working', 'Bash')
+  app.refreshActivity()
+  runDaycareFrames(app, FRAMES_PER_DAYCARE_STEP)
+
+  expect(app.save.daycare.egg, 'the egg is gone once it is open').toBe(null)
+  expect(app.save.party.map((mon) => mon.species)).toEqual([1, 25])
+  expect(app.save.party[1].exp).toBe(
+    createPokemon(25, EGG_LEVEL, makeRng(1)).exp,
+  )
+  expect(app.save.dex.caught, 'and it is an entry like any other').toContain(25)
+
+  expect(app.notice).toBe('PIKACHU hatched from the egg!')
+  expect(playSound).toHaveBeenCalledTimes(1)
+  expect(playSound).toHaveBeenCalledWith('hatch')
+
+  expect(loadSave().party, 'the hatch was written down').toHaveLength(2)
+
+  onHome(app, 'daycare')
+  press(app, 'enter')
+
+  expect(
+    daycareText(app),
+    'a hatch that happened on another screen is still there to read',
+  ).toContain('It joined your team')
+
+  runDaycareFrames(app, FRAMES_PER_DAYCARE_STEP)
+
+  expect(
+    app.save.daycare.egg?.species,
+    'the pair is still together, so they leave another one',
+  ).toBe(25)
+
+  endSession('test-session')
+})
+
+test('Should give a shiny hatch the line, the sound and the entry a shiny gets', () => {
+  const playSound = vi.fn()
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playSound,
+  })
+
+  withDitto(app)
+  app.rng = () => 0
+  app.openDaycare('home')
+  leaveOneAtDaycare(app, 1)
+  press(app, 'down')
+  leaveOneAtDaycare(app, 1)
+
+  expect(app.save.daycare.egg.shiny, 'the roll came up short of the odds').toBe(
+    true,
+  )
+
+  app.save.daycare.egg.steps = EGG_STEPS - 1
+
+  reportSession('working', 'Bash')
+  app.refreshActivity()
+  runDaycareFrames(app, FRAMES_PER_DAYCARE_STEP)
+
+  expect(app.save.party[1].shiny).toBe(true)
+  expect(app.save.dex.shiny).toContain(25)
+  expect(app.notice).toContain(BATTLE_MESSAGES.shiny)
+  expect(playSound).toHaveBeenCalledTimes(1)
+  expect(playSound).toHaveBeenCalledWith('shiny')
+
+  endSession('test-session')
+})
+
+test('Should run every ticker on a frame rather than stopping at the first that moved', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+    playSound: () => {},
+    playMusic: () => {},
+    endMusic: () => {},
+  })
+
+  withDitto(app)
+  app.openDaycare('home')
+  leaveOneAtDaycare(app, 1)
+  press(app, 'down')
+  leaveOneAtDaycare(app, 1)
+  press(app, 'escape')
+
+  duel(app)
+  reportSession('working', 'Bash')
+  app.refreshActivity()
+
+  expect(app.mode, 'a battle is what the frame loop is busiest with').toBe(
+    'battle',
+  )
+
+  for (let frame = 0; frame < FRAMES_PER_DAYCARE_STEP; frame++) app.tickFrame()
+
+  expect(
+    app.save.daycare.egg.steps,
+    'the egg still came along behind the battle',
+  ).toBe(1)
+
+  endSession('test-session')
 })

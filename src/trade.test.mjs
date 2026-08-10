@@ -9,16 +9,11 @@ import {
   TRADE_MESSAGES,
   TRADE_VERSION,
 } from './constants.mjs'
+import { canSpare } from './helpers.mjs'
 import { createPokemon, displayName, levelOf } from './pokemon.mjs'
 import { makeRng } from './rng.mjs'
 import { createSave } from './state.mjs'
-import {
-  canGiveAway,
-  decodeTrade,
-  giveAway,
-  takeIn,
-  writeTradeCode,
-} from './trade.mjs'
+import { decodeTrade, giveAway, takeIn, writeTradeCode } from './trade.mjs'
 
 const aSave = (name, starterId, seed) => {
   return createSave({ trainer: name, starterId, rng: makeRng(seed) })
@@ -101,8 +96,8 @@ test('Should keep the last Pokémon of the party where it is', () => {
   expect(refused.reason).toBe(TRADE_MESSAGES.lastOne)
   expect(refused.code).toBeUndefined()
   expect(ash.party).toHaveLength(1)
-  expect(canGiveAway(ash, 'party')).toBe(false)
-  expect(canGiveAway(ash, 'box'), 'the box has no such rule').toBe(true)
+  expect(canSpare(ash, 'party')).toBe(false)
+  expect(canSpare(ash, 'box'), 'the box has no such rule').toBe(true)
 })
 
 test('Should give one away from the box and leave the party alone', () => {

@@ -30,6 +30,7 @@ export const DEFAULT_MENU_STRIDE = 1
 export const BASE_MENU = [
   { id: 'dex', label: 'POKÉDEX' },
   { id: 'team', label: 'TEAM' },
+  { id: 'daycare', label: 'DAY CARE' },
   { id: 'gyms', label: 'GYM' },
   { id: 'shop', label: 'SHOP' },
   { id: 'heal', label: 'HEAL' },
@@ -129,7 +130,9 @@ export const TEAM_SORT_LABELS = { order: 'party', level: 'Lv' }
 export const BOX_SORT_LABELS = { order: 'caught', level: 'Lv' }
 
 export const TEAM_HINTS =
-  ' ↑ ↓ browse · [enter] lead · [s] sort · [i] items · [b] the box · [d] send it there · [esc] back'
+  ' ↑ ↓ browse · [enter] lead · [s] sort · [i] items · [d] send it to the box · [esc] back'
+export const TEAM_KEY_HINTS =
+  ' [b] the box · [c] the day care · [t] trade it away · [r] take one in from a code'
 export const TEAM_BAG_HINTS =
   ' ↑ ↓ choose an item · [enter] use it · [esc] put the bag away'
 
@@ -149,6 +152,34 @@ export const BOX_MESSAGES = {
   waitingHere: 'Anything you catch while your team is full waits in here.',
   back: ' [esc] back to your team',
 }
+
+export const DAYCARE_TITLE = 'DAY CARE'
+export const MAX_DAYCARE_WIDTH = 60
+export const DAYCARE_EGG_PANEL_TITLE = 'Egg'
+export const DAYCARE_EGG_SPRITE_RESERVED_ROWS = 6
+export const DAYCARE_EGG_INFO_GAP = 4
+export const DAYCARE_EGG_BAR_WIDTH = 24
+export const DAYCARE_LIST_WIDTH = 34
+export const EMPTY_SLOT_LABEL = '— nobody here —'
+export const FROM_BOX_TAG = ' box'
+
+export const DAYCARE_NOTES = {
+  leftHere: 'left here',
+  needTwo: 'Leave two here and they might get on.',
+  getAlong: 'The two seem to get along.',
+  noSpark: 'The two prefer to play with other Pokémon.',
+  raising: 'Whoever waits here keeps gaining EXP while Claude works.',
+  noEgg: 'No egg yet.',
+  inside: 'Something is moving inside.',
+  onlyWhileOpen: 'It only comes along while Claude works and this is open.',
+  steps: 'steps',
+  pick: 'Leave which one here?',
+}
+
+export const DAYCARE_HINTS =
+  ' ↑ ↓ pick a slot · [enter] leave one here, or take it back · [esc] back'
+export const DAYCARE_PICK_HINTS =
+  ' ↑ ↓ choose one · [enter] leave it here · [esc] never mind'
 
 export const TRADE_TITLE = 'TRADE'
 export const MAX_TRADE_WIDTH = 64

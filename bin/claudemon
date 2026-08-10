@@ -122,7 +122,7 @@ const main = () => {
   }
 
   const tickFrames = () => {
-    if (app.tickBattle() || app.tickScene() || app.tickUpdate()) app.paint()
+    if (app.tickFrame()) app.paint()
   }
 
   const pollUpdates = () => {

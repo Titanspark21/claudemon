@@ -43,6 +43,8 @@ export const TRAINER_SPRITE_BASE_URL =
 
 export const SPRITE_SIDES = ['front', 'back']
 
+export const EGG_SPRITE_NAME = 'egg.png'
+
 export const SPRITE_MAX_ATTEMPTS = 3
 
 export const SPRITE_RETRY_BACKOFF_MS = 250
@@ -110,6 +112,8 @@ export const PREVIEW_WORKED_MS = 41 * 60 * 60_000
 export const PREVIEW_EARNED_AT = '2026-08-04T09:00:00.000Z'
 
 export const PREVIEW_TRADE_ID = 'k4n70r3d1x'
+
+export const PREVIEW_EGG_STEPS = 214
 
 export const PREVIEW_UPDATE_STEPS = [
   ['refreshing the marketplace', 'refreshed the marketplace'],

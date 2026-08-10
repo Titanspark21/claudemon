@@ -18,6 +18,7 @@ import { draw as drawOptions } from '../src/ui/views/options.mjs'
 import { draw as drawShop } from '../src/ui/views/shop.mjs'
 import { draw as drawBag } from '../src/ui/views/bag.mjs'
 import { draw as drawTeam } from '../src/ui/views/team.mjs'
+import { draw as drawDaycare } from '../src/ui/views/daycare.mjs'
 import { draw as drawGym } from '../src/ui/views/gym.mjs'
 import { draw as drawGyms } from '../src/ui/views/gyms.mjs'
 import { DEFAULT_CONFIG } from '../src/constants.mjs'
@@ -1015,6 +1016,7 @@ const MENU_SAVE = {
   dex: { seen: [4, 25], caught: [4], shiny: [], faced: {} },
   party: [POKEMON, { ...POKEMON, species: 25 }],
   box: [{ ...POKEMON, species: 19 }],
+  daycare: { slots: [], egg: null },
   stats: {},
 }
 
@@ -1032,6 +1034,10 @@ const MENU_CTX = {
   bagMessage: null,
   shopMessage: null,
   optionsMessage: null,
+  daycareStep: 'slots',
+  daycareSelection: 0,
+  daycarePickSelection: 0,
+  daycareMessage: null,
   gym: null,
   gymSelection: 0,
   gymMessage: null,
@@ -1043,9 +1049,28 @@ const GYM_CTX = {
   gym: { id: 'pewter', index: 1, seed: 1, snapshot: null },
 }
 
+const DAYCARE_CTX = {
+  ...MENU_CTX,
+  save: {
+    ...MENU_SAVE,
+    daycare: {
+      slots: [POKEMON, { ...POKEMON, species: 25 }],
+      egg: { species: 25, steps: 120, shiny: false },
+    },
+  },
+}
+
+const DAYCARE_PICK_CTX = {
+  ...DAYCARE_CTX,
+  daycareStep: 'pick',
+}
+
 const MENU_SCREENS = [
   ['TEAM', drawTeam, '[b] the box', MENU_CTX],
   ['BOX', drawBox, '[enter] take it into your team', MENU_CTX],
+  ['DAY CARE', drawDaycare, '[esc] back', DAYCARE_CTX],
+  ['DAY CARE EMPTY', drawDaycare, '[esc] back', MENU_CTX],
+  ['DAY CARE PICK', drawDaycare, '[enter] leave it here', DAYCARE_PICK_CTX],
   ['POKÉDEX', drawDex, 'PgUp/PgDn jump', MENU_CTX],
   ['SHOP', drawShop, '[5] buy five', MENU_CTX],
   ['OPTION', drawOptions, '← → change', MENU_CTX],
