@@ -13,17 +13,21 @@ import {
 } from './constants.mjs'
 import {
   clampSelection,
+  columnRows,
   currentIndex,
   dexMark,
   dexSelectionAfterSort,
   evolutionWording,
   nextDexSort,
+  monRow,
   nextPartySort,
   noteRows,
   noteText,
   partyEntryAt,
   partySelectionAfterSort,
   previewSpecies,
+  pushNote,
+  rowsLeftFor,
   sortedDex,
   sortedPartyEntries,
   updateFooter,
@@ -275,4 +279,50 @@ test('Should resolve a note that is only known at draw time by calling it', () =
 test('Should preview the Pokemon leading the party, or the stock one when there is none', () => {
   expect(previewSpecies({ party: [{ species: 7 }, { species: 4 }] })).toBe(7)
   expect(previewSpecies({ party: [] })).toBe(OPTIONS_PREVIEW_SPECIES)
+})
+
+test('Should draw a list row from a Pokemon, greying out one that has fainted', () => {
+  const pikachu = createPokemon(25, 12, makeRng(1))
+  const fainted = createPokemon(25, 12, makeRng(1))
+
+  fainted.hp = 0
+
+  expect(stripAnsi(monRow(pikachu))).toMatch(/^PIKACHU.{0,2}\s+Lv12/)
+  expect(
+    stripAnsi(monRow(fainted)),
+    'a fainted one reads the same, only dimmed',
+  ).toMatch(/^PIKACHU.{0,2}\s+Lv12/)
+  expect(monRow(fainted)).not.toBe(monRow(pikachu))
+})
+
+test('Should leave the rows undivided when there is no second column to divide', () => {
+  const list = ['one', 'two']
+
+  expect(columnRows(list, [], 10)).toEqual([' one', ' two'])
+  expect(
+    columnRows(list, ['detail'], 6).map(stripAnsi),
+    'a right column brings the divider with it',
+  ).toEqual([' one     │  detail', ' two     │  '])
+})
+
+test('Should hand back the rows a screen has left once its footer and note are spoken for', () => {
+  expect(rowsLeftFor(34, ['header', ''], ['hints'], [])).toBe(30)
+  expect(
+    rowsLeftFor(34, ['header', ''], ['hints'], ['a note']),
+    'a note costs its own rows plus the blank above it',
+  ).toBe(28)
+  expect(
+    rowsLeftFor(4, ['a', 'b', 'c', 'd', 'e'], ['hints'], []),
+    'there is always room for one row',
+  ).toBe(1)
+})
+
+test('Should append a note under a blank line, and nothing at all when there is none', () => {
+  expect(pushNote(['body'], [])).toEqual(['body'])
+  expect(pushNote(['body'], ['first', 'second'])).toEqual([
+    'body',
+    '',
+    ' first',
+    ' second',
+  ])
 })

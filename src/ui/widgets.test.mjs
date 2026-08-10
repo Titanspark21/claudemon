@@ -3,8 +3,8 @@ import { expect, test } from 'vitest'
 import { createPokemon } from '../pokemon.mjs'
 import { makeRng } from '../rng.mjs'
 import { EVOLVES_MARK, LEVEL_EVO_PREFIX, SHINY_MARK } from './constants.mjs'
-import { stripAnsi } from './text.mjs'
-import { evolutionTag, shinyTag } from './widgets.mjs'
+import { stripAnsi, visibleLength } from './text.mjs'
+import { evolutionTag, panel, shinyTag } from './widgets.mjs'
 
 test('Should tag a stone evolution with a star and a level evolution with its level', () => {
   const rng = makeRng(7)
@@ -31,4 +31,18 @@ test('Should brighten the level tag once the Pokemon is old enough to evolve', (
 
   expect(stripAnsi(waiting)).toBe(stripAnsi(ready))
   expect(waiting).not.toBe(ready)
+})
+
+test('Should keep a panel border square when its content is wider than the frame', () => {
+  const rows = panel(
+    ['short', 'a line far longer than the frame it is being drawn inside'],
+    20,
+  )
+  const widths = new Set(rows.map((row) => visibleLength(stripAnsi(row))))
+
+  expect(widths, 'every row of the box is the same width').toHaveProperty(
+    'size',
+    1,
+  )
+  expect(stripAnsi(rows[2]), 'the overflow is cut, not spilled').toContain('…')
 })

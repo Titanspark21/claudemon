@@ -153,6 +153,7 @@ export const MAX_LEVEL = 100
 export const MOVE_LIMIT = 4
 export const IV_MAX = 31
 export const SHINY_ODDS = 1 / 4096
+export const EGG_SHINY_ODDS = 1 / 512
 export const EXP_DIVISOR = 7
 export const MONEY_PER_LEVEL = 12
 export const MONEY_JITTER_PER_LEVEL = 4
@@ -280,6 +281,12 @@ export const ITEMS = {
 
 export const SAVE_VERSION = 1
 export const PARTY_LIMIT = 6
+export const DAYCARE_LIMIT = 2
+export const DAYCARE_EXP_PER_STEP = 8
+export const DITTO_ID = 132
+export const EGG_LEVEL = 5
+export const EGG_STEPS = 600
+export const PAIRED_EGG_LINES = { 29: 32, 32: 29 }
 export const STARTER_LEVEL = 5
 export const STARTING_MONEY = 3000
 export const STARTERS = [1, 4, 7]
@@ -322,7 +329,7 @@ export const ACHIEVEMENTS = [
   {
     id: 'first-shiny',
     label: 'First shiny',
-    hint: 'Catch one of the rare ones. Nothing you do makes it likelier.',
+    hint: 'Catch one of the rare ones, or hatch one — the eggs roll better odds.',
     metric: 'shiny',
     goal: 1,
   },
@@ -933,6 +940,16 @@ export const SOUNDS = {
       { hz: 1760, ms: 72 },
     ],
   },
+
+  hatch: {
+    gain: 0.18,
+    notes: [
+      { hz: 523, ms: 28 },
+      { hz: 784, ms: 28 },
+      { hz: 1047, ms: 28 },
+      { hz: 1319, ms: 96 },
+    ],
+  },
 }
 
 export const HEARTBEAT_STALE_MS = 15_000
@@ -1006,6 +1023,8 @@ export const MOVE_SLOTS_FULL_LINE = 'but it already knows four moves.'
 export const HP_DRAIN_STEPS = 24
 export const FRAMES_PER_STEP = 2
 export const FRAMES_PER_SPIN = 3
+export const FRAMES_PER_DAYCARE_STEP = 100
+export const DAYCARE_STEPS_PER_SAVE = 10
 export const BATTLE_ITEM_KINDS = new Set(['heal', 'cure', 'revive'])
 
 export const HOME_NOTICES = {
@@ -1015,9 +1034,21 @@ export const HOME_NOTICES = {
   cardFailed: 'The trainer card could not be written.',
 }
 
+export const LAST_POKEMON_MESSAGE =
+  'That is your last Pokémon — somebody has to fight.'
+
 export const BOX_MESSAGES = {
-  lastOne: 'That is your last Pokémon — somebody has to fight.',
+  lastOne: LAST_POKEMON_MESSAGE,
   teamFull: 'Your team is full. Send one to the box first.',
+}
+
+export const DAYCARE_MESSAGES = {
+  bothTaken: 'Both slots are taken. Take one back first.',
+  lastOne: LAST_POKEMON_MESSAGE,
+  leftHere: 'was left at the day care.',
+  cameBack: 'came back from the day care.',
+  foundAnEgg: 'They left an egg behind! It is in your care now.',
+  hatched: 'hatched from the egg!',
 }
 
 export const BAG_MESSAGES = {
@@ -1087,7 +1118,7 @@ export const TRADE_CODE_PATTERN = /[^A-Za-z0-9._-]/g
 
 export const TRADE_MESSAGES = {
   arrivedFrom: 'arrived from',
-  lastOne: 'That is your last Pokémon — somebody has to fight.',
+  lastOne: LAST_POKEMON_MESSAGE,
   unreadable: 'That is not a trade code. They start with CMON1-',
   fromNewer: 'That code comes from a newer claudemon than this one.',
   ownGame: 'That one came out of your own game. A trade only goes one way.',

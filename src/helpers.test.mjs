@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 
-import { pickLevel } from './helpers.mjs'
+import { allPokemon, canSpare, pickLevel, pokemonList } from './helpers.mjs'
 import { makeRng } from './rng.mjs'
 
 const SPREAD = { min: 2, fallbackMax: 5, below: 3, above: 2, ceiling: 100 }
@@ -55,4 +55,31 @@ test('Should collapse to the floor rather than invert when the spread reaches pa
       30,
     )
   }
+})
+
+test('Should gather every Pokemon you own across the party, the box and the day care', () => {
+  const save = {
+    party: [{ species: 1 }],
+    box: [{ species: 2 }],
+    daycare: { slots: [{ species: 3 }], egg: null },
+  }
+
+  expect(allPokemon(save).map((mon) => mon.species)).toEqual([1, 2, 3])
+  expect(allPokemon({ party: [], box: [], daycare: { slots: [] } })).toEqual([])
+})
+
+test('Should resolve a collection by the name callers pass around', () => {
+  const save = { party: [{ species: 1 }], box: [{ species: 2 }] }
+
+  expect(pokemonList(save, 'party')).toBe(save.party)
+  expect(pokemonList(save, 'box')).toBe(save.box)
+})
+
+test('Should spare anything from the box but never the last of the party', () => {
+  const alone = { party: [{ species: 1 }], box: [{ species: 2 }] }
+  const pair = { party: [{ species: 1 }, { species: 4 }], box: [] }
+
+  expect(canSpare(alone, 'party'), 'somebody has to fight').toBe(false)
+  expect(canSpare(alone, 'box'), 'the box has no such rule').toBe(true)
+  expect(canSpare(pair, 'party')).toBe(true)
 })

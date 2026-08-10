@@ -33,7 +33,7 @@ import {
   TYPE_COLORS,
   UNKNOWN_STATUS_TAG,
 } from './constants.mjs'
-import { visibleLength } from './text.mjs'
+import { truncate, visibleLength } from './text.mjs'
 
 export const typeColor = (type) => TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR
 
@@ -112,6 +112,12 @@ export const trainerTray = (remaining, total) => {
   return `${fg(...TRAINER_TRAY_COLOUR)}${left}${CLEAR}${gray(lost)}`
 }
 
+const panelRow = (line, inner) => {
+  if (visibleLength(line) <= inner) return padRight(line, inner)
+
+  return truncate(line, inner - 1)
+}
+
 export const panel = (lines, width, { title = null } = {}) => {
   const inner = Math.max(4, width - 2)
   const out = []
@@ -122,7 +128,7 @@ export const panel = (lines, width, { title = null } = {}) => {
   out.push(`┌${heading}${'─'.repeat(Math.max(0, inner - headingWidth))}┐`)
 
   for (const line of lines) {
-    out.push(`│${padRight(line, inner)}│`)
+    out.push(`│${panelRow(line, inner)}│`)
   }
 
   out.push(`└${'─'.repeat(inner)}┘`)

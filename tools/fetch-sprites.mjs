@@ -5,6 +5,7 @@ import { gymRoster } from '../src/gym.mjs'
 import {
   SPRITES_DIR,
   TRAINER_SPRITES_DIR,
+  eggSpriteFile,
   shinySpriteFile,
   spriteFile,
   trainerSpriteFile,
@@ -13,6 +14,7 @@ import { pool } from './pool.mjs'
 import { progress } from './progress.mjs'
 import {
   CONCURRENCY,
+  EGG_SPRITE_NAME,
   KANTO,
   SPRITE_BASE_URL,
   SPRITE_MAX_ATTEMPTS,
@@ -50,6 +52,14 @@ const pokemonJobs = (ids) => {
       VARIANTS.map((variant) => spriteJob(side, variant, id)),
     ),
   )
+}
+
+const eggJob = () => {
+  return {
+    label: 'front/egg.png',
+    url: `${SPRITE_BASE_URL}/${EGG_SPRITE_NAME}`,
+    destination: eggSpriteFile(),
+  }
 }
 
 const trainerSpriteNames = () => {
@@ -109,7 +119,7 @@ const main = async () => {
 
   mkdirSync(TRAINER_SPRITES_DIR, { recursive: true })
 
-  const jobs = [...pokemonJobs(ids), ...trainerJobs()]
+  const jobs = [...pokemonJobs(ids), eggJob(), ...trainerJobs()]
 
   const counts = { fetched: 0, cached: 0, missing: 0 }
   let done = 0

@@ -1,36 +1,25 @@
 import { PARTY_LIMIT } from '../../constants.mjs'
-import { monSpriteFile } from '../../paths.mjs'
-import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
-import { monDetail } from '../detail.mjs'
-import { fitCanvasCols, loadSprite } from '../sprite.mjs'
-import {
-  evolutionTag,
-  genderTag,
-  menuList,
-  padRight,
-  shinyTag,
-  withFooter,
-  wrap,
-} from '../widgets.mjs'
+import { menuList, withFooter, wrap } from '../widgets.mjs'
 import {
   BOX_HINTS,
   BOX_MESSAGES,
   BOX_SORT_LABELS,
   BOX_TITLE,
-  COLUMN_DIVIDER,
   LIST_HEIGHT_FLOOR,
   LIST_WIDTH,
-  MON_NAME_WIDTH,
-  MON_SPRITE_RESERVED_ROWS,
   TRADE_KEY_HINTS,
 } from './constants.mjs'
 import {
+  columnRows,
+  monColumn,
+  monRow,
   nextPartySort,
+  noteRows,
   partyEntryAt,
   partySelectionAfterSort,
+  pushNote,
   sortedPartyEntries,
-  zipColumns,
 } from './helpers.mjs'
 
 export const draw = (ctx, size) => {
@@ -63,37 +52,18 @@ export const draw = (ctx, size) => {
   const entries = sortedPartyEntries(box, sort)
   const selected = partyEntryAt(box, ctx.boxSelection, sort).mon
 
-  const listEntries = entries.map((entry) => {
-    const mon = entry.mon
-    const name = isFainted(mon)
-      ? gray(displayName(mon).toUpperCase())
-      : displayName(mon).toUpperCase()
-
-    return `${padRight(`${name}${genderTag(genderOf(mon))}${shinyTag(mon.shiny)}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${evolutionTag(mon)}`
-  })
+  const listEntries = entries.map((entry) => monRow(entry.mon))
 
   const list = menuList(listEntries, ctx.boxSelection, {
     height: Math.max(LIST_HEIGHT_FLOOR, box.length),
     width: LIST_WIDTH,
   })
 
-  const sprite = loadSprite(
-    monSpriteFile('front', selected.species, selected.shiny),
-    { cols: fitCanvasCols(size, MON_SPRITE_RESERVED_ROWS, ctx.spriteScale) },
-  )
-  const spriteBlock = sprite ? sprite.rows : []
-  const right = [...monDetail(selected), '', ...spriteBlock]
+  const right = monColumn(selected, size, ctx.spriteScale)
 
-  for (const [listRow, detailRow] of zipColumns(list, right)) {
-    lines.push(
-      ` ${padRight(listRow, LIST_WIDTH)}  ${dim(COLUMN_DIVIDER)}  ${detailRow}`,
-    )
-  }
+  for (const row of columnRows(list, right, LIST_WIDTH)) lines.push(row)
 
-  if (ctx.boxMessage) {
-    lines.push('')
-    lines.push(` ${ctx.boxMessage}`)
-  }
+  pushNote(lines, noteRows(ctx.boxMessage))
 
   return {
     lines: withFooter(lines, [dim(BOX_HINTS), dim(TRADE_KEY_HINTS)], rows),

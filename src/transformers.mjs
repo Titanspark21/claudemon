@@ -55,12 +55,30 @@ const mapTrades = (trades) => {
   }
 }
 
+const mapEgg = (egg) => {
+  if (!egg) return null
+
+  return {
+    species: egg.species,
+    steps: egg.steps,
+    shiny: egg.shiny ?? false,
+  }
+}
+
+const mapDaycare = (daycare) => {
+  return {
+    slots: daycare?.slots ? daycare.slots.map(mapPokemon) : [],
+    egg: mapEgg(daycare?.egg),
+  }
+}
+
 const mapSave = (save) => {
   return {
     version: save.version,
     trainer: save.trainer,
     party: save.party ? save.party.map(mapPokemon) : [],
     box: save.box ? save.box.map(mapPokemon) : [],
+    daycare: mapDaycare(save.daycare),
     bag: save.bag ?? {},
     money: save.money ?? 0,
     badges: save.badges ?? [],

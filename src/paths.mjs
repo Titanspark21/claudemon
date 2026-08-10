@@ -81,6 +81,8 @@ export const shinySpriteFile = (side, id, ext) => {
   return join(SPRITES_DIR, side, 'shiny', `${id}.${ext}`)
 }
 
+export const eggSpriteFile = () => spriteFile('front', 'egg', 'png')
+
 export const monSpriteFile = (side, id, shiny) => {
   if (!shiny) return spriteFile(side, id, 'png')
 

@@ -16,6 +16,7 @@ import {
   STARTING_BAG,
   STARTING_MONEY,
 } from './constants.mjs'
+import { allPokemon, pokemonList } from './helpers.mjs'
 import { HOME, SAVE_FILE } from './paths.mjs'
 import {
   createPokemon,
@@ -53,6 +54,7 @@ export const createSave = ({ trainer, starterId, rng }) => {
     trainer: { name: trainer, startedAt: new Date().toISOString() },
     party: [starter],
     box: [],
+    daycare: { slots: [], egg: null },
     bag: { ...STARTING_BAG },
     money: STARTING_MONEY,
     badges: [],
@@ -129,9 +131,10 @@ export const recordInDex = (save, mon) => {
 }
 
 const migrate = (save) => {
-  for (const mon of [...save.party, ...save.box]) recordInDex(save, mon)
-
-  for (const mon of [...save.party, ...save.box]) refreshStats(mon)
+  for (const mon of allPokemon(save)) {
+    recordInDex(save, mon)
+    refreshStats(mon)
+  }
 
   recordAchievements(save, readWorked())
 
@@ -165,8 +168,7 @@ export const partyIsWipedOut = (save) => {
 }
 
 export const healParty = (save) => {
-  for (const mon of save.party) healFully(mon)
-  for (const mon of save.box) healFully(mon)
+  for (const mon of allPokemon(save)) healFully(mon)
 
   return save
 }
@@ -226,19 +228,19 @@ export const saveGame = (save) => {
   return save
 }
 
+export const stow = (save, mon) => {
+  const where = save.party.length < PARTY_LIMIT ? 'party' : 'box'
+
+  pokemonList(save, where).push(mon)
+
+  return where
+}
+
 export const addPokemon = (save, mon) => {
   recordInDex(save, mon)
   save.stats.caught++
 
-  if (save.party.length < PARTY_LIMIT) {
-    save.party.push(mon)
-
-    return 'party'
-  }
-
-  save.box.push(mon)
-
-  return 'box'
+  return stow(save, mon)
 }
 
 export const withdrawPokemon = (save, index) => {

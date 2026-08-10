@@ -201,6 +201,7 @@ battle message. That is the whole scheme — it is the same everywhere.
 | Pokédex | All 151, with how many of each you have faced, and base stats and evolution requirements for the ones you caught. A ✧ marks the ones you caught shiny, and their entry is drawn in those colours. `s` toggles sort between number and A–Z |
 | Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box. `s` sorts by party order or level. `i` opens the bag on whoever the cursor is on: a potion between fights, and the evolution stones, which are used nowhere else. A ✦ on the team list marks a mon that evolves by stone; `→N` is the level it evolves at. In the bag, a ✦ still marks an item that would evolve the selected mon |
 | Box | Everything you caught with a full team, reached with `b` from the team screen. `s` sorts by catch order or level. `enter` takes one back into the team |
+| Day care | Two slots, from the home menu or `c` on the team screen. `enter` on an empty one picks from your team and your box; `enter` on a filled one takes it back. Whoever waits there keeps gaining EXP, and a compatible pair leaves an egg |
 | Gym | The eight Kanto gyms, each one type, listed easiest first with the level range its trainers bring and the badge you have or have not won. `enter` walks in |
 | Gym run | The gauntlet: two trainers and then the leader, back to back. Between fights you can move the cursor over your team, `l` to change your lead and `i` to reach the bag. There is no door back to the menu — `esc` twice walks out and undoes the whole run |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
@@ -255,20 +256,62 @@ and getting it to the other machine is your business rather than the game's. It
 carries the name you play under and the moment you started, which is how a game
 recognises the codes that came out of it.
 
+## The day care
+
+**DAY CARE** on the home menu, or `c` on the team screen. Two slots, filled from your
+team or your box, and two things happen to whoever waits in them — both only while
+Claude is working and this tab is open.
+
+**They keep growing.** A Pokémon left there gains EXP for every step the game counts,
+levels up where it stands and restats as it does. It does not learn moves and it does
+not evolve in there; you take it out for that.
+
+**A pair leaves an egg.** Two that can breed leave one behind — drawn on the screen,
+with how far along it is beside it — and the screen says whether they get on before you
+wait for it. The rules are the ones the games use, and
+Ditto is the centre of them:
+
+- **Ditto plus anything that can breed at all.** Genderless, always-male,
+  always-female — Ditto is the partner every one of those has, and the egg is the
+  *other* parent's base form. Keep one Ditto in a slot and rotate what you are hunting
+  through the second.
+- **Two of one evolution line, opposite genders.** The egg is the mother's base form,
+  so a Nidorina and a Nidorino leave a Nidoran♀ — the two Nidoran lines are separate
+  Pokédex entries and the game pairs them anyway.
+- **Ditto and Ditto, two of a gender, two unrelated lines, and anything legendary
+  leave nothing.** Not even with a Ditto.
+
+**It only comes along while you are there.** The egg has steps of its own — one for
+every six seconds Claude works with this tab open, counted by the game rather than by
+the hooks. So there is no offline progress, nothing hatches in a closed tab, and an egg
+you left at 420 steps is at 420 steps when you come back. Six hundred of them, which is
+about an hour of Claude actually working — a long session, or two.
+
+**Which is what makes it a shiny hunt.** An egg rolls its own shiny check at 1 in 512
+rather than the 1 in 4096 the grass uses, so a hatch is the one shiny roll in the game
+you can work towards instead of wait for. It gets the line, the colours and the sound
+a shiny in the grass gets, and the Pokédex remembers it the same way.
+
+One egg at a time, and taking a parent back does not take the egg with it.
+
 ## What is in it
 
 - The original 151, with real base stats, types, catch rates and Red/Blue movesets.
 - Battles with critical hits, the type chart, status conditions, PP, one-hit KOs,
   fleeing and switching Pokémon mid-fight.
 - Catching, where weakening and status genuinely help.
-- Shiny Pokémon, at the same 1 in 4096 the modern games use. One in the grass gets
-  its own colours, a ✧ by its name, a sound and a line of its own when the battle
-  opens — and the Pokédex remembers the ones you caught shiny.
+- Shiny Pokémon, at the same 1 in 4096 the modern games use in the grass and 1 in 512
+  out of a day care egg. One gets its own colours, a ✧ by its name, a sound and a line
+  of its own — and the Pokédex remembers the ones you caught shiny.
 - Levelling, learning moves, and evolution by level or by stone.
 - A Pokédex tracking seen and caught separately and counting how many of each you
   have faced, a team screen with the box behind it and the bag inside it, and a shop.
   Items are used on whoever you have picked, which is the only way a stone gets used
   at all.
+- A day care that raises what you leave in it and breeds what can be bred, with Ditto
+  as the universal partner it is in the games. The egg only comes along while Claude
+  works and the tab is open, and it rolls shiny eight times more often than the grass
+  does — the one shiny in the game you can go after rather than wait for.
 - Trading by code, which is the only social thing in here that needs no server at
   all: one of yours leaves the moment the code exists, arrives in somebody else's
   game exactly as it was, and never comes back the way it went.

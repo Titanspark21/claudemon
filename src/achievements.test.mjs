@@ -12,6 +12,7 @@ import { makeRng } from './rng.mjs'
 const aSave = ({
   party = [],
   box = [],
+  slots = [],
   badges = [],
   caught = [],
   shiny = [],
@@ -21,6 +22,7 @@ const aSave = ({
   return {
     party,
     box,
+    daycare: { slots, egg: null },
     badges,
     dex: { seen: caught, caught, shiny, faced: {} },
     stats: {
@@ -50,6 +52,7 @@ test('Should read every metric an achievement is measured against off the save',
   const save = aSave({
     party: [aMon(25, 12)],
     box: [aMon(1, 41)],
+    slots: [aMon(4, 52)],
     badges: ['pewter', 'cerulean'],
     caught: [1, 2],
     shiny: [2],
@@ -63,7 +66,7 @@ test('Should read every metric an achievement is measured against off the save',
     badges: 2,
     wins: 21,
     streak: 9,
-    level: 41,
+    level: 52,
     hours: 30,
   })
 })

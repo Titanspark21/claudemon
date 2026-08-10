@@ -1,47 +1,33 @@
 import { PARTY_LIMIT } from '../../constants.mjs'
-import { monSpriteFile } from '../../paths.mjs'
-import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
-import { monDetail } from '../detail.mjs'
-import { fitCanvasCols, loadSprite } from '../sprite.mjs'
+import { menuList, withFooter, wrap } from '../widgets.mjs'
 import {
-  evolutionTag,
-  genderTag,
-  menuList,
-  padRight,
-  shinyTag,
-  withFooter,
-  wrap,
-} from '../widgets.mjs'
-import {
-  COLUMN_DIVIDER,
   LEAD_MARK,
   LIST_HEIGHT_FLOOR,
   LIST_WIDTH,
-  MON_NAME_WIDTH,
-  MON_SPRITE_RESERVED_ROWS,
   TEAM_HINTS,
+  TEAM_KEY_HINTS,
   TEAM_MESSAGES,
-  TRADE_KEY_HINTS,
   TEAM_SORT_LABELS,
   TEAM_TITLE,
 } from './constants.mjs'
 import {
+  columnRows,
+  monColumn,
+  monRow,
   nextPartySort,
   noteRows,
   partyEntryAt,
   partySelectionAfterSort,
+  pushNote,
+  rowsLeftFor,
   sortedPartyEntries,
-  zipColumns,
 } from './helpers.mjs'
 
 const partyRow = (mon, partyIndex) => {
-  const name = isFainted(mon)
-    ? gray(displayName(mon).toUpperCase())
-    : displayName(mon).toUpperCase()
   const leadMark = partyIndex === 0 ? brightYellow(LEAD_MARK) : ' '
 
-  return `${leadMark} ${padRight(`${name}${genderTag(genderOf(mon))}${shinyTag(mon.shiny)}`, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${evolutionTag(mon)}`
+  return `${leadMark} ${monRow(mon)}`
 }
 
 export const draw = (ctx, size) => {
@@ -80,32 +66,15 @@ export const draw = (ctx, size) => {
     width: LIST_WIDTH,
   })
 
-  const sprite = loadSprite(
-    monSpriteFile('front', selected.species, selected.shiny),
-    { cols: fitCanvasCols(size, MON_SPRITE_RESERVED_ROWS, ctx.spriteScale) },
-  )
-  const spriteBlock = sprite ? sprite.rows : []
-  const right = [...monDetail(selected), '', ...spriteBlock]
-
+  const right = monColumn(selected, size, ctx.spriteScale)
   const note = noteRows(ctx.bagMessage ?? ctx.boxMessage)
-  const noteHeight = note.length > 0 ? note.length + 1 : 0
-  const footer = [dim(TEAM_HINTS), dim(TRADE_KEY_HINTS)]
+  const footer = [dim(TEAM_HINTS), dim(TEAM_KEY_HINTS)]
+  const budget = rowsLeftFor(rows, lines, footer, note)
 
-  const budget = Math.max(
-    1,
-    rows - 1 - footer.length - lines.length - noteHeight,
-  )
+  for (const row of columnRows(list, right, LIST_WIDTH).slice(0, budget))
+    lines.push(row)
 
-  for (const [listRow, detailRow] of zipColumns(list, right).slice(0, budget)) {
-    lines.push(
-      ` ${padRight(listRow, LIST_WIDTH)}  ${dim(COLUMN_DIVIDER)}  ${detailRow}`,
-    )
-  }
-
-  if (note.length > 0) {
-    lines.push('')
-    for (const row of note) lines.push(` ${row}`)
-  }
+  pushNote(lines, note)
 
   return {
     lines: withFooter(lines, footer, rows),
@@ -149,6 +118,7 @@ export const onKey = (ctx, key) => {
     ctx.clearTeamMessages()
   } else if (key.name === 'i') ctx.openBag()
   else if (key.name === 'b') ctx.openBox()
+  else if (key.name === 'c') ctx.openDaycare('team')
   else if (key.name === 't')
     ctx.askToGiveAway({
       from: 'team',

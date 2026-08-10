@@ -1,17 +1,33 @@
 import { GYMS } from '../../constants.mjs'
-import { levelOf } from '../../pokemon.mjs'
+import { monSpriteFile } from '../../paths.mjs'
+import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import { hasBadge } from '../../state.mjs'
 import { brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
+import { monDetail } from '../detail.mjs'
+import { fitCanvasCols, loadSprite } from '../sprite.mjs'
+import { evolutionTag, genderTag, padRight, shinyTag } from '../widgets.mjs'
 import {
   BADGE_MARKS,
+  COLUMN_DIVIDER,
   DEX_MARKS,
   DEX_SORT,
   EVOLUTION_WORDING,
+  MON_NAME_WIDTH,
+  MON_SPRITE_RESERVED_ROWS,
   OPTIONS_PREVIEW_SPECIES,
   PARTY_SORT,
   UPDATE_FOOTERS,
   UPDATE_HEADINGS,
 } from './constants.mjs'
+
+export const monRow = (mon) => {
+  const name = isFainted(mon)
+    ? gray(displayName(mon).toUpperCase())
+    : displayName(mon).toUpperCase()
+  const tags = `${name}${genderTag(genderOf(mon))}${shinyTag(mon.shiny)}`
+
+  return `${padRight(tags, MON_NAME_WIDTH)} ${dim(`Lv${levelOf(mon)}`)}${evolutionTag(mon)}`
+}
 
 export const clampSelection = (selection, total) => {
   return Math.max(0, Math.min(selection, total - 1))
@@ -33,6 +49,39 @@ export const noteRows = (note) => {
   if (Array.isArray(note)) return note
 
   return [note]
+}
+
+export const rowsLeftFor = (rows, lines, footer, note) => {
+  const noteHeight = note.length > 0 ? note.length + 1 : 0
+
+  return Math.max(1, rows - 1 - footer.length - lines.length - noteHeight)
+}
+
+export const pushNote = (lines, note) => {
+  if (note.length === 0) return lines
+
+  lines.push('')
+
+  for (const row of note) lines.push(` ${row}`)
+
+  return lines
+}
+
+export const monColumn = (mon, size, scale) => {
+  const sprite = loadSprite(monSpriteFile('front', mon.species, mon.shiny), {
+    cols: fitCanvasCols(size, MON_SPRITE_RESERVED_ROWS, scale),
+  })
+
+  return [...monDetail(mon), '', ...(sprite ? sprite.rows : [])]
+}
+
+export const columnRows = (list, right, width) => {
+  if (right.length === 0) return list.map((row) => ` ${row}`)
+
+  return zipColumns(list, right).map(
+    ([listRow, detailRow]) =>
+      ` ${padRight(listRow, width)}  ${dim(COLUMN_DIVIDER)}  ${detailRow}`,
+  )
 }
 
 export const dexMark = (isCaught, isSeen) => {

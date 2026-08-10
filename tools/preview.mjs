@@ -3,6 +3,7 @@ import { createApp } from '../src/app.mjs'
 import { createBattle } from '../src/battle.mjs'
 import { createBattleFlow } from '../src/battleFlow.mjs'
 import { BATTLE_MESSAGES, DEFAULT_CONFIG } from '../src/constants.mjs'
+import { raiseDaycare } from '../src/daycare.mjs'
 import { createPokemon } from '../src/pokemon.mjs'
 import { makeRng } from '../src/rng.mjs'
 import {
@@ -18,6 +19,7 @@ import { bold, dim } from '../src/ui/ansi.mjs'
 import {
   PREVIEW_COLS,
   PREVIEW_EARNED_AT,
+  PREVIEW_EGG_STEPS,
   PREVIEW_ROWS,
   PREVIEW_TRADE_ID,
   PREVIEW_UPDATE_STEPS,
@@ -75,6 +77,7 @@ const MODULES = {
   battle: await import('../src/ui/views/battle.mjs'),
   dex: await import('../src/ui/views/dex.mjs'),
   team: await import('../src/ui/views/team.mjs'),
+  daycare: await import('../src/ui/views/daycare.mjs'),
   shop: await import('../src/ui/views/shop.mjs'),
   options: await import('../src/ui/views/options.mjs'),
   trade: await import('../src/ui/views/trade.mjs'),
@@ -310,6 +313,56 @@ const SCENES = {
     const app = makeApp(sampleSave())
     app.mode = 'team'
     app.teamSelection = 1
+
+    return app
+  },
+  'daycare-raising': () => {
+    const app = makeApp(sampleSave())
+
+    app.mode = 'daycare'
+    app.daycareSelection = 1
+    app.save.daycare.slots = [
+      createPokemon(19, 12, makeRng(5)),
+      createPokemon(81, 14, makeRng(6)),
+    ]
+
+    for (let step = 0; step < PREVIEW_EGG_STEPS; step++) raiseDaycare(app.save)
+
+    return app
+  },
+  'daycare-egg': () => {
+    const app = makeApp(sampleSave())
+
+    app.mode = 'daycare'
+    app.save.daycare.slots = [
+      createPokemon(132, 18, makeRng(5)),
+      createPokemon(25, 21, makeRng(6)),
+    ]
+    app.save.daycare.egg = { species: 25, steps: 0, shiny: false }
+
+    return app
+  },
+  daycare: () => {
+    const app = SCENES['daycare-egg']()
+
+    app.save.daycare.egg.steps = PREVIEW_EGG_STEPS
+
+    for (let step = 0; step < PREVIEW_EGG_STEPS; step++) raiseDaycare(app.save)
+
+    return app
+  },
+  'daycare-empty': () => {
+    const app = makeApp(sampleSave())
+
+    app.mode = 'daycare'
+
+    return app
+  },
+  'daycare-pick': () => {
+    const app = SCENES.daycare()
+
+    app.daycareStep = 'pick'
+    app.daycarePickSelection = 1
 
     return app
   },
