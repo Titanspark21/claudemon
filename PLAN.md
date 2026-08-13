@@ -620,15 +620,15 @@ isGrounded(battle, side) -> boolean
 fieldHandlers(field) -> EffectHandler[]
 ```
 
-- [ ] Add failing tests for all four weather states, all four terrains,
+- [x] Add failing tests for all four weather states, all four terrains,
       replacement, five/eight-turn duration, expiry, damage changes, sand/hail
       damage, Rock Special Defense, Grassy healing, status prevention, priority
       blocking, grounded Flying/Levitate/Air Balloon cases, and deterministic
       ordering with abilities/items.
-- [ ] Run `npm test -- src/weather.test.mjs src/terrain.test.mjs`.
-- [ ] Implement field conditions only through effect phases and keep duration
+- [x] Run `npm test -- src/weather.test.mjs src/terrain.test.mjs`.
+- [x] Implement field conditions only through effect phases and keep duration
       decrement in one end-turn owner.
-- [ ] Make grounded checks a shared helper consumed by terrain, Ground moves,
+- [x] Make grounded checks a shared helper consumed by terrain, Ground moves,
       abilities, and items.
 - [ ] Add cross-tests for weather setter abilities, duration rocks, terrain
       setter abilities, seeds, and field replacement on switch-in.
