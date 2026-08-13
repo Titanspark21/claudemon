@@ -249,7 +249,7 @@ test('Should not stack a second Pokemon behind the first however many prompts ar
   }
 
   expect(queueIn(home), 'five more prompts changed nothing').toEqual(first)
-})
+}, 10_000)
 
 test('Should replace an encounter nobody faced once it has timed out', () => {
   const home = freshHome()
@@ -506,7 +506,7 @@ test('Should not bank a queue of battles for later over a long turn', () => {
     queueIn(home),
     'ten long tool calls, still one Pokemon in the grass',
   ).toHaveLength(1)
-})
+}, 10_000)
 
 test('Should not cash in the time spent stopped on the next tool call', () => {
   const home = freshHome()

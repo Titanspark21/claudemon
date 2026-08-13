@@ -115,13 +115,18 @@ export const levelRangeLabel = (range) => {
 }
 
 export const evolutionWording = (evolution) => {
+  let wording = EVOLUTION_WORDING.trade
+
   if (evolution.trigger === 'level-up')
-    return `${EVOLUTION_WORDING.level} ${evolution.level}`
+    wording = `${EVOLUTION_WORDING.level} ${evolution.level}`
+  else if (evolution.trigger === 'use-item')
+    wording = `${EVOLUTION_WORDING.item} ${evolution.item.replace(/-/g, ' ')}`
+  else if (evolution.item)
+    wording = `${EVOLUTION_WORDING.trade} with ${evolution.item.replace(/-/g, ' ')}`
 
-  if (evolution.trigger === 'use-item')
-    return `${EVOLUTION_WORDING.item} ${evolution.item.replace(/-/g, ' ')}`
+  if (evolution.substitute) return `${wording} · ${evolution.substitute}`
 
-  return EVOLUTION_WORDING.trade
+  return wording
 }
 
 export const sortedDex = (pokedex, sort) => {

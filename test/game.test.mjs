@@ -412,14 +412,13 @@ test('Should pick up the moves learned on the way up rather than skipping them',
     .filter((step) => step.kind === 'learn')
     .map((step) => step.move)
 
-  expect(learned, 'Charmander learns Ember at 9 and Leer at 15').toEqual([
-    'ember',
-    'leer',
-  ])
+  expect(learned, 'Charmander learns Ember at 7 and Smokescreen at 10').toEqual(
+    ['ember', 'smokescreen'],
+  )
   expect(mon.moves.map((slot) => slot.move)).toEqual([
     'scratch',
     'ember',
-    'leer',
+    'smokescreen',
   ])
 })
 
@@ -507,15 +506,11 @@ test('Should teach the evolved form the moves it knows above the evolution', () 
   const kinds = steps.map((step) => step.kind)
   const evolveAt = kinds.indexOf('evolve')
   const learnAt = steps.findIndex(
-    (step) => step.kind === 'learn' && step.move === 'confusion',
+    (step) => step.kind === 'learn' && step.move === 'disable',
   )
 
   expect(abra.species, 'Kadabra').toBe(64)
-  expect(abra.moves.map((slot) => slot.move)).toEqual([
-    'teleport',
-    'confusion',
-    'disable',
-  ])
+  expect(abra.moves.map((slot) => slot.move)).toEqual(['teleport', 'disable'])
 
   expect(steps[evolveAt - 1].kind).toBe('level')
   expect(steps[evolveAt - 1].level, 'it evolved at 16').toBe(16)

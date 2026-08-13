@@ -1,57 +1,69 @@
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { Generations } from '@pkmn/data'
+import { Dex } from '@pkmn/dex'
 import { BUNDLED_DATA_DIR, bundledDataFile, DATA_DIR } from '../src/paths.mjs'
-import { isDataReady, loadPokedex } from '../src/data.mjs'
 import { bold, brightGreen, dim } from '../src/ui/ansi.mjs'
 import { pass as runPass } from './progress.mjs'
 import {
+  buildEvolutionRules,
+  buildSpeciesRecord,
   transformRequestWriteGrowth,
   transformRequestWriteMoves,
   transformRequestWritePokedex,
   transformRequestWriteTypes,
   transformResponseEvolutionChain,
   transformResponseGrowthRate,
-  transformResponseMove,
   transformResponsePokemon,
   transformResponseSpecies,
-  transformResponseType,
+  validateSpeciesDataset,
 } from './transformers.mjs'
 import {
   CONCURRENCY,
   DATASET_BUILDING_HEADING,
   DATASET_READY_HEADING,
-  KANTO,
   LABEL_WIDTH,
   MAX_ATTEMPTS,
   MIN_REQUEST_INTERVAL_MS,
+  NATIONAL_DEX,
   OUTPUTS,
   POKEAPI_URL,
   RETRY_BACKOFF_MS,
-  STAT_KEYS,
   THROTTLE_BACKOFF_MS,
-  VERSION_GROUP,
 } from './constants.mjs'
 
 const CACHE_DIR = join(DATA_DIR, '.cache')
-
 const useCache = !process.argv.includes('--no-cache')
 const force = process.argv.includes('--force') || !useCache
+const identityManifest = JSON.parse(
+  readFileSync(bundledDataFile('form-ids.json'), 'utf8'),
+)
 
 let requests = 0
 let cacheHits = 0
 let throttled = 0
+let nextSlot = 0
+let cooldownUntil = 0
 
-const datasetPresent = () => isDataReady() && loadPokedex().length === KANTO
+const datasetPresent = () => {
+  if (!existsSync(bundledDataFile('pokedex.json'))) return false
+
+  try {
+    return (
+      JSON.parse(readFileSync(bundledDataFile('pokedex.json'), 'utf8'))
+        .length === identityManifest.records.length
+    )
+  } catch {
+    return false
+  }
+}
 
 const cachePath = (url) => {
   return join(CACHE_DIR, `${createHash('sha1').update(url).digest('hex')}.json`)
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-
-let nextSlot = 0
-let cooldownUntil = 0
 
 const waitForSlot = async () => {
   const slot = Math.max(Date.now(), nextSlot, cooldownUntil)
@@ -117,100 +129,270 @@ const pass = (label, items, worker) => {
   return runPass(label, items, worker, CONCURRENCY)
 }
 
-const getPokemonOrSpecies = (url, index, pokemonCount) => {
-  if (index < pokemonCount) return getJson(url, transformResponsePokemon)
-
-  return getJson(url, transformResponseSpecies)
+const slug = (value) => {
+  return String(value)
+    .replace(/♀/g, '-f')
+    .replace(/♂/g, '-m')
+    .replace(/['’]/g, '')
+    .replace(/[^A-Za-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase()
 }
 
-const readStats = (entry) => {
-  const stats = {}
+const readLevelLearnset = async (generation, sourceKey, baseSourceKey) => {
+  let source = await generation.learnsets.get(sourceKey)
 
-  for (const item of entry.stats) {
-    const key = STAT_KEYS[item.stat.name]
+  if (Object.keys(source?.learnset ?? {}).length === 0)
+    source = await Dex.learnsets.get(sourceKey)
 
-    if (key) stats[key] = item.base_stat
-  }
+  if (
+    Object.keys(source?.learnset ?? {}).length === 0 &&
+    baseSourceKey &&
+    baseSourceKey !== sourceKey
+  )
+    source =
+      (await generation.learnsets.get(baseSourceKey)) ??
+      (await Dex.learnsets.get(baseSourceKey))
 
-  return stats
-}
-
-const readLearnset = (entry) => {
   const learnset = []
 
-  for (const item of entry.moves) {
-    for (const detail of item.version_group_details) {
-      if (detail.version_group.name !== VERSION_GROUP) continue
-      if (detail.move_learn_method.name !== 'level-up') continue
+  for (const [moveId, methods] of Object.entries(source?.learnset ?? {})) {
+    const move = generation.moves.get(moveId)
 
-      learnset.push({ level: detail.level_learned_at, move: item.move.name })
+    if (!move?.exists) continue
+
+    const moveName = slug(move.name)
+
+    for (const method of methods) {
+      const match = /^7L(\d+)$/.exec(method)
+
+      if (!match) continue
+
+      learnset.push({ level: Number(match[1]), move: moveName })
     }
   }
 
-  learnset.sort((a, b) => a.level - b.level || a.move.localeCompare(b.move))
+  const distinct = new Map()
 
-  return learnset
+  for (const entry of learnset)
+    distinct.set(`${entry.level}:${entry.move}`, entry)
+
+  return [...distinct.values()].sort(
+    (a, b) => a.level - b.level || a.move.localeCompare(b.move),
+  )
 }
 
-const idFromUrl = (url) => {
-  const match = /\/(\d+)\/?$/.exec(url)
-
-  return match ? Number(match[1]) : null
+const statusName = (status) => {
+  return {
+    brn: 'burn',
+    frz: 'freeze',
+    par: 'paralysis',
+    psn: 'poison',
+    slp: 'sleep',
+    tox: 'poison',
+  }[status]
 }
 
-const readEvolutions = (chain, out) => {
-  const fromId = idFromUrl(chain.species.url)
+const showdownStatKey = (key) => {
+  return (
+    {
+      atk: 'attack',
+      def: 'defense',
+      spa: 'spAttack',
+      spd: 'spDefense',
+      spe: 'speed',
+    }[key] ?? key
+  )
+}
 
-  for (const next of chain.evolves_to) {
-    const toId = idFromUrl(next.species.url)
-    const [detail] = next.evolution_details
+const moveAilment = (move) => {
+  const secondary = Array.isArray(move.secondaries)
+    ? move.secondaries.find((entry) => entry.status || entry.volatileStatus)
+    : move.secondary
+  const status = move.status ?? secondary?.status
 
-    const evolution = {
-      to: toId,
-      trigger: detail?.trigger?.name ?? 'level-up',
-      level: detail?.min_level ?? null,
-      item: detail?.item?.name ?? null,
+  if (statusName(status)) return statusName(status)
+  const volatile = move.volatileStatus ?? secondary?.volatileStatus
+
+  if (volatile === 'confusion') return 'confusion'
+  if (volatile === 'partiallytrapped') return 'trap'
+  if (volatile === 'leechseed') return 'leech-seed'
+  if (volatile === 'disable') return 'disable'
+
+  return null
+}
+
+const moveChance = (move, predicate) => {
+  const secondaries =
+    move.secondaries ?? (move.secondary ? [move.secondary] : [])
+  const secondary = secondaries.find(predicate)
+
+  return secondary?.chance ?? null
+}
+
+const moveStatChanges = (move) => {
+  const changes = []
+
+  for (const [stat, change] of Object.entries(move.boosts ?? {}))
+    changes.push({ stat: showdownStatKey(stat), change })
+
+  if (changes.length > 0) return changes
+
+  const secondaries =
+    move.secondaries ?? (move.secondary ? [move.secondary] : [])
+  const secondary = secondaries.find((entry) => entry.boosts)
+
+  for (const [stat, change] of Object.entries(secondary?.boosts ?? {}))
+    changes.push({ stat: showdownStatKey(stat), change })
+
+  return changes
+}
+
+const ratioPercent = (ratio) => {
+  if (!Array.isArray(ratio) || ratio.length !== 2 || ratio[1] === 0) return null
+
+  return Math.round((ratio[0] / ratio[1]) * 100)
+}
+
+const runtimeMove = (move) => {
+  const multihit = Array.isArray(move.multihit) ? move.multihit : null
+
+  return {
+    name: move.name,
+    type: move.type.toLowerCase(),
+    power:
+      move.category === 'Status' ||
+      !Number.isFinite(move.basePower) ||
+      move.basePower <= 0
+        ? null
+        : move.basePower,
+    accuracy: move.accuracy === true ? null : move.accuracy,
+    pp: move.pp,
+    priority: move.priority ?? 0,
+    damage_class: move.category.toLowerCase(),
+    ailment: moveAilment(move),
+    ailment_chance: move.volatileStatus
+      ? 100
+      : moveChance(move, (entry) =>
+          Boolean(entry.status || entry.volatileStatus === 'confusion'),
+        ),
+    stat_chance: moveChance(move, (entry) => Boolean(entry.boosts)),
+    stat_changes: moveStatChanges(move),
+    target: move.target,
+    min_hits: multihit?.[0] ?? null,
+    max_hits: multihit?.[1] ?? null,
+    drain: move.recoil ? -ratioPercent(move.recoil) : ratioPercent(move.drain),
+    healing: ratioPercent(move.heal),
+    flinch_chance: moveChance(
+      move,
+      (entry) => entry.volatileStatus === 'flinch',
+    ),
+    crit_rate: Math.max(0, (move.critRatio ?? 1) - 1),
+  }
+}
+
+const runtimeTypes = (generation) => {
+  const typeRecords = [...generation.types].filter((type) => type.exists)
+  const allowed = new Set(typeRecords.map((type) => type.name))
+  const out = {}
+
+  for (const type of typeRecords) {
+    const relations = {
+      double_damage_to: [],
+      half_damage_to: [],
+      no_damage_to: [],
     }
 
-    if (!out.has(fromId)) out.set(fromId, [])
+    for (const [target, multiplier] of Object.entries(
+      type.effectiveness ?? {},
+    )) {
+      if (!allowed.has(target)) continue
 
-    out.get(fromId).push(evolution)
-    readEvolutions(next, out)
+      const key = target.toLowerCase()
+
+      if (multiplier === 2) relations.double_damage_to.push(key)
+      else if (multiplier === 0.5) relations.half_damage_to.push(key)
+      else if (multiplier === 0) relations.no_damage_to.push(key)
+    }
+
+    relations.double_damage_to.sort()
+    relations.half_damage_to.sort()
+    relations.no_damage_to.sort()
+    out[type.name.toLowerCase()] = relations
   }
 
   return out
 }
 
-const stageOf = (id, evolvesFrom) => {
-  let stage = 0
-  let cursor = id
+const pokeApiEdges = (chains) => {
+  const edges = new Set()
 
-  while (evolvesFrom.has(cursor) && stage < 2) {
-    cursor = evolvesFrom.get(cursor)
-    stage++
+  const visit = (link) => {
+    const match = /\/(\d+)\/?$/.exec(link.species?.url ?? '')
+    const from = match ? Number(match[1]) : null
+
+    for (const next of link.evolves_to ?? []) {
+      const nextMatch = /\/(\d+)\/?$/.exec(next.species?.url ?? '')
+      const to = nextMatch ? Number(nextMatch[1]) : null
+
+      if (from && to) edges.add(`${from}:${to}`)
+      visit(next)
+    }
   }
 
-  return stage
+  for (const chain of chains) visit(chain.chain)
+
+  return edges
 }
 
-const moveAilment = (move) => {
-  const name = move.meta?.ailment?.name
+const applyEvolutionRules = (records, rules) => {
+  const byId = new Map(records.map((record) => [record.id, record]))
+  const incoming = new Map()
 
-  if (!name) return null
-  if (name === 'none') return null
+  for (const rule of rules) {
+    byId.get(rule.from)?.evolutions.push({
+      to: rule.to,
+      trigger: rule.trigger,
+      level: rule.level,
+      item: rule.item,
+      conditions: rule.conditions,
+      substitute: rule.substitute,
+    })
 
-  return name
+    if (!incoming.has(rule.to)) incoming.set(rule.to, rule.from)
+  }
+
+  const stageOf = (id, seen = new Set()) => {
+    if (seen.has(id)) return 0
+
+    const from = incoming.get(id)
+
+    if (!from) return 0
+
+    seen.add(id)
+
+    return Math.min(2, stageOf(from, seen) + 1)
+  }
+
+  for (const record of records) {
+    record.evolvesFrom = incoming.get(record.id) ?? null
+    record.stage = stageOf(record.id)
+    record.evolutions.sort((a, b) => a.to - b.to)
+  }
 }
 
 const main = async () => {
   if (!force && datasetPresent()) {
     console.log(bold(DATASET_READY_HEADING))
 
-    for (const name of OUTPUTS) console.log(`  ${brightGreen('✔')} ${name}`)
+    for (const name of OUTPUTS) {
+      if (existsSync(bundledDataFile(name)))
+        console.log(`  ${brightGreen('✔')} ${name}`)
+    }
 
     console.log(dim(`\n  ${BUNDLED_DATA_DIR}`))
     console.log(
-      `\n  Rebuild it with ${bold('--force')}, or refetch from PokeAPI with ${bold('--no-cache')}.\n`,
+      `\n  Rebuild it with ${bold('--force')}, or refetch PokéAPI metadata with ${bold('--no-cache')}.\n`,
     )
 
     return
@@ -221,139 +403,119 @@ const main = async () => {
 
   console.log(bold(DATASET_BUILDING_HEADING))
 
-  const ids = Array.from({ length: KANTO }, (_, i) => i + 1)
+  const generation = new Generations(Dex).get(7)
+  const identities = identityManifest.records
+  const baseIds = Array.from({ length: NATIONAL_DEX }, (_, index) => index + 1)
 
-  const both = await pass(
-    'pokemon',
-    [
-      ...ids.map((id) => `${POKEAPI_URL}/pokemon/${id}`),
-      ...ids.map((id) => `${POKEAPI_URL}/pokemon-species/${id}`),
-    ],
-    (url, index) => getPokemonOrSpecies(url, index, ids.length),
+  if (
+    identities.filter((record) => record.formKey === null).length !==
+    NATIONAL_DEX
   )
+    throw new Error(
+      'form-ids.json does not contain 809 National Dex identities',
+    )
 
-  const pokemon = both.slice(0, ids.length)
-  const species = both.slice(ids.length)
+  const [pokemon, species] = await Promise.all([
+    pass(
+      'pokemon metadata',
+      baseIds.map((id) => `${POKEAPI_URL}/pokemon/${id}`),
+      (url) => getJson(url, transformResponsePokemon),
+    ),
+    pass(
+      'species metadata',
+      baseIds.map((id) => `${POKEAPI_URL}/pokemon-species/${id}`),
+      (url) => getJson(url, transformResponseSpecies),
+    ),
+  ])
 
+  const pokemonById = new Map(pokemon.map((entry) => [entry.id, entry]))
+  const speciesById = new Map(baseIds.map((id, index) => [id, species[index]]))
   const chainUrls = [
-    ...new Set(species.map((entry) => entry.evolution_chain.url)),
+    ...new Set(
+      species.map((entry) => entry.evolution_chain?.url).filter(Boolean),
+    ),
   ]
-
-  const chains = await pass('evolutions', chainUrls, (url) =>
+  const chains = await pass('evolution evidence', chainUrls, (url) =>
     getJson(url, transformResponseEvolutionChain),
   )
 
-  const fullEvolutions = new Map()
+  const baseIdentityById = new Map(
+    identities
+      .filter((identity) => identity.formKey === null)
+      .map((identity) => [identity.id, identity]),
+  )
 
-  for (const chain of chains) readEvolutions(chain.chain, fullEvolutions)
+  const included = await Promise.all(
+    identities.map(async (identity) => {
+      let source = generation.species.get(identity.sourceKey)
 
-  const evolutions = new Map()
+      if (!source?.exists) source = Dex.species.get(identity.sourceKey)
 
-  for (const [fromId, list] of fullEvolutions) {
-    if (fromId > KANTO) continue
+      if (!source?.exists || source.gen > 7)
+        throw new Error(
+          `Pinned Gen VII source is missing ${identity.sourceKey}`,
+        )
 
-    const withinKanto = list.filter((evolution) => evolution.to <= KANTO)
+      const baseSourceKey = baseIdentityById.get(
+        identity.baseSpecies,
+      )?.sourceKey
+      const learnset = await readLevelLearnset(
+        generation,
+        identity.sourceKey,
+        baseSourceKey,
+      )
 
-    if (withinKanto.length > 0) evolutions.set(fromId, withinKanto)
+      return {
+        identity,
+        pkmnRecord: { ...JSON.parse(JSON.stringify(source)), learnset },
+      }
+    }),
+  )
+
+  const records = included.map(({ identity, pkmnRecord }) => {
+    const metadata = {
+      ...speciesById.get(identity.dexNumber),
+      base_experience: pokemonById.get(identity.dexNumber)?.base_experience,
+    }
+
+    return buildSpeciesRecord(pkmnRecord, metadata, identity)
+  })
+
+  const recordById = new Map(records.map((record) => [record.id, record]))
+
+  for (const record of records) {
+    if (record.learnset.length === 0 && record.baseSpecies !== record.id) {
+      const base = recordById.get(record.baseSpecies)
+      if (base && base.learnset.length > 0)
+        record.learnset = base.learnset.slice()
+    }
   }
 
-  const learnsets = pokemon.map(readLearnset)
+  const rules = buildEvolutionRules(null, included)
+  applyEvolutionRules(records, rules)
 
   const moveNames = [
-    ...new Set(learnsets.flat().map((item) => item.move)),
+    ...new Set(
+      records.flatMap((record) => record.learnset.map((entry) => entry.move)),
+    ),
   ].sort()
+  const moves = {}
 
-  const moveData = await pass('moves', moveNames, (name) =>
-    getJson(`${POKEAPI_URL}/move/${name}`, transformResponseMove),
-  )
+  for (const key of moveNames) {
+    const source = [...generation.moves].find((move) => slug(move.name) === key)
 
-  const typeNames = [
-    ...new Set([
-      ...pokemon.flatMap((entry) => entry.types.map((item) => item.type.name)),
-      ...moveData.map((move) => move.type.name),
-    ]),
-  ].sort()
+    if (!source?.exists) throw new Error(`Missing Gen VII move source: ${key}`)
 
-  const typeData = await pass('types', typeNames, (name) =>
-    getJson(`${POKEAPI_URL}/type/${name}`, transformResponseType),
-  )
+    moves[key] = runtimeMove(source)
+  }
 
+  const types = runtimeTypes(generation)
   const growthNames = [
     ...new Set(species.map((entry) => entry.growth_rate.name)),
   ].sort()
-
   const growthData = await pass('exp curves', growthNames, (name) =>
     getJson(`${POKEAPI_URL}/growth-rate/${name}`, transformResponseGrowthRate),
   )
-
-  const evolvesFrom = new Map()
-
-  for (const [fromId, list] of evolutions) {
-    for (const evolution of list) evolvesFrom.set(evolution.to, fromId)
-  }
-
-  const pokedex = pokemon.map((entry, index) => {
-    const speciesEntry = species[index]
-
-    return {
-      id: entry.id,
-      name: speciesEntry.name.replace(/^./, (c) => c.toUpperCase()),
-      types: entry.types
-        .sort((a, b) => a.slot - b.slot)
-        .map((item) => item.type.name),
-      stats: readStats(entry),
-      base_experience: entry.base_experience,
-      capture_rate: speciesEntry.capture_rate,
-      growth_rate: speciesEntry.growth_rate.name,
-      gender_rate: speciesEntry.gender_rate,
-      stage: stageOf(entry.id, evolvesFrom),
-      evolvesFrom: evolvesFrom.get(entry.id) ?? null,
-      evolutions: evolutions.get(entry.id) ?? [],
-      legendary: speciesEntry.is_legendary || speciesEntry.is_mythical,
-      learnset: learnsets[index],
-    }
-  })
-
-  const moves = {}
-
-  for (const move of moveData) {
-    moves[move.name] = {
-      name: move.names.find((n) => n.language.name === 'en')?.name ?? move.name,
-      type: move.type.name,
-      power: move.power,
-      accuracy: move.accuracy,
-      pp: move.pp,
-      priority: move.priority,
-      damage_class: move.damage_class.name,
-      ailment: moveAilment(move),
-      ailment_chance: move.meta?.ailment_chance || null,
-      stat_chance: move.meta?.stat_chance || null,
-      stat_changes: move.stat_changes.map((change) => ({
-        stat: STAT_KEYS[change.stat.name] ?? change.stat.name,
-        change: change.change,
-      })),
-      target: move.target.name,
-      min_hits: move.meta?.min_hits ?? null,
-      max_hits: move.meta?.max_hits ?? null,
-      drain: move.meta?.drain || null,
-      healing: move.meta?.healing || null,
-      flinch_chance: move.meta?.flinch_chance || null,
-      crit_rate: move.meta?.crit_rate || 0,
-    }
-  }
-
-  const types = {}
-
-  for (const type of typeData) {
-    const relations = type.damage_relations
-
-    types[type.name] = {
-      double_damage_to: relations.double_damage_to.map((t) => t.name),
-      half_damage_to: relations.half_damage_to.map((t) => t.name),
-      no_damage_to: relations.no_damage_to.map((t) => t.name),
-    }
-  }
-
   const growth = {}
 
   for (const curve of growthData) {
@@ -364,19 +526,72 @@ const main = async () => {
     growth[curve.name] = table
   }
 
+  const pokedex = transformRequestWritePokedex(records)
+  const moveOutput = transformRequestWriteMoves(moves)
+  const typeOutput = transformRequestWriteTypes(types)
+  const growthOutput = transformRequestWriteGrowth(growth)
+  const sourceAbilities = new Set(
+    [...generation.abilities].map((entry) => entry.id),
+  )
+  const sourceItems = new Set([...generation.items].map((entry) => entry.id))
+  const validation = validateSpeciesDataset(pokedex, {
+    types: Object.keys(typeOutput),
+    moves: Object.keys(moveOutput),
+    abilities: sourceAbilities,
+    items: sourceItems,
+    growth: Object.keys(growthOutput),
+  })
+
+  if (!validation.valid)
+    throw new Error(
+      `Generated dataset failed validation:\n${validation.errors.slice(0, 40).join('\n')}`,
+    )
+
+  const evidence = pokeApiEdges(chains)
+  const unconfirmed = rules.filter((rule) => {
+    const from = identities.find((identity) => identity.id === rule.from)
+    const to = identities.find((identity) => identity.id === rule.to)
+
+    return !evidence.has(`${from.dexNumber}:${to.dexNumber}`)
+  })
+  const audit = {
+    generation: 7,
+    nationalDex: { first: 1, last: NATIONAL_DEX, count: NATIONAL_DEX },
+    ...validation.counts,
+    references: {
+      types: Object.keys(typeOutput).length,
+      moves: Object.keys(moveOutput).length,
+      abilities: sourceAbilities.size,
+      items: sourceItems.size,
+      growthCurves: Object.keys(growthOutput).length,
+    },
+    pokeApi: {
+      speciesRecords: species.length,
+      pokemonRecords: pokemon.length,
+      evolutionChains: chains.length,
+      confirmedEvolutionRules: rules.length - unconfirmed.length,
+      unconfirmedEvolutionRules: unconfirmed.map((rule) => ({
+        from: rule.from,
+        to: rule.to,
+      })),
+    },
+  }
   const outputs = [
-    ['pokedex.json', transformRequestWritePokedex(pokedex)],
-    ['moves.json', transformRequestWriteMoves(moves)],
-    ['types.json', transformRequestWriteTypes(types)],
-    ['growth.json', transformRequestWriteGrowth(growth)],
+    ['pokedex.json', pokedex],
+    ['moves.json', moveOutput],
+    ['types.json', typeOutput],
+    ['growth.json', growthOutput],
+    ['generation-vii-audit.json', audit],
   ]
 
   console.log()
 
   for (const [name, value] of outputs) {
-    writeFileSync(bundledDataFile(name), JSON.stringify(value))
+    const json = JSON.stringify(value)
 
-    const kb = (Buffer.byteLength(JSON.stringify(value)) / 1024).toFixed(0)
+    writeFileSync(bundledDataFile(name), json)
+
+    const kb = (Buffer.byteLength(json) / 1024).toFixed(0)
 
     console.log(
       `  ${brightGreen('✔')} ${name.padEnd(LABEL_WIDTH)} ${dim(`${kb} KB`)}`,

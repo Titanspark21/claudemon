@@ -28,7 +28,7 @@ const {
 } = await import('../src/constants.mjs')
 const { GYM_MESSAGES: GYM_SCREEN_MESSAGES } =
   await import('../src/ui/views/constants.mjs')
-const { isDataReady } = await import('../src/data.mjs')
+const { isDataReady, loadPokedex } = await import('../src/data.mjs')
 const { expFromTrainerMon } = await import('../src/exp.mjs')
 const { clearEncounter, peekQueue, writeEncounter } =
   await import('../src/queue.mjs')
@@ -2464,14 +2464,14 @@ test('Should teach what the new form knows at the level it arrived at', () => {
   expect(
     shellder.moves.map((slot) => slot.move),
     'and it learned it',
-  ).toContain('spike-cannon')
+  ).toContain('icicle-crash')
   expect([].concat(app.bagMessage).join(' '), 'and said so').toMatch(
-    /learned Spike Cannon/i,
+    /learned Icicle Crash/i,
   )
   expect(
     loadSave().party[1].moves.map((slot) => slot.move),
     'on disk, not just on screen',
-  ).toContain('spike-cannon')
+  ).toContain('icicle-crash')
 })
 
 test('Should keep the four moves it knows and say why when the new one cannot fit', () => {
@@ -2499,7 +2499,7 @@ test('Should keep the four moves it knows and say why when the new one cannot fi
 
   const said = [].concat(app.bagMessage).join(' ')
 
-  expect(said).toMatch(/Spike Cannon/i)
+  expect(said).toMatch(/Icicle Crash/i)
   expect(said).toMatch(/kept the four it knows/)
 })
 
@@ -2601,7 +2601,9 @@ test('Should scroll the Pokedex without falling off either end', () => {
 
   press(app, 'up')
 
-  expect(app.dexSelection, 'wraps to the last entry').toBe(150)
+  expect(app.dexSelection, 'wraps to the last entry').toBe(
+    loadPokedex().length - 1,
+  )
 
   press(app, 'down')
 
@@ -2610,7 +2612,7 @@ test('Should scroll the Pokedex without falling off either end', () => {
   for (let i = 0; i < 200; i++) press(app, 'down')
 
   expect(app.dexSelection).toBeGreaterThanOrEqual(0)
-  expect(app.dexSelection).toBeLessThan(151)
+  expect(app.dexSelection).toBeLessThan(loadPokedex().length)
 })
 
 test('Should offer nothing on the OPTION screen that could stop a sprite drawing at all', () => {
@@ -3508,7 +3510,7 @@ test('Should leave two at the day care from the home menu and find an egg betwee
   expect(
     app.save.daycare.egg.species,
     'Ditto fills the egg with the other',
-  ).toBe(25)
+  ).toBe(172)
 
   const text = daycareText(app)
 
@@ -3673,13 +3675,15 @@ test('Should hatch the egg into the team, with its own line and sound', () => {
   runDaycareFrames(app, FRAMES_PER_DAYCARE_STEP)
 
   expect(app.save.daycare.egg, 'the egg is gone once it is open').toBe(null)
-  expect(app.save.party.map((mon) => mon.species)).toEqual([1, 25])
+  expect(app.save.party.map((mon) => mon.species)).toEqual([1, 172])
   expect(app.save.party[1].exp).toBe(
-    createPokemon(25, EGG_LEVEL, makeRng(1)).exp,
+    createPokemon(172, EGG_LEVEL, makeRng(1)).exp,
   )
-  expect(app.save.dex.caught, 'and it is an entry like any other').toContain(25)
+  expect(app.save.dex.caught, 'and it is an entry like any other').toContain(
+    172,
+  )
 
-  expect(app.notice).toBe('PIKACHU hatched from the egg!')
+  expect(app.notice).toBe('PICHU hatched from the egg!')
   expect(playSound).toHaveBeenCalledTimes(1)
   expect(playSound).toHaveBeenCalledWith('hatch')
 
@@ -3698,7 +3702,7 @@ test('Should hatch the egg into the team, with its own line and sound', () => {
   expect(
     app.save.daycare.egg?.species,
     'the pair is still together, so they leave another one',
-  ).toBe(25)
+  ).toBe(172)
 
   endSession('test-session')
 })
@@ -3730,7 +3734,7 @@ test('Should give a shiny hatch the line, the sound and the entry a shiny gets',
   runDaycareFrames(app, FRAMES_PER_DAYCARE_STEP)
 
   expect(app.save.party[1].shiny).toBe(true)
-  expect(app.save.dex.shiny).toContain(25)
+  expect(app.save.dex.shiny).toContain(172)
   expect(app.notice).toContain(BATTLE_MESSAGES.shiny)
   expect(playSound).toHaveBeenCalledTimes(1)
   expect(playSound).toHaveBeenCalledWith('shiny')

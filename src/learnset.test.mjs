@@ -13,7 +13,7 @@ test('Should keep the last four moves learned as the natural moveset', () => {
 
   expect(late).toHaveLength(4)
   expect(new Set(late).size).toBe(4)
-  expect(late).toEqual(['rage', 'slash', 'flamethrower', 'fire-spin'])
+  expect(late).toEqual(['slash', 'flamethrower', 'fire-spin', 'inferno'])
 })
 
 test('Should lead a starter with a move that attacks', () => {
@@ -37,7 +37,7 @@ test('Should give every Pokemon something to attack with', () => {
 })
 
 test('Should report only the moves learned exactly at that level', () => {
-  expect(movesLearnedAt(4, 9)).toEqual(['ember'])
-  expect(movesLearnedAt(4, 10)).toEqual([])
+  expect(movesLearnedAt(4, 7)).toEqual(['ember'])
+  expect(movesLearnedAt(4, 8)).toEqual([])
   expect(movesLearnedAt(4, 1)).toEqual(['growl', 'scratch'])
 })

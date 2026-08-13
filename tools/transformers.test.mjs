@@ -1,5 +1,8 @@
 import { expect, test } from 'vitest'
+
 import {
+  buildEvolutionRules,
+  buildSpeciesRecord,
   transformRequestWriteGrowth,
   transformRequestWriteMoves,
   transformRequestWritePokedex,
@@ -12,6 +15,7 @@ import {
   transformResponseSettings,
   transformResponseSpecies,
   transformResponseType,
+  validateSpeciesDataset,
 } from './transformers.mjs'
 
 test('Should map a pokemon response keeping PokeAPI field names and dropping the rest', () => {
@@ -82,6 +86,9 @@ test('Should map a species response keeping the snake_case names the dataset der
     gender_rate: 4,
     is_legendary: false,
     is_mythical: false,
+    is_baby: false,
+    egg_groups: [],
+    habitat: null,
     evolution_chain: { url: 'https://example.test/evolution-chain/10/' },
     color: { name: 'yellow' },
     flavor_text_entries: [{ flavor_text: 'a mouse' }],
@@ -95,6 +102,9 @@ test('Should map a species response keeping the snake_case names the dataset der
     gender_rate: 4,
     is_legendary: false,
     is_mythical: false,
+    is_baby: false,
+    egg_groups: [],
+    habitat: null,
     evolution_chain: { url: 'https://example.test/evolution-chain/10/' },
   })
   expect(entry).not.toHaveProperty('captureRate')
@@ -134,32 +144,24 @@ test('Should map an evolution chain down every branch and keep the trigger detai
     },
   })
 
-  expect(chain).toEqual({
-    chain: {
-      species: { url: 'https://example.test/species/133/' },
-      evolution_details: [],
-      evolves_to: [
-        {
-          species: { url: 'https://example.test/species/134/' },
-          evolution_details: [
-            {
-              trigger: { name: 'use-item' },
-              min_level: null,
-              item: { name: 'water-stone' },
-            },
-          ],
-          evolves_to: [],
-        },
-      ],
-    },
+  expect(chain.chain.species).toEqual({
+    name: 'eevee',
+    url: 'https://example.test/species/133/',
+  })
+  expect(chain.chain.evolves_to[0].species).toEqual({
+    name: 'vaporeon',
+    url: 'https://example.test/species/134/',
+  })
+  expect(chain.chain.evolves_to[0].evolution_details[0]).toMatchObject({
+    trigger: { name: 'use-item' },
+    min_level: null,
+    item: { name: 'water-stone' },
+    gender: null,
+    held_item: null,
   })
   expect(chain).not.toHaveProperty('id')
   expect(chain).not.toHaveProperty('baby_trigger_item')
   expect(chain.chain).not.toHaveProperty('is_baby')
-  expect(chain.chain.species).not.toHaveProperty('name')
-  expect(chain.chain.evolves_to[0].evolution_details[0]).not.toHaveProperty(
-    'held_item',
-  )
 })
 
 test('Should map a move response including its meta and drop the fields the dataset ignores', () => {
@@ -324,6 +326,12 @@ test('Should write pokedex entries with the camelCase names and key order data/p
     {
       id: 1,
       name: 'Bulbasaur',
+      sourceKey: 'bulbasaur',
+      dexNumber: 1,
+      baseSpecies: 1,
+      formKey: null,
+      collectible: true,
+      battleOnly: false,
       types: ['grass', 'poison'],
       stats: {
         hp: 45,
@@ -337,12 +345,20 @@ test('Should write pokedex entries with the camelCase names and key order data/p
       capture_rate: 45,
       growth_rate: 'medium-slow',
       gender_rate: 1,
+      egg_groups: ['monster', 'grass'],
+      abilities: [
+        { slot: '0', ability: 'overgrow', hidden: false },
+        { slot: 'H', ability: 'chlorophyll', hidden: true },
+      ],
+      habitat: 'grassland',
+      baby: false,
       stage: 0,
       evolvesFrom: null,
       evolutions: [
         { to: 2, trigger: 'level-up', level: 16, item: null, extra: 'ignored' },
       ],
       legendary: false,
+      mythical: false,
       learnset: [{ level: 1, move: 'tackle', method: 'level-up' }],
     },
   ])
@@ -350,16 +366,27 @@ test('Should write pokedex entries with the camelCase names and key order data/p
   expect(Object.keys(entry)).toEqual([
     'id',
     'name',
+    'sourceKey',
+    'dexNumber',
+    'baseSpecies',
+    'formKey',
+    'collectible',
+    'battleOnly',
     'types',
     'stats',
     'baseExp',
     'captureRate',
     'growthRate',
     'genderRate',
+    'eggGroups',
+    'abilities',
+    'habitat',
+    'baby',
     'stage',
     'evolvesFrom',
     'evolutions',
     'legendary',
+    'mythical',
     'learnset',
   ])
   expect(Object.keys(entry.stats)).toEqual([
@@ -376,7 +403,14 @@ test('Should write pokedex entries with the camelCase names and key order data/p
   expect(entry.genderRate).toBe(1)
   expect(entry.legendary).toBe(false)
   expect(entry.evolutions).toEqual([
-    { to: 2, trigger: 'level-up', level: 16, item: null },
+    {
+      to: 2,
+      trigger: 'level-up',
+      level: 16,
+      item: null,
+      conditions: {},
+      substitute: null,
+    },
   ])
   expect(entry.learnset).toEqual([{ level: 1, move: 'tackle' }])
   expect(entry).not.toHaveProperty('base_experience')
@@ -468,6 +502,221 @@ test('Should write the growth curves as a table per curve name', () => {
     fast: [0, 0, 6, 21],
   })
   expect(Object.keys(growth)).toEqual(['medium-slow', 'fast'])
+})
+
+test('Should build Generation VII species fields including Fairy, hidden abilities, baby metadata and missing habitat', () => {
+  const record = buildSpeciesRecord(
+    {
+      exists: true,
+      id: 'togepi',
+      name: 'Togepi',
+      types: ['Fairy'],
+      baseStats: { hp: 35, atk: 20, def: 65, spa: 40, spd: 65, spe: 20 },
+      eggGroups: ['Undiscovered'],
+      abilities: { 0: 'Hustle', 1: 'Serene Grace', H: 'Super Luck' },
+      genderRatio: { M: 0.875, F: 0.125 },
+      learnset: [{ level: 1, move: 'growl' }],
+    },
+    {
+      base_experience: 49,
+      capture_rate: 190,
+      growth_rate: { name: 'fast' },
+      gender_rate: 1,
+      egg_groups: [{ name: 'undiscovered' }],
+      habitat: null,
+      is_baby: true,
+      is_legendary: false,
+      is_mythical: false,
+    },
+    {
+      id: 175,
+      sourceKey: 'togepi',
+      dexNumber: 175,
+      baseSpecies: 175,
+      formKey: null,
+      collectible: true,
+      battleOnly: false,
+    },
+  )
+
+  expect(record.types).toEqual(['fairy'])
+  expect(record.egg_groups).toEqual(['undiscovered'])
+  expect(record.abilities).toEqual([
+    { slot: '0', ability: 'hustle', hidden: false },
+    { slot: '1', ability: 'serenegrace', hidden: false },
+    { slot: 'H', ability: 'superluck', hidden: true },
+  ])
+  expect(record.baby).toBe(true)
+  expect(record.habitat).toBeNull()
+})
+
+test('Should preserve legendary, mythical and genderless metadata', () => {
+  const source = {
+    exists: true,
+    id: 'mew',
+    name: 'Mew',
+    types: ['Psychic'],
+    baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
+    eggGroups: ['Undiscovered'],
+    abilities: { 0: 'Synchronize' },
+    gender: 'N',
+    learnset: [{ level: 1, move: 'pound' }],
+  }
+  const identity = {
+    id: 151,
+    sourceKey: 'mew',
+    dexNumber: 151,
+    baseSpecies: 151,
+    formKey: null,
+    collectible: true,
+    battleOnly: false,
+  }
+  const mythical = buildSpeciesRecord(
+    source,
+    {
+      base_experience: 270,
+      capture_rate: 45,
+      growth_rate: { name: 'medium-slow' },
+      gender_rate: -1,
+      egg_groups: [{ name: 'undiscovered' }],
+      habitat: { name: 'rare' },
+      is_baby: false,
+      is_legendary: false,
+      is_mythical: true,
+    },
+    identity,
+  )
+  const legendary = buildSpeciesRecord(
+    { ...source, id: 'lugia', name: 'Lugia' },
+    {
+      base_experience: 306,
+      capture_rate: 3,
+      growth_rate: { name: 'slow' },
+      gender_rate: -1,
+      egg_groups: [{ name: 'undiscovered' }],
+      habitat: { name: 'rare' },
+      is_baby: false,
+      is_legendary: true,
+      is_mythical: false,
+    },
+    {
+      ...identity,
+      id: 249,
+      sourceKey: 'lugia',
+      dexNumber: 249,
+      baseSpecies: 249,
+    },
+  )
+
+  expect(mythical.mythical).toBe(true)
+  expect(mythical.gender_rate).toBe(-1)
+  expect(legendary.legendary).toBe(true)
+  expect(legendary.gender_rate).toBe(-1)
+})
+
+test('Should build friendship, time, item, trade and branching evolution rules with visible substitutes', () => {
+  const included = [
+    {
+      identity: { id: 133, sourceKey: 'eevee', dexNumber: 133 },
+      pkmnRecord: { id: 'eevee', name: 'Eevee' },
+    },
+    {
+      identity: { id: 134, sourceKey: 'vaporeon', dexNumber: 134 },
+      pkmnRecord: {
+        id: 'vaporeon',
+        name: 'Vaporeon',
+        prevo: 'Eevee',
+        evoType: 'useItem',
+        evoItem: 'Water Stone',
+      },
+    },
+    {
+      identity: { id: 196, sourceKey: 'espeon', dexNumber: 196 },
+      pkmnRecord: {
+        id: 'espeon',
+        name: 'Espeon',
+        prevo: 'Eevee',
+        evoType: 'levelFriendship',
+        evoCondition: 'during the day',
+      },
+    },
+    {
+      identity: { id: 123, sourceKey: 'scyther', dexNumber: 123 },
+      pkmnRecord: { id: 'scyther', name: 'Scyther' },
+    },
+    {
+      identity: { id: 212, sourceKey: 'scizor', dexNumber: 212 },
+      pkmnRecord: {
+        id: 'scizor',
+        name: 'Scizor',
+        prevo: 'Scyther',
+        evoType: 'trade',
+        evoItem: 'Metal Coat',
+      },
+    },
+  ]
+  const rules = buildEvolutionRules(null, included)
+  const eevee = rules.filter((rule) => rule.from === 133)
+  const espeon = eevee.find((rule) => rule.to === 196)
+  const vaporeon = eevee.find((rule) => rule.to === 134)
+  const scizor = rules.find((rule) => rule.to === 212)
+
+  expect(eevee).toHaveLength(2)
+  expect(vaporeon).toMatchObject({ trigger: 'use-item', item: 'water-stone' })
+  expect(espeon).toMatchObject({
+    trigger: 'level-up',
+    conditions: { friendship: true, text: 'during the day' },
+  })
+  expect(espeon.substitute).toContain('Gen VII condition')
+  expect(espeon.substitute).toContain('during the day')
+  expect(scizor).toMatchObject({
+    trigger: 'trade',
+    item: 'metal-coat',
+    conditions: { heldItem: 'metal-coat' },
+  })
+})
+
+test('Should validate the full National range and every referenced dataset key', () => {
+  const dataset = Array.from({ length: 809 }, (_, index) => {
+    const id = index + 1
+
+    return {
+      id,
+      sourceKey: `species-${id}`,
+      formKey: null,
+      baseSpecies: id,
+      growthRate: 'medium',
+      types: ['normal'],
+      abilities: [{ slot: '0', ability: 'runaway', hidden: false }],
+      learnset: [{ level: 1, move: 'tackle' }],
+      evolutions: [],
+    }
+  })
+  dataset[0].evolutions.push({
+    to: 2,
+    trigger: 'use-item',
+    level: null,
+    item: 'moon-stone',
+  })
+  const references = {
+    types: ['normal'],
+    moves: ['tackle'],
+    abilities: ['runaway'],
+    items: ['moonstone'],
+    growth: ['medium'],
+  }
+  const valid = validateSpeciesDataset(dataset, references)
+
+  expect(valid.valid).toBe(true)
+  expect(valid.counts.baseSpecies).toBe(809)
+
+  dataset[808].learnset[0].move = 'missing-move'
+  const invalid = validateSpeciesDataset(dataset, references)
+
+  expect(invalid.valid).toBe(false)
+  expect(invalid.errors).toContain(
+    'species-809 references missing move missing-move',
+  )
 })
 
 test('Should map only the status line out of the Claude Code settings document', () => {

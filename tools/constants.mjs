@@ -4,7 +4,9 @@ export const CONCURRENCY = 8
 
 export const KANTO = 151
 
-export const VERSION_GROUP = 'red-blue'
+export const NATIONAL_DEX = 809
+
+export const VERSION_GROUP = 'ultra-sun-ultra-moon'
 
 export const SOURCE_GENERATION = 7
 
@@ -25,6 +27,7 @@ export const OUTPUTS = [
   'moves.json',
   'types.json',
   'growth.json',
+  'generation-vii-audit.json',
 ]
 
 export const MIN_REQUEST_INTERVAL_MS = 150

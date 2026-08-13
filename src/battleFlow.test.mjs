@@ -36,14 +36,14 @@ test('Should swap the move the player picks when a level-up has nowhere to put i
   chooseBattleOption(ctx)
 
   expect(mon.moves.map((slot) => slot.move)).toEqual([
-    'ember',
+    'dragon-rage',
     'flamethrower',
-    'rage',
-    'slash',
+    'fire-fang',
+    'flame-burst',
   ])
   expect(battle.message).toBe(BATTLE_MESSAGES.forgetting)
   expect(battle.events.map((event) => event.text)).toEqual([
-    'CHARMANDER forgot leer and learned a new move!',
+    'CHARMANDER forgot scary-face and learned a new move!',
   ])
   expect(battle.learnStep).toBe(null)
   expect(battle.menu).toBe(null)

@@ -153,6 +153,8 @@ test('Should tell stone evolutions from level-up ones at a glance', () => {
     trigger: 'level-up',
     level: 16,
     item: null,
+    conditions: {},
+    substitute: null,
   })
   expect(levelUpEvolution(aPokemon(25, 10))).toBe(null)
 })
@@ -1005,7 +1007,7 @@ test('Should ignore an action once the battle is over', () => {
 test('Should keep playing after a round trip through JSON', () => {
   const battle = createBattle({
     playerMon: aPokemon(4, 20),
-    wildMon: aPokemon(16, 10),
+    wildMon: aPokemon(143, 20),
     seed: 77,
   })
 
