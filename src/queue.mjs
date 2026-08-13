@@ -71,20 +71,6 @@ const isUsable = (entry) => {
   return entry.species != null && entry.name != null
 }
 
-const liveEntries = (ttlMs, now) => {
-  return peekQueue().filter(
-    (entry) => isLive(entry, ttlMs, now) && isUsable(entry),
-  )
-}
-
-export const readEncounter = (ttlMs, now = Date.now()) => {
-  const live = liveEntries(ttlMs, now)
-
-  if (live.length === 0) return null
-
-  return live[0]
-}
-
 const stampEncounter = (entry) => {
   return transformRequestWriteEncounter({
     v: entry.v,
@@ -123,6 +109,25 @@ const replaceQueue = (entries) => {
   }
 }
 
+const liveEntries = (ttlMs, now) => {
+  const entries = peekQueue()
+  const live = entries.filter(
+    (entry) => isLive(entry, ttlMs, now) && isUsable(entry),
+  )
+
+  if (live.length !== entries.length) replaceQueue(live)
+
+  return live
+}
+
+export const readEncounter = (ttlMs, now = Date.now()) => {
+  const live = liveEntries(ttlMs, now)
+
+  if (live.length === 0) return null
+
+  return live[0]
+}
+
 export const writeEncounter = (entry) => {
   const stamped = stampEncounter(entry)
 
@@ -141,10 +146,7 @@ export const offerEncounter = (entry) => {
 export const consumeEncounter = (ttlMs, now = Date.now()) => {
   const live = liveEntries(ttlMs, now)
 
-  if (live.length === 0) {
-    replaceQueue([])
-    return null
-  }
+  if (live.length === 0) return null
 
   const [current, ...remaining] = live
 
@@ -153,4 +155,8 @@ export const consumeEncounter = (ttlMs, now = Date.now()) => {
   return current
 }
 
-export const clearEncounter = () => replaceQueue([])
+export const clearEncounter = () => {
+  const [, ...remaining] = peekQueue()
+
+  replaceQueue(remaining)
+}
