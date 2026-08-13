@@ -7,14 +7,14 @@ import {
   pruneSessions,
   readActivity,
 } from '../src/activity.mjs'
-import { encounterTtlMs, loadConfig } from '../src/config.mjs'
+import { loadConfig } from '../src/config.mjs'
 import {
   loadSpeciesTable,
   rollEncounters,
   stepsWhileWorking,
 } from '../src/encounter.mjs'
 import { logError } from '../src/log.mjs'
-import { offerEncounter, readEncounter } from '../src/queue.mjs'
+import { offerEncounter } from '../src/queue.mjs'
 import { makeRng, randomSeed } from '../src/rng.mjs'
 import { readStatus } from '../src/status.mjs'
 import { accrueWorked, workedSince } from '../src/worked.mjs'
@@ -38,7 +38,6 @@ const walkWhileWorking = (sessionId, now) => {
   if (previous?.state !== 'working') return
 
   const config = loadConfig()
-  const ttlMs = encounterTtlMs(config)
   const stepClockAt = stepClockOf(previous, now)
   const { steps, taken } = stepsWhileWorking(now - stepClockAt, config)
   const pending = pendingStepsOf(previous)
@@ -49,8 +48,6 @@ const walkWhileWorking = (sessionId, now) => {
     lastStepAt: stepClockAt + taken,
     pendingSteps: 0,
   }
-
-  if (readEncounter(ttlMs)) return walked
 
   const level = readStatus()?.lead?.level
   const leadLevel = typeof level === 'number' ? level : null
@@ -63,23 +60,19 @@ const walkWhileWorking = (sessionId, now) => {
     species: loadSpeciesTable(leadLevel ?? DEFAULT_LEAD_LEVEL),
   })
 
-  const [encounter] = encounters
-
-  if (encounter)
-    offerEncounter(
-      {
-        v: encounter.v,
-        kind: encounter.kind,
-        species: encounter.species,
-        name: encounter.name,
-        level: encounter.level,
-        trainer: encounter.trainer,
-        seed: encounter.seed,
-        shiny: encounter.shiny,
-        session: sessionId,
-      },
-      ttlMs,
-    )
+  for (const encounter of encounters) {
+    offerEncounter({
+      v: encounter.v,
+      kind: encounter.kind,
+      species: encounter.species,
+      name: encounter.name,
+      level: encounter.level,
+      trainer: encounter.trainer,
+      seed: encounter.seed,
+      shiny: encounter.shiny,
+      session: sessionId,
+    })
+  }
 
   return walked
 }
