@@ -323,42 +323,6 @@ buildSpriteManifest(speciesRecords) -> manifest
 
 ### 2026-08-13 — Generation VII expansion
 
-### Task O1: Pin data sources and build a reproducible generation pipeline
-
-**Files:**
-
-- Create: `tools/sourceManifest.mjs`
-- Create: `tools/sourceManifest.test.mjs`
-- Create: `data/sources.json`
-- Modify: `package.json`
-- Modify: `package-lock.json`
-- Modify: `tools/constants.mjs`
-- Modify: `tools/fetch-data.mjs`
-- Modify: `tools/transformers.mjs`
-- Test: `tools/transformers.test.mjs`
-
-**Interfaces:**
-
-```js
-loadGenerationSource(7) -> { species, moves, abilities, items, learnsets }
-sourceRevision(manifest, source) -> string
-transformResponseSourceManifest(raw) -> sourceManifest
-```
-
-- [ ] Add failing tests that reject an unpinned Showdown revision, missing
-      PokéAPI provenance, non-Generation-VII records, HTTP 429 retry/backoff, and
-      nondeterministic output.
-- [ ] Run `npm test -- tools/sourceManifest.test.mjs tools/transformers.test.mjs`.
-- [ ] Add pinned development-only `@pkmn/data`/`@pkmn/dex` tooling; generated
-      game runtime must not import these packages.
-- [ ] Record package versions, commit hashes, PokéAPI endpoint/version groups,
-      generation timestamp policy, and sprite base URLs in `data/sources.json`.
-- [ ] Split the current monolithic fetch into passes that can resume from cache
-      and always sort output by stable ID/key.
-- [ ] Generate twice from an empty logical cache and compare hashes of every
-      checked-in JSON output.
-- [ ] Commit: `data: pin Generation VII source inputs`
-
 ### Task O2: Normalize base species and synthetic form identity
 
 **Files:**
