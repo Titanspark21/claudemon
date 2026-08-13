@@ -323,44 +323,6 @@ buildSpriteManifest(speciesRecords) -> manifest
 
 ### 2026-08-13 — Generation VII expansion
 
-### Task O2: Normalize base species and synthetic form identity
-
-**Files:**
-
-- Create: `tools/speciesIdentity.mjs`
-- Create: `tools/speciesIdentity.test.mjs`
-- Create: `data/form-ids.json`
-- Modify: `tools/fetch-data.mjs`
-- Modify: `tools/transformers.mjs`
-- Modify: `src/data.mjs`
-- Modify: `src/paths.mjs`
-- Test: `tools/check-data.mjs`
-
-**Interfaces:**
-
-```js
-assignSpeciesIds(baseRecords, formRecords, pinnedIds) -> records
-speciesRecord(id) -> SpeciesRecord
-formsOf(dexNumber) -> SpeciesRecord[]
-baseSpeciesOf(id) -> SpeciesRecord
-```
-
-- [ ] Add failing tests for IDs `1` and `809`, stable Alolan IDs, Charizard
-      Mega X/Y uniqueness, collectible versus battle-only ranges, collision, an
-      attempted reassignment, National-number display, partitioned base/form
-      Dex recording, and rejection of battle-only Dex entries.
-- [ ] Run the focused identity tests and confirm failures.
-- [ ] Generate immutable synthetic mappings with explicit `dexNumber`,
-      `baseSpecies`, `formKey`, `collectible`, and `battleOnly` fields.
-- [ ] Include every battle-distinct Gen-I–VII form required by `SPEC.md` and
-      one representative for cosmetic-only form families; every excluded
-      transformation must have an explicit coverage classification and reason.
-- [ ] Add data lookup helpers so callers do not infer base/form relationships
-      from numeric ranges.
-- [ ] Make `tools/check-data.mjs` fail on missing base IDs, collisions,
-      reassignment, invalid form references, or persisted battle-only records.
-- [ ] Commit: `data: give forms stable numeric identities`
-
 ### Task O3: Generate and validate complete Generation VII species data
 
 **Files:**
