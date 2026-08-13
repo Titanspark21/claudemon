@@ -1,5 +1,5 @@
 import { EFFECTIVENESS_MESSAGES } from './constants.mjs'
-import { loadData } from './data.mjs'
+import { loadData, species } from './data.mjs'
 
 export const effectiveness = (moveType, defenderTypes) => {
   const chart = loadData().types
@@ -24,4 +24,23 @@ export const effectivenessMessage = (multiplier) => {
   if (multiplier < 1) return EFFECTIVENESS_MESSAGES.notVeryEffective
 
   return null
+}
+
+export const battleSideOf = (battle, actor) => {
+  if (actor === 'player' || actor === 'foe') return actor
+  if (actor === battle.player) return 'player'
+  if (actor === battle.foe) return 'foe'
+
+  return null
+}
+
+export const isGrounded = (battle, side) => {
+  const mon = battle[side].mon
+  const types = species(mon.species).types
+
+  if (types.includes('flying')) return false
+  if (mon.ability === 'levitate') return false
+  if (mon.heldItem === 'air-balloon') return false
+
+  return true
 }

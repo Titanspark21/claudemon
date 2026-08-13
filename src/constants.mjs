@@ -1,3 +1,30 @@
+export const FIELD_DEFAULT_TURNS = 5
+export const FIELD_RESIDUAL_FRACTION = 16
+export const WEATHER_POWER_MULTIPLIER = 1.5
+export const TERRAIN_POWER_MULTIPLIER = 1.5
+export const SAND_ROCK_SPDEF_MULTIPLIER = 1.5
+export const MISTY_DRAGON_MULTIPLIER = 0.5
+export const FIELD_KINDS = new Set(['weather', 'terrain'])
+export const WEATHER_KEYS = new Set(['rain', 'sun', 'sandstorm', 'hail'])
+export const TERRAIN_KEYS = new Set(['electric', 'grassy', 'psychic', 'misty'])
+export const WEATHER_KEY_ALIASES = {
+  'harsh-sunlight': 'sun',
+  'harsh sunlight': 'sun',
+}
+export const TERRAIN_KEY_ALIASES = {
+  'electric-terrain': 'electric',
+  'grassy-terrain': 'grassy',
+  'psychic-terrain': 'psychic',
+  'misty-terrain': 'misty',
+}
+export const SANDSTORM_IMMUNE_TYPES = new Set(['rock', 'ground', 'steel'])
+export const HAIL_IMMUNE_TYPES = new Set(['ice'])
+export const GRASSY_WEAKENED_MOVES = new Set([
+  'bulldoze',
+  'earthquake',
+  'magnitude',
+])
+
 export const CRIT_CHANCE = 1 / 16
 export const HIGH_CRIT_CHANCE = 1 / 8
 export const SLEEP_WAKE_CHANCE = 1 / 3

@@ -120,6 +120,8 @@ src/stats.test.mjs
 src/status.mjs
 src/streak.mjs
 src/streak.test.mjs
+src/terrain.mjs
+src/terrain.test.mjs
 src/trade.mjs
 src/trade.test.mjs
 src/trainer.mjs
@@ -174,6 +176,8 @@ src/update.mjs
 src/version.mjs
 src/volatile.mjs
 src/volatile.test.mjs
+src/weather.mjs
+src/weather.test.mjs
 src/worked.mjs
 src/worked.test.mjs
 test/activity.test.mjs
