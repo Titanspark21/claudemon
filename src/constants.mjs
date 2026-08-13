@@ -444,7 +444,7 @@ export const DEFAULT_CONFIG = {
 export const HOUR_MS = 60 * 60_000
 export const DAY_MS = 24 * 60 * 60_000
 
-export const EMPTY_WORKED = { totalMs: 0, updatedAt: null }
+export const EMPTY_WORKED = { totalMs: 0, updatedAt: null, intervals: [] }
 
 export const STALE_MS = 30 * 60_000
 export const PRUNE_MS = 24 * 60 * 60_000
@@ -953,6 +953,9 @@ export const SOUNDS = {
 }
 
 export const HEARTBEAT_STALE_MS = 15_000
+export const FILE_LOCK_RETRY_MS = 5
+export const FILE_LOCK_STALE_MS = 1_000
+export const FILE_LOCK_TIMEOUT_MS = 2_000
 
 export const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
 export const FETCH_TIMEOUT_MS = 5000

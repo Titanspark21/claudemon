@@ -17,7 +17,7 @@ import { logError } from '../src/log.mjs'
 import { offerEncounter, readEncounter } from '../src/queue.mjs'
 import { makeRng, randomSeed } from '../src/rng.mjs'
 import { readStatus } from '../src/status.mjs'
-import { accrueWorked, workedSince } from '../src/worked.mjs'
+import { bankActiveWindow, workedSince } from '../src/worked.mjs'
 import { DEFAULT_LEAD_LEVEL } from './constants.mjs'
 import { readStdin } from './stdin.mjs'
 import { transformResponseHookEvent } from './transformers.mjs'
@@ -85,7 +85,14 @@ const walkWhileWorking = (sessionId, now) => {
 }
 
 const accrueWorkedTime = (sessionId, now) => {
-  accrueWorked(workedSince(readActivity(sessionId), now), now)
+  const previous = readActivity(sessionId)
+  const elapsedMs = workedSince(previous, now)
+
+  if (elapsedMs <= 0) return
+
+  const interval = { session: sessionId, from: previous.at, to: now }
+
+  bankActiveWindow(interval)
 }
 
 const main = async () => {

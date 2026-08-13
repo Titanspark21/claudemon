@@ -343,12 +343,12 @@ const loseABattle = (app) => {
   expect(app.mode, 'and sent you home').toBe('home')
 }
 
-const reportSession = (state, tool = null) => {
+const reportSession = (state, tool = null, session = 'test-session') => {
   const now = Date.now()
 
   writeActivity({
     v: 1,
-    session: 'test-session',
+    session,
     state,
     tool,
     since: now,
@@ -1875,6 +1875,29 @@ test('Should move the walk on while Claude works, and leave it where it got to w
   expect(app.scene.step, 'and they stay where they got to').toBe(stopped)
 
   endSession('test-session')
+})
+
+test('Should keep the walk moving while another session is waiting', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  reportSession('working', 'Bash', 'worker-session')
+  reportSession('waiting', null, 'waiting-session')
+  app.refreshActivity()
+
+  expect(app.activity.state, 'waiting still wins the visible priority').toBe(
+    'waiting',
+  )
+  expect(
+    runFrames(app, 20),
+    'the other session is still working',
+  ).toBeGreaterThan(0)
+
+  endSession('worker-session')
+  endSession('waiting-session')
 })
 
 test('Should not run the walk underneath a battle', () => {

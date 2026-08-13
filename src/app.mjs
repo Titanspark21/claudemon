@@ -156,7 +156,13 @@ export const createApp = ({
 
     encounter: null,
 
-    activity: { state: 'unknown', tool: null, since: null, sessions: 0 },
+    activity: {
+      state: 'unknown',
+      tool: null,
+      since: null,
+      sessions: 0,
+      activeSince: null,
+    },
 
     scene: { step: 0, frames: 0 },
 
@@ -242,7 +248,7 @@ export const createApp = ({
     ctx.worked = readWorked()
 
     recordAchievements(ctx.save, ctx.worked)
-    saveGame(ctx.save)
+    ctx.save = saveGame(ctx.save)
   }
 
   ctx.playSound = (name) => {
@@ -313,17 +319,15 @@ export const createApp = ({
 
     ctx.activity = next
 
-    if (
-      previous.state === 'working' &&
-      (next.state === 'idle' || next.state === 'waiting')
-    ) {
+    if (isWorking(previous) && !isWorking(next)) {
       if (ctx.config.bell) screen.bell?.()
     }
 
     return (
       next.state !== previous.state ||
       next.tool !== previous.tool ||
-      next.sessions !== previous.sessions
+      next.sessions !== previous.sessions ||
+      next.activeSince !== previous.activeSince
     )
   }
 
@@ -887,7 +891,7 @@ export const createApp = ({
   ctx.chooseBattleOption = () => chooseBattleOption(ctx)
 
   ctx.tickScene = () => {
-    if (ctx.mode !== 'home' || ctx.activity.state !== 'working') return false
+    if (ctx.mode !== 'home' || !isWorking(ctx.activity)) return false
 
     ctx.scene.frames++
 

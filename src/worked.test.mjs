@@ -7,7 +7,8 @@ process.env.CLAUDEMON_HOME = mkdtempSync(join(tmpdir(), 'claudemon-worked-'))
 
 const { STALE_MS } = await import('./constants.mjs')
 const { WORKED_FILE } = await import('./paths.mjs')
-const { accrueWorked, readWorked, workedSince } = await import('./worked.mjs')
+const { accrueWorked, mergeWorkedIntervals, readWorked, workedSince } =
+  await import('./worked.mjs')
 
 beforeEach(() => {
   writeFileSync(WORKED_FILE, JSON.stringify({ totalMs: 0, updatedAt: null }))
@@ -16,7 +17,7 @@ beforeEach(() => {
 test('Should report nothing worked before any hook has run', () => {
   writeFileSync(WORKED_FILE, 'not json at all')
 
-  expect(readWorked()).toEqual({ totalMs: 0, updatedAt: null })
+  expect(readWorked()).toEqual({ totalMs: 0, updatedAt: null, intervals: [] })
 })
 
 test('Should count the time since the last event while Claude was working', () => {
@@ -39,6 +40,47 @@ test('Should count nothing across a gap longer than a session stays live', () =>
   expect(workedSince({ state: 'working', at: now - STALE_MS }, now)).toBe(0)
 })
 
+test('Should union overlapping ranges', () => {
+  const worked = mergeWorkedIntervals(
+    { totalMs: 0, updatedAt: null, intervals: [] },
+    [
+      { session: 'a', from: 1000, to: 5000 },
+      { session: 'b', from: 3000, to: 7000 },
+    ],
+  )
+
+  expect(worked.totalMs).toBe(6000)
+})
+
+test('Should count separate ranges in full', () => {
+  const worked = mergeWorkedIntervals(
+    { totalMs: 0, updatedAt: null, intervals: [] },
+    [
+      { session: 'a', from: 1000, to: 5000 },
+      { session: 'b', from: 7000, to: 11_000 },
+    ],
+  )
+
+  expect(worked.totalMs).toBe(8000)
+})
+
+test('Should normalize ranges that arrive out of order', () => {
+  const first = mergeWorkedIntervals(
+    { totalMs: 0, updatedAt: null, intervals: [] },
+    [
+      { session: 'a', from: 5000, to: 9000 },
+      { session: 'a', from: 1000, to: 6000 },
+    ],
+  )
+  const replayed = mergeWorkedIntervals(first, [
+    { session: 'a', from: 2000, to: 4000 },
+  ])
+
+  expect(first.totalMs).toBe(8000)
+  expect(replayed.totalMs).toBe(8000)
+  expect(replayed.intervals).toEqual([{ session: 'a', from: 1000, to: 9000 }])
+})
+
 test('Should add each stretch of work to the running total', () => {
   const now = Date.now()
 
@@ -58,5 +100,6 @@ test('Should leave the total untouched when no time was worked', () => {
   expect(accrueWorked(0, now + 1000)).toEqual({
     totalMs: 4000,
     updatedAt: new Date(now).toISOString(),
+    intervals: [{ session: 'legacy', from: now - 4000, to: now }],
   })
 })

@@ -1,10 +1,4 @@
-import {
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { recordAchievements } from './achievements.mjs'
 import {
   DAY_MS,
@@ -16,8 +10,9 @@ import {
   STARTING_BAG,
   STARTING_MONEY,
 } from './constants.mjs'
+import { updateJsonFile as updateFile } from './fileLock.mjs'
 import { allPokemon, pokemonList } from './helpers.mjs'
-import { HOME, SAVE_FILE } from './paths.mjs'
+import { SAVE_FILE } from './paths.mjs'
 import {
   createPokemon,
   displayName,
@@ -35,6 +30,12 @@ import {
   transformResponseSave,
 } from './transformers.mjs'
 import { readWorked } from './worked.mjs'
+
+const saveBaselines = new WeakMap()
+
+const saveFingerprint = (save) => {
+  return JSON.stringify(transformRequestSaveGame(save))
+}
 
 export const recordPlayday = (save, now = Date.now()) => {
   const next = advanceStreak(save.stats, now)
@@ -156,7 +157,12 @@ export const loadSave = () => {
 
   if (!save) return null
 
-  return migrate(save)
+  const baseline = saveFingerprint(save)
+
+  saveBaselines.set(save, baseline)
+  migrate(save)
+
+  return save
 }
 
 export const activePokemon = (save) => {
@@ -196,36 +202,59 @@ const describeLead = (lead) => {
   return { name: displayName(lead), level: levelOf(lead) }
 }
 
+const biomeOf = (save) => {
+  if (!save.expedition) return null
+
+  return save.expedition.biome ?? null
+}
+
+const visitRevisionOf = (save) => {
+  if (!save.expedition) return 0
+
+  return save.expedition.visitRevision ?? 0
+}
+
 export const publishStatus = (save) => {
   writeStatus({
     lead: describeLead(getLead(save)),
     balls: totalBalls(save),
     money: save.money,
     caught: save.dex.caught.length,
+    biome: biomeOf(save),
+    visitRevision: visitRevisionOf(save),
   })
 }
 
+const chooseSave = (current, incoming) => {
+  if (!current) return incoming
+
+  const baseline = saveBaselines.get(incoming)
+
+  if (!baseline) return incoming
+  if (saveFingerprint(current) !== baseline) return current
+
+  return incoming
+}
+
 export const saveGame = (save) => {
-  mkdirSync(HOME, { recursive: true })
+  const saved = updateFile({
+    path: SAVE_FILE,
+    incoming: save,
+    transformResponse: transformResponseSave,
+    transformRequest: transformRequestSaveGame,
+    merge: chooseSave,
+  })
+  const baseline = saveFingerprint(saved)
 
-  const tmp = `${SAVE_FILE}.${process.pid}.tmp`
+  saveBaselines.set(saved, baseline)
 
-  try {
-    writeFileSync(tmp, JSON.stringify(transformRequestSaveGame(save)))
-    renameSync(tmp, SAVE_FILE)
-  } catch (error) {
-    try {
-      unlinkSync(tmp)
-    } catch {}
-
-    throw error
-  }
+  if (saved !== save) migrate(saved)
 
   try {
-    publishStatus(save)
+    publishStatus(saved)
   } catch {}
 
-  return save
+  return saved
 }
 
 export const stow = (save, mon) => {

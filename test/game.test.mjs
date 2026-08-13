@@ -19,6 +19,7 @@ const {
   markFaced,
   markSeen,
   partyIsWipedOut,
+  publishStatus,
   recordPlayday,
   saveGame,
   setLead,
@@ -31,6 +32,7 @@ const { applyVictory, learnMove } = await import('../src/progression.mjs')
 const { createPokemon, levelOf, isFainted } = await import('../src/pokemon.mjs')
 const { expForLevel } = await import('../src/exp.mjs')
 const { makeRng } = await import('../src/rng.mjs')
+const { readStatus } = await import('../src/status.mjs')
 
 if (!isDataReady()) {
   throw new Error('dataset missing — run: node tools/fetch-data.mjs')
@@ -83,6 +85,37 @@ test('Should hand a save back from disk exactly as it was written', () => {
   expect(loaded.party[0].moves.map((slot) => slot.move)).toEqual(
     save.party[0].moves.map((slot) => slot.move),
   )
+})
+
+test('Should keep the newer save when two loaded copies write', () => {
+  const initial = createSave({
+    trainer: 'Tester',
+    starterId: 4,
+    rng: makeRng(7),
+  })
+
+  saveGame(initial)
+
+  const first = loadSave()
+  const second = loadSave()
+
+  first.money = 1111
+  saveGame(first)
+
+  second.money = 2222
+  const resolved = saveGame(second)
+
+  expect(loadSave().money).toBe(1111)
+  expect(resolved.money).toBe(1111)
+})
+
+test('Should publish the biome and visit revision with the status', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
+  save.expedition = { biome: 'forest', visitRevision: 3 }
+  publishStatus(save)
+
+  expect(readStatus()).toMatchObject({ biome: 'forest', visitRevision: 3 })
 })
 
 test('Should fill in the fields a save is missing rather than failing to load it', () => {

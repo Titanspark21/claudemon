@@ -7,7 +7,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 
 process.env.CLAUDEMON_HOME = mkdtempSync(join(tmpdir(), 'claudemon-status-'))
 
@@ -70,6 +70,8 @@ test('Should let nothing beyond the status contract survive the write', () => {
     balls: 1,
     money: 10,
     caught: 1,
+    biome: 'forest',
+    visitRevision: 4,
     heartbeat: 1,
     session: 'abc',
     state: 'working',
@@ -79,10 +81,12 @@ test('Should let nothing beyond the status contract survive the write', () => {
 
   expect(Object.keys(onDisk).sort()).toEqual([
     'balls',
+    'biome',
     'caught',
     'heartbeat',
     'lead',
     'money',
+    'visitRevision',
   ])
   expect(
     onDisk.heartbeat,
@@ -102,6 +106,21 @@ test('Should replace the last write with the next, leaving one file behind', () 
     readdirSync(HOME),
     'and the temporary file is not left behind',
   ).toEqual(['status.json'])
+})
+
+test('Should keep a newer heartbeat when an older status arrives later', () => {
+  clearStatus()
+
+  const now = vi.spyOn(Date, 'now')
+
+  now.mockReturnValue(2000)
+  writeStatus({ lead: { name: 'Newer', level: 2 }, visitRevision: 4 })
+  now.mockReturnValue(1000)
+  writeStatus({ lead: { name: 'Older', level: 1 }, visitRevision: 4 })
+  now.mockRestore()
+
+  expect(readStatus().lead.name).toBe('Newer')
+  expect(readStatus().heartbeat).toBe(2000)
 })
 
 test('Should call a companion live only while its heartbeat is recent', () => {

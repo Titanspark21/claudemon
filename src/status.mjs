@@ -1,6 +1,7 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { HEARTBEAT_STALE_MS } from './constants.mjs'
-import { HOME, STATUS_FILE } from './paths.mjs'
+import { updateJsonFile as updateFile } from './fileLock.mjs'
+import { STATUS_FILE } from './paths.mjs'
 import {
   transformRequestWriteStatus,
   transformResponseStatus,
@@ -16,24 +17,47 @@ const readStatusFile = () => {
 
 export const readStatus = () => transformResponseStatus(readStatusFile())
 
-export const writeStatus = ({ lead, balls, money, caught }) => {
+const mergeStatus = (current, incoming) => {
+  if (!current) return incoming
+  if (current.visitRevision > incoming.visitRevision) return current
+  if (
+    current.visitRevision === incoming.visitRevision &&
+    current.heartbeat > incoming.heartbeat
+  )
+    return current
+
+  return incoming
+}
+
+export const writeStatus = ({
+  lead,
+  balls,
+  money,
+  caught,
+  biome = null,
+  visitRevision = 0,
+}) => {
+  const incoming = {
+    lead,
+    balls,
+    money,
+    caught,
+    heartbeat: Date.now(),
+    biome,
+    visitRevision,
+  }
+
   try {
-    mkdirSync(HOME, { recursive: true })
-
-    const payload = JSON.stringify(
-      transformRequestWriteStatus({
-        lead,
-        balls,
-        money,
-        caught,
-        heartbeat: Date.now(),
-      }),
-    )
-    const tmp = `${STATUS_FILE}.${process.pid}.tmp`
-
-    writeFileSync(tmp, payload)
-    renameSync(tmp, STATUS_FILE)
-  } catch {}
+    return updateFile({
+      path: STATUS_FILE,
+      incoming,
+      transformResponse: transformResponseStatus,
+      transformRequest: transformRequestWriteStatus,
+      merge: mergeStatus,
+    })
+  } catch {
+    return null
+  }
 }
 
 export const companionIsLive = (status) => {

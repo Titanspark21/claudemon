@@ -211,12 +211,14 @@ test('Should map the worked ledger to the total and when it last moved', () => {
   const worked = transformResponseWorked({
     totalMs: 1_800_000,
     updatedAt: '2026-08-08T09:00:00.000Z',
+    intervals: [{ session: 'abc', from: 1000, to: 2000, ignored: true }],
     session: 'abc',
   })
 
   expect(worked).toEqual({
     totalMs: 1_800_000,
     updatedAt: '2026-08-08T09:00:00.000Z',
+    intervals: [{ session: 'abc', from: 1000, to: 2000 }],
   })
   expect(worked.session).toBeUndefined()
 })
@@ -225,6 +227,7 @@ test('Should read a ledger written before a field existed as an empty total', ()
   expect(transformResponseWorked({})).toEqual({
     totalMs: 0,
     updatedAt: null,
+    intervals: [],
   })
   expect(transformResponseWorked(null)).toBeNull()
 })
@@ -236,7 +239,11 @@ test('Should write the worked ledger with the same two fields', () => {
     session: 'abc',
   })
 
-  expect(Object.keys(written).sort()).toEqual(['totalMs', 'updatedAt'])
+  expect(Object.keys(written).sort()).toEqual([
+    'intervals',
+    'totalMs',
+    'updatedAt',
+  ])
 })
 
 test('Should map a status to the lead, the counters and the heartbeat', () => {
@@ -246,6 +253,8 @@ test('Should map a status to the lead, the counters and the heartbeat', () => {
     money: 3000,
     caught: 2,
     heartbeat: 1234,
+    biome: 'forest',
+    visitRevision: 7,
     session: 'abc',
   })
 
@@ -255,6 +264,8 @@ test('Should map a status to the lead, the counters and the heartbeat', () => {
     money: 3000,
     caught: 2,
     heartbeat: 1234,
+    biome: 'forest',
+    visitRevision: 7,
   })
 })
 
@@ -278,10 +289,12 @@ test('Should write a status with only the five fields the status line reads', ()
 
   expect(Object.keys(written).sort()).toEqual([
     'balls',
+    'biome',
     'caught',
     'heartbeat',
     'lead',
     'money',
+    'visitRevision',
   ])
   expect(written.state).toBeUndefined()
 })
