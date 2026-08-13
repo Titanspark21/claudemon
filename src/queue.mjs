@@ -1,4 +1,5 @@
 import {
+  appendFileSync,
   mkdirSync,
   readFileSync,
   renameSync,
@@ -70,18 +71,22 @@ const isUsable = (entry) => {
   return entry.species != null && entry.name != null
 }
 
-export const readEncounter = (ttlMs, now = Date.now()) => {
-  const live = peekQueue().filter(
+const liveEntries = (ttlMs, now) => {
+  return peekQueue().filter(
     (entry) => isLive(entry, ttlMs, now) && isUsable(entry),
   )
+}
+
+export const readEncounter = (ttlMs, now = Date.now()) => {
+  const live = liveEntries(ttlMs, now)
 
   if (live.length === 0) return null
 
-  return live[live.length - 1]
+  return live[0]
 }
 
-export const writeEncounter = (entry) => {
-  const stamped = transformRequestWriteEncounter({
+const stampEncounter = (entry) => {
+  return transformRequestWriteEncounter({
     v: entry.v,
     kind: entry.kind,
     species: entry.species,
@@ -93,13 +98,21 @@ export const writeEncounter = (entry) => {
     session: entry.session,
     at: entry.at ?? new Date().toISOString(),
   })
+}
 
+const queueContents = (entries) => {
+  if (entries.length === 0) return ''
+
+  return `${entries.map((entry) => JSON.stringify(stampEncounter(entry))).join('\n')}\n`
+}
+
+const replaceQueue = (entries) => {
   mkdirSync(HOME, { recursive: true })
 
   const tmp = `${QUEUE_FILE}.${process.pid}.tmp`
 
   try {
-    writeFileSync(tmp, `${JSON.stringify(stamped)}\n`)
+    writeFileSync(tmp, queueContents(entries))
     renameSync(tmp, QUEUE_FILE)
   } catch (error) {
     try {
@@ -108,20 +121,36 @@ export const writeEncounter = (entry) => {
 
     throw error
   }
+}
+
+export const writeEncounter = (entry) => {
+  const stamped = stampEncounter(entry)
+
+  mkdirSync(HOME, { recursive: true })
+  appendFileSync(QUEUE_FILE, `${JSON.stringify(stamped)}\n`)
 
   return stamped
 }
 
-export const offerEncounter = (entry, ttlMs, now = Date.now()) => {
-  if (readEncounter(ttlMs, now)) return false
-
+export const offerEncounter = (entry) => {
   writeEncounter(entry)
 
   return true
 }
 
-export const clearEncounter = () => {
-  try {
-    writeFileSync(QUEUE_FILE, '')
-  } catch {}
+export const consumeEncounter = (ttlMs, now = Date.now()) => {
+  const live = liveEntries(ttlMs, now)
+
+  if (live.length === 0) {
+    replaceQueue([])
+    return null
+  }
+
+  const [current, ...remaining] = live
+
+  replaceQueue(remaining)
+
+  return current
 }
+
+export const clearEncounter = () => replaceQueue([])
