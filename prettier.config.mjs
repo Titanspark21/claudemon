@@ -1,6 +1,7 @@
 export default {
   semi: false,
   singleQuote: true,
+  endOfLine: 'auto',
 
   printWidth: 80,
 

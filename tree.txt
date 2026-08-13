@@ -121,6 +121,7 @@ src/transformers.mjs
 src/transformers.test.mjs
 src/typechart.mjs
 src/ui/ansi.mjs
+src/ui/ansi.test.mjs
 src/ui/ball.mjs
 src/ui/battleField.mjs
 src/ui/battleField.test.mjs
@@ -178,6 +179,7 @@ test/paths.test.mjs
 test/player.test.mjs
 test/sandboxHome.mjs
 test/screen.test.mjs
+test/setup.mjs
 test/sound.test.mjs
 test/status.test.mjs
 test/update.test.mjs

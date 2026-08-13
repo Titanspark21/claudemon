@@ -68,10 +68,25 @@ test('Should reach the player with the file as an argument when a blip goes out'
     last().command,
     `${last().command} is not the planted player`,
   ).toContain(PLAYER)
-  expect(
-    last().args.some((arg) => String(arg).endsWith('.wav')),
-    'the player was given no wav to play',
-  ).toBe(true)
+  const args = last().args.map(String)
+
+  if (process.platform === 'win32') {
+    expect(args.slice(0, 3)).toEqual([
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+    ])
+    expect(
+      args[3],
+      'PowerShell was not given the generated wav through SoundPlayer',
+    ).toMatch(/Media\.SoundPlayer '.+\.wav'\)\.PlaySync\(\)$/)
+  } else {
+    expect(
+      args.some((arg) => arg.endsWith('.wav')),
+      'the player was given no wav to play',
+    ).toBe(true)
+  }
+
   expect(last().options.stdio, 'a blip must not touch the tty').toBe('ignore')
 })
 
