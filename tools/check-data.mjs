@@ -1,5 +1,6 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import {
+  dataFile,
   shinySpriteFile,
   spriteFile,
   trainerSpriteFile,
@@ -15,6 +16,7 @@ import {
   SPRITE_SIDES,
   STAT_KEYS,
 } from './constants.mjs'
+import { validateSpeciesIdentityManifest } from './speciesIdentity.mjs'
 
 const failures = []
 const checks = { run: 0 }
@@ -39,6 +41,16 @@ const readDataset = () => {
 }
 
 const { pokedex, byId, moves, types, growth } = readDataset()
+
+try {
+  validateSpeciesIdentityManifest(
+    JSON.parse(readFileSync(dataFile('form-ids.json'), 'utf8')),
+  )
+} catch (error) {
+  failures.push(
+    `species identity manifest is valid ${dim(`(${error.message})`)}`,
+  )
+}
 
 check(
   `pokedex holds ${KANTO} entries`,

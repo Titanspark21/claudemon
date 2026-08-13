@@ -21,6 +21,7 @@ assets/battle.wav
 assets/victory.wav
 bin/claudemon
 commands/claudemon-setup.md
+data/form-ids.json
 data/growth.json
 data/moves.json
 data/pokedex.json
@@ -82,6 +83,7 @@ src/constants.mjs
 src/damage.mjs
 src/damage.test.mjs
 src/data.mjs
+src/dataIdentity.test.mjs
 src/daycare.mjs
 src/daycare.test.mjs
 src/effects.mjs
@@ -192,6 +194,7 @@ tools/check-data.mjs
 tools/constants.mjs
 tools/fetch-data.mjs
 tools/fetch-sprites.mjs
+tools/generate-species-identities.mjs
 tools/install.mjs
 tools/pool.mjs
 tools/pool.test.mjs
@@ -201,6 +204,8 @@ tools/progress.mjs
 tools/progress.test.mjs
 tools/sourceManifest.mjs
 tools/sourceManifest.test.mjs
+tools/speciesIdentity.mjs
+tools/speciesIdentity.test.mjs
 tools/transformers.mjs
 tools/transformers.test.mjs
 tree.txt
