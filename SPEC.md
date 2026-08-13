@@ -308,8 +308,11 @@ forced into ordinary natural terrain; and harsh hot and cold environments stay
 recognizable. Fewer biomes would collapse these identities, while more would
 make pools unnecessarily narrow.
 
-Each ordinary encounter-eligible record belongs to two through four biomes.
-The assignment generator uses this evidence order:
+Biome memberships deliberately overlap; the sum of all biome pool sizes is
+therefore larger than the number of unique Pokémon. Ecological specialists
+belong to one biome, most records belong to two, and genuine generalists may
+belong to three. The generator targets an average of `2.0` memberships per
+ordinary encounter-eligible record and uses this evidence order:
 
 1. curated overrides;
 2. aggregated PokéAPI location encounters through Generation VII;
@@ -319,12 +322,15 @@ The assignment generator uses this evidence order:
 6. evolution-family inheritance.
 
 The generator writes `data/biomes.json` and a human-readable coverage report.
-Validation requires every eligible record to be assigned, evolution families
-to remain recognizably coherent where the two-to-four-biome cap permits, and
-each biome to contain 120–300 ordinary records after overlaps and gates.
-Family coherence is a scored preference, not a rule that may break the cap.
-Manual overrides handle legendaries, unusual forms, and obvious lore
-mismatches.
+After generation, it calculates `expectedPoolSize = totalOrdinaryMemberships /
+9`; every biome must be within 15% of that derived average. This replaces an
+arbitrary fixed range. With the expected eligible dataset, pools should land
+at roughly 145–205 ordinary records, but the generated calculation is the
+release gate. Validation also requires every eligible record to be assigned
+to one through three biomes. Family coherence is a scored preference, not a
+rule that may break those limits. Manual overrides handle legendaries, unusual
+forms, and obvious lore mismatches. Legendary and special encounters use
+gated overlays and do not distort ordinary-pool balancing.
 
 Encounter weight uses capture rate, evolution stage, legendary status, current
 lead level, and biome affinity. Large pools remain varied without making rare
@@ -333,31 +339,30 @@ not implemented.
 
 ## Expedition travel
 
-A biome visit lasts a deterministic random 45–90 minutes of active Claude
-working time. Wall-clock time while Claude is idle or Claudemon is closed does
-not advance it. New and migrated saves begin in Meadow with a newly seeded
-visit.
+A biome visit has a deterministic triangular active-work duration with a
+30-minute minimum, 40-minute mode, and 65-minute maximum. Its exact expected
+duration is `(30 + 40 + 65) / 3 = 45` minutes. Wall-clock time while Claude is
+idle does not advance it. New and migrated saves begin in Meadow with a newly
+seeded visit.
 
-When a visit expires, the home screen presents a fork:
+When the forced-change target is reached, the expedition leaves the current
+biome. Staying is not available. If Claudemon is open, the player chooses
+between two neighboring destinations. If no choice is made, or Claudemon is
+closed, the next activity tick deterministically chooses one of those paths
+before another encounter is rolled. The player therefore spends no additional
+encounter time in the expired biome.
 
-- stay in the current biome;
-- take the first neighboring path;
-- take the second neighboring path.
+Independently, 40% of visits receive one optional fork after a deterministic
+15–30 minutes of active work. It offers Stay plus two neighboring biomes.
+Choosing a destination starts a fresh visit there. Choosing Stay dismisses the
+offer without resetting the original forced-change target. Ignoring the offer
+also keeps the current biome and original timer; the offer remains available
+until dismissed, accepted, or superseded by the forced change.
 
-The two destinations come from a fixed travel graph and are chosen
-deterministically for the visit. The fork remains available for ten minutes of
-active work. Encounters continue using the current biome during that window.
-If ignored, the expedition deterministically chooses one of the two onward
-paths; it never silently chooses Stay. Choosing Stay begins a fresh 45–90
-minute visit.
-
-A visit may expire while the UI is closed, but its ten-minute choice window
-does not begin until the fork has first been displayed. This prevents coding in
-the background from consuming a choice the player never saw.
-
-Biome, visit seed, elapsed active work, offered paths, and decision deadline
-persist across restarts. There is no initial all-species roaming mode because
-it would erase the purpose of biomes.
+Biome, visit seed, elapsed active work, forced target, optional-fork roll,
+optional-fork target, offered paths, and pending departure state persist across
+restarts. There is no initial all-species roaming mode because it would erase
+the purpose of biomes.
 
 ## Pokédex and collection UI
 
@@ -431,17 +436,3 @@ labels. Motion remains quick and can reuse existing sound and sprite settings.
 - Manual terminal verification covers a fresh game, an old migrated save,
   biome transition, wild encounter, held-item activation, ability activation,
   weather/terrain, Mega Evolution, Pokédex filtering, and League unlock.
-
-## Rejected Pokétwo base
-
-Forking Pokétwo is possible but is not a shortcut for this product. Pokétwo is
-a Python Discord service requiring a bot token, continuous hosting, MongoDB,
-and Redis. Its current Pokémon data is referenced through a private git
-submodule, its README lists abilities and complete status moves as unfinished,
-and its code is GPLv3. Coding activity would still need a separate bridge into
-Discord message or spawn counters.
-
-Claudemon already provides the required local Claude activity hooks, ANSI UI,
-offline save, encounter queue, battle engine, collection screens, daycare,
-gyms, and trade-code flow under an MIT base. The expansion therefore remains a
-Claudemon fork.

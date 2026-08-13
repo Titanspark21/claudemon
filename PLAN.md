@@ -235,12 +235,14 @@ onBiomeKey(ctx, key) -> void
 ```
 
 - [ ] Add failing rendering tests for all nine biome names, normal progress,
-      fork pending, Stay selected, automatic-choice warning, and narrow layout.
+      optional fork with Stay selected, mandatory departure without Stay,
+      automatic-choice warning, and narrow layout.
 - [ ] Run `npm test -- src/ui/views/biome.test.mjs` and confirm failures.
 - [ ] Add a small persistent biome label/progress row without displacing the
       encounter countdown or party panel.
-- [ ] Add a focused fork panel with exactly Stay and two destinations; show the
-      remaining active-work decision time in text.
+- [ ] Add an unobtrusive optional-fork panel with Stay and two destinations,
+      plus a distinct mandatory-departure panel containing only two
+      destinations and explaining that inactivity selects a path automatically.
 - [ ] Give each biome a distinct but restrained grass/background palette or
       glyph treatment; preserve monochrome readability.
 - [ ] Launch the app with fixture states for every biome and capture the normal
@@ -778,14 +780,17 @@ validateBiomePools(records, assignments) -> ValidationResult
 - [ ] Run `npm test -- tools/biomes.test.mjs`.
 - [ ] Aggregate location encounter evidence through Gen VII, then apply the
       exact priority: override, locations, habitat, types, egg groups, family.
-- [ ] Assign each ordinary eligible record to two through four of Meadow,
-      Forest, Wetlands, Coast, Highlands, Badlands, Frostlands, City & Powerworks,
-      and Mystic Ruins.
+- [ ] Assign ecological specialists to one biome, most ordinary records to two,
+      and genuine generalists to three across Meadow, Forest, Wetlands, Coast,
+      Highlands, Badlands, Frostlands, City & Powerworks, and Mystic Ruins;
+      target `2.0` memberships per ordinary eligible record.
 - [ ] Generate a report listing counts, overlap distribution, evidence source,
       manual overrides, unassigned records, family splits, and rarity bands.
-- [ ] Enforce 120–300 ordinary records per pool and two-to-four assignments per
-      record; treat family coherence as a scored preference that cannot break
-      those hard caps, and flag every legendary/common weighting anomaly.
+- [ ] Calculate `expectedPoolSize = totalOrdinaryMemberships / 9` after
+      generation and require every ordinary pool to remain within 15% of it;
+      require one-to-three assignments per eligible record, keep special and
+      legendary overlays out of the balance calculation, and flag every
+      legendary/common weighting anomaly.
 - [ ] Manually review the complete override list and generated anomalies, then
       rerun until validation reports zero errors.
 - [ ] Commit: `data: generate broad biome encounter pools`
@@ -807,29 +812,38 @@ validateBiomePools(records, assignments) -> ValidationResult
 ```js
 createExpedition(seed, workedMs, startingBiome) -> Expedition
 advanceExpedition(expedition, workedMs) -> ExpeditionEvent[]
-offerFork(expedition) -> { stay, paths: [biome, biome], expiresAtWorkedMs }
-chooseFork(expedition, choice) -> Expedition
-autoChooseFork(expedition) -> Expedition
+forcedVisitTarget(seed) -> activeMs // triangular 30/40/65, mean 45
+optionalForkTarget(seed) -> activeMs | null // 40% of visits, 15–30
+offerOptionalFork(expedition) -> { stay, paths: [biome, biome] }
+forceDeparture(expedition) -> { paths: [biome, biome] }
+chooseBiomePath(expedition, choice) -> Expedition
+autoChooseDeparture(expedition) -> Expedition
 ```
 
-- [ ] Add failing tests for inclusive 45/90-minute bounds, only active-work
-      advancement, new/migrated saves starting in Meadow, restart persistence,
-      fork at expiry, exactly two neighboring
-      destinations, ten active-work minute window beginning only after first UI
-      display, encounters staying in the old biome while pending, deterministic
-      automatic onward choice, Stay reroll, corrupt state normalization, and
-      concurrent session input.
+- [ ] Add failing tests for triangular 30-minute minimum, 40-minute mode,
+      65-minute maximum and exact 45-minute expected value; only active-work
+      advancement; new/migrated saves starting in Meadow; restart persistence;
+      a 40% optional-fork rate with targets from 15–30 minutes; optional Stay
+      preserving the original forced target; exactly two neighboring departure
+      choices; no encounter after expiry in the old biome; deterministic
+      automatic departure; corrupt-state normalization; and concurrent input.
 - [ ] Run `npm test -- src/expedition.test.mjs src/worked.test.mjs`.
 - [ ] Define and validate a connected travel graph where every biome has enough
       neighbors to produce two distinct paths.
 - [ ] Store all random decisions as seeds/targets so repainting or restarting
-      cannot reroll a visit or fork.
-- [ ] Permit a visit to expire while the UI is closed, but stamp the decision
-      deadline only when the player first sees the fork.
+      cannot reroll visit duration, optional-fork eligibility, optional-fork
+      timing, offered paths, or automatic destination.
+- [ ] When the forced target is reached, leave the old biome immediately. Show
+      two destination choices if the UI can accept input; otherwise choose one
+      deterministically on the next activity tick before rolling an encounter.
+- [ ] Keep an ignored optional offer available until it is dismissed, accepted,
+      or superseded by forced departure; ignoring or choosing Stay must not
+      reset elapsed work or the forced target.
 - [ ] Advance expeditions only from the merged worked-time total completed in
       Task B1.
 - [ ] Run a seeded simulation of 10,000 visits and assert bounds, graph reach,
-      no stuck biome, and stable replay.
+      a mean within 0.25 minutes of 45, optional-fork frequency within one
+      percentage point of 40%, no stuck biome, and stable replay.
 - [ ] Commit: `feature: travel through biomes while Claude works`
 
 ### Task O14: Make encounters biome-aware without shrinking variety
@@ -846,13 +860,13 @@ autoChooseFork(expedition) -> Expedition
 **Interfaces:**
 
 ```js
-speciesTableFromDex(dex, { leadLevel, biome, timeOfDay }) -> WeightedSpecies[]
+speciesTableFromDex(dex, { leadLevel, biome }) -> WeightedSpecies[]
 encounterWeight(record, assignment, context) -> number
 ```
 
 - [ ] Add failing seeded distribution tests for all nine biomes, overlapping
-      species, affinity weights, stage gates, legendary gates, forms, day/night
-      modifiers, fallback on invalid data, and no empty pool at any lead level.
+      species, affinity weights, stage gates, legendary overlays, forms,
+      fallback on invalid data, and no empty pool at any lead level.
 - [ ] Run `npm test -- test/encounter.test.mjs src/trainer.test.mjs`.
 - [ ] Filter by biome assignment before applying existing lead-level/stage
       gates, then combine capture rate, stage, legendary status, and affinity into
@@ -1007,10 +1021,11 @@ datasetCompatibility(local, incoming) -> Compatibility
 - [ ] Run `npm run lint`, `npm run format:check`, and `npm run coverage` once;
       require all to pass at configured thresholds.
 - [ ] Launch a fresh game and a migrated save in the real terminal. Verify
-      starter, old team, IV/nature/ability/item detail, all nine biome labels, timed
-      fork, auto travel, wild battle, weather, terrain, held item, Mega Evolution,
-      catching a form, daycare, trade code, gym, League, Pokédex filters, trainer
-      card, restart persistence, and narrow/wide layouts.
+      starter, old team, IV/nature/ability/item detail, all nine biome labels,
+      optional fork, mandatory departure, auto travel, wild battle, weather,
+      terrain, held item, Mega Evolution, catching a form, daycare, trade code,
+      gym, League, Pokédex filters, trainer card, restart persistence, and
+      narrow/wide layouts.
 - [ ] Re-read `SPEC.md` against the running product and correct drift in place.
 - [ ] Remove all completed dated batches from `PLAN.md`, commit the verified
       release as `release: complete Generation VII expansion`, push, and tag `v1`.

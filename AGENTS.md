@@ -93,10 +93,10 @@ steps a non-developer can follow.
 
 ## Recent activity
 
-- Reviewed upstream Claudemon and ranked expansion paths, including newer
-  Pokémon, biomes, and serverless versus hosted social features.
 - Reassessed AI-assisted difficulty and agreed on complete Generation VII,
   forms, Megas, natures, visible IVs, held items, abilities, weather, and
   terrain with explicit coverage rather than arbitrary feature caps.
-- Created the public fork and planned the complete offline expansion,
-  including autonomous biome travel and rejection of Pokétwo as the base.
+- Corrected biome generation to balance overlapping pools from the actual
+  dataset instead of using a guessed fixed range.
+- Set forced biome duration to a 30/40/65-minute triangular distribution with
+  an exact 45-minute mean and separate occasional optional forks.
