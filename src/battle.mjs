@@ -23,6 +23,7 @@ import {
 } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
 import { effectiveSpeed, moveSlotOf, stageMultiplier } from './battleActor.mjs'
+import { createBattleField, normalizeBattleField } from './battleField.mjs'
 import { applyDamage, applyHeal, label, other, say } from './battleEvents.mjs'
 import { attemptCatch } from './capture.mjs'
 import { computeDamage, FIXED_DAMAGE } from './damage.mjs'
@@ -77,6 +78,8 @@ export const createBattle = ({
     seed,
     rng: makeRng(seed),
     turn: 0,
+    field: createBattleField(),
+    effects: [],
     player: {
       mon: playerMon,
       stages: emptyStages(),
@@ -114,6 +117,9 @@ export const sendOutAfterFaint = (battle, mon) => {
 
 export const rehydrate = (battle) => {
   if (!battle.rng) battle.rng = makeRng(battle.seed)
+
+  battle.field = normalizeBattleField(battle.field)
+  battle.effects ??= []
 
   return battle
 }

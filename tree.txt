@@ -70,6 +70,8 @@ src/battleActor.mjs
 src/battleActor.test.mjs
 src/battleEvents.mjs
 src/battleEvents.test.mjs
+src/battleField.mjs
+src/battleField.test.mjs
 src/battleFlow.mjs
 src/battleFlow.test.mjs
 src/capture.mjs
@@ -82,6 +84,8 @@ src/damage.test.mjs
 src/data.mjs
 src/daycare.mjs
 src/daycare.test.mjs
+src/effects.mjs
+src/effects.test.mjs
 src/encounter.mjs
 src/exp.mjs
 src/exp.test.mjs
