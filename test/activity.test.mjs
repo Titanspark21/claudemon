@@ -15,6 +15,7 @@ const {
   beginTurn,
   endSession,
   endTurn,
+  isWorking,
   noteTool,
   noteWaiting,
   pruneSessions,
@@ -552,14 +553,25 @@ test('Should bank the time Claude spent working and none of the time it spent wa
     hook_event_name: 'PreToolUse',
     tool_name: 'Bash',
   })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'vvv',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Read',
+  })
 
   expect(workedIn(home), 'no time has passed yet').toBeNull()
 
   rewindLastEvent(home, 'www', 60_000)
+  rewindLastEvent(home, 'vvv', 60_000)
   runHook(home, 'on-activity.mjs', {
     session_id: 'www',
     hook_event_name: 'PreToolUse',
     tool_name: 'Read',
+  })
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'vvv',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Bash',
   })
 
   const worked = workedIn(home)
@@ -658,6 +670,7 @@ test('Should call it unknown, not idle, when nothing is reporting or everything 
     tool: null,
     since: null,
     sessions: 0,
+    activeSince: null,
   })
   expect(
     summariseActivity([silent], now).state,
@@ -684,7 +697,11 @@ test('Should rank needing you over working, and working over idle', () => {
 
   expect(summariseActivity([idle], now).state).toBe('idle')
   expect(summariseActivity([idle, working], now).state).toBe('working')
-  expect(summariseActivity([idle, working, waiting], now).state).toBe('waiting')
+  const mixed = summariseActivity([idle, working, waiting], now)
+
+  expect(mixed.state).toBe('waiting')
+  expect(mixed.activeSince).toBe(working.since)
+  expect(isWorking(mixed)).toBe(true)
 })
 
 test('Should describe the session that is actually moving', () => {
@@ -759,6 +776,18 @@ test('Should read sessions back freshest first and prune the ancient ones', () =
     at: now,
     since: now,
   })
+  writeActivity({
+    v: 1,
+    session: 'newest',
+    state: 'waiting',
+    at: now - 500,
+    since: now - 500,
+  })
+
+  expect(
+    readActivity('newest').state,
+    'an older write cannot move it back',
+  ).toBe('working')
 
   const live = readSessions(now)
 

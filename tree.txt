@@ -91,6 +91,8 @@ src/effects.test.mjs
 src/encounter.mjs
 src/exp.mjs
 src/exp.test.mjs
+src/fileLock.mjs
+src/fileLock.test.mjs
 src/foeAi.mjs
 src/foeAi.test.mjs
 src/gym.mjs

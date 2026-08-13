@@ -114,7 +114,9 @@ const mapStatus = (status) => {
     balls: status.balls,
     money: status.money,
     caught: status.caught,
+    visitRevision: status.visitRevision ?? 0,
     heartbeat: status.heartbeat,
+    biome: status.biome ?? null,
   }
 }
 
@@ -126,10 +128,19 @@ export const transformResponseStatus = (status) => {
 
 export const transformRequestWriteStatus = (status) => mapStatus(status)
 
+const mapWorkedInterval = (interval) => {
+  return {
+    session: interval.session,
+    from: interval.from,
+    to: interval.to,
+  }
+}
+
 const mapWorked = (worked) => {
   return {
     totalMs: worked.totalMs ?? 0,
     updatedAt: worked.updatedAt ?? null,
+    intervals: worked.intervals ? worked.intervals.map(mapWorkedInterval) : [],
   }
 }
 

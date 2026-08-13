@@ -1,11 +1,4 @@
-import {
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs'
+import { readdirSync, readFileSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   ACTIVITY_PRIORITY,
@@ -14,6 +7,7 @@ import {
   STALE_MS,
   WAITING_MESSAGE_LIMIT,
 } from './constants.mjs'
+import * as fileLock from './fileLock.mjs'
 import { SESSIONS_DIR, sessionFile } from './paths.mjs'
 import {
   transformRequestWriteActivity,
@@ -38,18 +32,25 @@ const readEntry = (path) => {
 
 export const readActivity = (sessionId) => readEntry(sessionFile(sessionId))
 
+const mergeActivity = (current, incoming) => {
+  if (!current) return incoming
+  if (current.at > incoming.at) return current
+
+  return incoming
+}
+
 export const writeActivity = (entry) => {
   try {
-    mkdirSync(SESSIONS_DIR, { recursive: true })
-
-    const path = sessionFile(entry.session)
-    const tmp = `${path}.${process.pid}.tmp`
-
-    writeFileSync(tmp, JSON.stringify(transformRequestWriteActivity(entry)))
-    renameSync(tmp, path)
-  } catch {}
-
-  return entry
+    return fileLock.updateJsonFile({
+      path: sessionFile(entry.session),
+      incoming: entry,
+      transformResponse: transformResponseActivity,
+      transformRequest: transformRequestWriteActivity,
+      merge: mergeActivity,
+    })
+  } catch {
+    return entry
+  }
 }
 
 export const clearActivity = (sessionId) => {
@@ -109,7 +110,13 @@ export const pruneSessions = (now = Date.now()) => {
 }
 
 const unknownActivity = () => {
-  return { state: 'unknown', tool: null, since: null, sessions: 0 }
+  return {
+    state: 'unknown',
+    tool: null,
+    since: null,
+    sessions: 0,
+    activeSince: null,
+  }
 }
 
 const sinceOf = (entry, fallback) => {
@@ -118,10 +125,26 @@ const sinceOf = (entry, fallback) => {
   return fallback
 }
 
+const activeSinceOf = (sessions) => {
+  let activeSince = null
+
+  for (const entry of sessions) {
+    if (entry.state !== 'working') continue
+
+    const since = sinceOf(entry, entry.at)
+
+    if (activeSince == null || since < activeSince) activeSince = since
+  }
+
+  return activeSince
+}
+
 export const summariseActivity = (sessions, now = Date.now()) => {
   const live = sessions.filter((entry) => now - entry.at < STALE_MS)
 
   if (live.length === 0) return unknownActivity()
+
+  const activeSince = activeSinceOf(live)
 
   for (const state of ACTIVITY_PRIORITY) {
     const matching = live.filter((entry) => entry.state === state)
@@ -137,13 +160,16 @@ export const summariseActivity = (sessions, now = Date.now()) => {
       tool: leader.tool ?? null,
       since: sinceOf(leader, leader.at),
       sessions: matching.length,
+      activeSince,
     }
   }
 
   return unknownActivity()
 }
 
-export const isWorking = (activity) => activity?.state === 'working'
+export const isWorking = (activity) => {
+  return activity?.activeSince != null || activity?.state === 'working'
+}
 
 const resolveCwd = (cwd, previous) => cwd ?? previous?.cwd ?? null
 
