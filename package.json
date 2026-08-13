@@ -18,6 +18,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@pkmn/data": "0.10.11",
+    "@pkmn/dex": "0.10.11",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.8.0",
     "eslint-plugin-import-x": "^4.17.1",

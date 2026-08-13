@@ -24,6 +24,7 @@ commands/claudemon-setup.md
 data/growth.json
 data/moves.json
 data/pokedex.json
+data/sources.json
 data/types.json
 docs/.nojekyll
 docs/battle.png
@@ -194,6 +195,8 @@ tools/preview.mjs
 tools/probe-terminal.mjs
 tools/progress.mjs
 tools/progress.test.mjs
+tools/sourceManifest.mjs
+tools/sourceManifest.test.mjs
 tools/transformers.mjs
 tools/transformers.test.mjs
 tree.txt

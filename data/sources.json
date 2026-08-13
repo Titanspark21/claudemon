@@ -1,0 +1,38 @@
+{
+  "generation": 7,
+  "generationTimestampPolicy": "omitted-for-reproducibility",
+  "sources": {
+    "@pkmn/data": {
+      "version": "0.10.11",
+      "commit": "4fec8877c83d102528929100b9c45a3a1cc160d3"
+    },
+    "@pkmn/dex": {
+      "version": "0.10.11",
+      "commit": "4fec8877c83d102528929100b9c45a3a1cc160d3"
+    }
+  },
+  "pokeApi": {
+    "baseUrl": "https://pokeapi.co/api/v2",
+    "versionGroups": ["ultra-sun-ultra-moon"],
+    "endpoints": [
+      "evolution-chain",
+      "growth-rate",
+      "move",
+      "pokemon",
+      "pokemon-species",
+      "type"
+    ],
+    "cachePolicy": "content-addressed-by-request-url",
+    "retryPolicy": {
+      "statuses": [429, 503],
+      "maxAttempts": 5,
+      "retryAfterHeader": true
+    }
+  },
+  "sprites": {
+    "baseUrls": [
+      "https://play.pokemonshowdown.com/sprites",
+      "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon"
+    ]
+  }
+}

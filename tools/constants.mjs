@@ -6,6 +6,20 @@ export const KANTO = 151
 
 export const VERSION_GROUP = 'red-blue'
 
+export const SOURCE_GENERATION = 7
+
+export const SOURCE_MANIFEST = 'sources.json'
+
+export const GENERATION_PASSES = [
+  'source',
+  'pokemon',
+  'species',
+  'evolutions',
+  'moves',
+  'types',
+  'growth',
+]
+
 export const OUTPUTS = [
   'pokedex.json',
   'moves.json',
