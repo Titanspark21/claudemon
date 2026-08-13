@@ -119,6 +119,16 @@ test('Should word an evolution by the trigger that brings it about', () => {
     'with a moon stone',
   )
   expect(evolutionWording({ trigger: 'trade', item: null })).toBe('by trading')
+  expect(evolutionWording({ trigger: 'trade', item: 'metal-coat' })).toBe(
+    'by trading with metal coat',
+  )
+  expect(
+    evolutionWording({
+      trigger: 'level-up',
+      level: 20,
+      substitute: 'Gen VII condition: during the day',
+    }),
+  ).toContain('Gen VII condition: during the day')
 })
 
 test('Should leave the pokedex in number order unless sorting by name', () => {

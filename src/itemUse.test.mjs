@@ -33,6 +33,6 @@ test('Should fill in the Pokedex and report what the new form knows on an evolut
 
   expect(result.evolvedInto).toBe(91)
   expect(save.dex.caught).toEqual([90, 91])
-  expect(result.steps.map((step) => step.move)).toContain('spike-cannon')
+  expect(result.steps.map((step) => step.move)).toContain('icicle-crash')
   expect(result.steps.every((step) => step.mon === mon)).toBe(true)
 })

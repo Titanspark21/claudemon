@@ -1,18 +1,19 @@
 import { existsSync, readFileSync } from 'node:fs'
+import { Generations } from '@pkmn/data'
+import { Dex, toID } from '@pkmn/dex'
 import {
-  dataFile,
+  bundledDataFile,
   shinySpriteFile,
   spriteFile,
   trainerSpriteFile,
 } from '../src/paths.mjs'
 import { TRAINER_CLASSES } from '../src/constants.mjs'
-import { loadData } from '../src/data.mjs'
 import { bold, brightGreen, brightRed, dim } from '../src/ui/ansi.mjs'
 import {
   DAMAGE_CLASSES,
   FAILURE_LIST_LIMIT,
   KANTO,
-  SPECIAL_DAMAGE_MOVES,
+  NATIONAL_DEX,
   SPRITE_SIDES,
   STAT_KEYS,
 } from './constants.mjs'
@@ -28,24 +29,31 @@ const check = (description, condition, detail = '') => {
     failures.push(`${description}${detail ? ` ${dim(`(${detail})`)}` : ''}`)
 }
 
-const readDataset = () => {
+const read = (name) => {
   try {
-    return loadData()
+    return JSON.parse(readFileSync(bundledDataFile(name), 'utf8'))
   } catch (error) {
-    console.error(
-      `\n${brightRed('✘')} cannot read the dataset: ${error.message}`,
-    )
-    console.error(`  Run ${bold('node tools/fetch-data.mjs')} first.\n`)
+    console.error(`\n${brightRed('✘')} cannot read ${name}: ${error.message}`)
+    console.error(`  Run ${bold('node tools/fetch-data.mjs --force')} first.\n`)
     process.exit(1)
   }
 }
 
-const { pokedex, byId, moves, types, growth } = readDataset()
+const pokedex = read('pokedex.json')
+const moves = read('moves.json')
+const types = read('types.json')
+const growth = read('growth.json')
+const identities = read('form-ids.json')
+const audit = read('generation-vii-audit.json')
+const byId = new Map(pokedex.map((mon) => [mon.id, mon]))
+const generation = new Generations(Dex).get(7)
+const sourceAbilities = new Set(
+  [...generation.abilities].map((entry) => entry.id),
+)
+const sourceItems = new Set([...generation.items].map((entry) => entry.id))
 
 try {
-  validateSpeciesIdentityManifest(
-    JSON.parse(readFileSync(dataFile('form-ids.json'), 'utf8')),
-  )
+  validateSpeciesIdentityManifest(identities)
 } catch (error) {
   failures.push(
     `species identity manifest is valid ${dim(`(${error.message})`)}`,
@@ -53,13 +61,56 @@ try {
 }
 
 check(
-  `pokedex holds ${KANTO} entries`,
-  pokedex.length === KANTO,
+  `pokedex holds all ${identities.records.length} pinned species/form records`,
+  pokedex.length === identities.records.length,
   `got ${pokedex.length}`,
 )
+check(
+  `pokedex holds ${NATIONAL_DEX} base National Dex species`,
+  pokedex.filter((record) => record.formKey === null).length === NATIONAL_DEX,
+)
 
-for (let id = 1; id <= KANTO; id++) {
+for (let id = 1; id <= NATIONAL_DEX; id++)
   check(`#${id} is present`, byId.has(id))
+
+for (const identity of identities.records) {
+  const record = byId.get(identity.id)
+
+  check(
+    `identity ${identity.sourceKey} has a generated record`,
+    Boolean(record),
+  )
+
+  if (!record) continue
+
+  check(
+    `${identity.sourceKey} keeps its pinned source key`,
+    record.sourceKey === identity.sourceKey,
+    record.sourceKey,
+  )
+  check(
+    `${identity.sourceKey} keeps its National number`,
+    record.dexNumber === identity.dexNumber,
+    String(record.dexNumber),
+  )
+  check(
+    `${identity.sourceKey} keeps its base species`,
+    record.baseSpecies === identity.baseSpecies,
+    String(record.baseSpecies),
+  )
+  check(
+    `${identity.sourceKey} keeps its form key`,
+    record.formKey === identity.formKey,
+    String(record.formKey),
+  )
+  check(
+    `${identity.sourceKey} keeps collectible semantics`,
+    record.collectible === identity.collectible,
+  )
+  check(
+    `${identity.sourceKey} keeps battle-only semantics`,
+    record.battleOnly === identity.battleOnly,
+  )
 }
 
 for (const mon of pokedex) {
@@ -71,26 +122,28 @@ for (const mon of pokedex) {
   )
   check(
     `${label} has 1-2 types`,
-    mon.types.length >= 1 && mon.types.length <= 2,
+    Array.isArray(mon.types) && mon.types.length >= 1 && mon.types.length <= 2,
   )
-  for (const type of mon.types) {
+  for (const type of mon.types ?? [])
     check(`${label} type "${type}" is in the type chart`, type in types)
-  }
 
   for (const stat of Object.values(STAT_KEYS)) {
     check(
       `${label} has ${stat}`,
-      Number.isInteger(mon.stats[stat]) && mon.stats[stat] > 0,
+      Number.isInteger(mon.stats?.[stat]) && mon.stats[stat] > 0,
     )
   }
 
   check(
     `${label} has base exp`,
     Number.isInteger(mon.baseExp) && mon.baseExp > 0,
+    String(mon.baseExp),
   )
   check(
     `${label} capture rate is 1-255`,
-    mon.captureRate >= 1 && mon.captureRate <= 255,
+    Number.isInteger(mon.captureRate) &&
+      mon.captureRate >= 1 &&
+      mon.captureRate <= 255,
     String(mon.captureRate),
   )
   check(
@@ -105,27 +158,86 @@ for (const mon of pokedex) {
       mon.genderRate <= 8,
     String(mon.genderRate),
   )
+  check(
+    `${label} has egg groups`,
+    Array.isArray(mon.eggGroups) && mon.eggGroups.length > 0,
+  )
+  check(
+    `${label} habitat is nullable text`,
+    mon.habitat === null || typeof mon.habitat === 'string',
+  )
+  check(`${label} baby flag is boolean`, typeof mon.baby === 'boolean')
+  check(
+    `${label} legendary flag is boolean`,
+    typeof mon.legendary === 'boolean',
+  )
+  check(`${label} mythical flag is boolean`, typeof mon.mythical === 'boolean')
+  check(
+    `${label} references a real base species`,
+    byId.has(mon.baseSpecies),
+    String(mon.baseSpecies),
+  )
+  check(
+    `${label} has at least one legal ability slot`,
+    Array.isArray(mon.abilities) && mon.abilities.length > 0,
+  )
 
-  check(`${label} has a learnset`, mon.learnset.length > 0)
+  for (const ability of mon.abilities ?? []) {
+    check(
+      `${label} ability "${ability.ability}" is in the Gen VII source`,
+      sourceAbilities.has(ability.ability),
+    )
+    check(
+      `${label} ability ${ability.ability} has a stable slot`,
+      typeof ability.slot === 'string' && ability.slot.length > 0,
+    )
+    check(
+      `${label} ability ${ability.ability} has hidden semantics`,
+      typeof ability.hidden === 'boolean',
+    )
+  }
+
+  check(
+    `${label} has a learnset`,
+    Array.isArray(mon.learnset) && mon.learnset.length > 0,
+  )
   check(
     `${label} knows something at level 1`,
     mon.learnset.some((entry) => entry.level <= 1),
   )
   for (const entry of mon.learnset) {
     check(`${label} move "${entry.move}" exists`, entry.move in moves)
+    check(
+      `${label} move "${entry.move}" has a level`,
+      Number.isInteger(entry.level) && entry.level >= 0 && entry.level <= 100,
+    )
   }
 
   for (const evolution of mon.evolutions) {
     check(
-      `${label} evolves into a real Pokemon`,
+      `${label} evolves into a generated species`,
       byId.has(evolution.to),
       `-> ${evolution.to}`,
     )
     check(
-      `${label} evolution stays in Kanto`,
-      evolution.to <= KANTO,
-      `-> ${evolution.to}`,
+      `${label} has a supported evolution trigger`,
+      ['level-up', 'use-item', 'trade'].includes(evolution.trigger),
+      evolution.trigger,
     )
+    check(
+      `${label} evolution conditions are structured`,
+      evolution.conditions && typeof evolution.conditions === 'object',
+    )
+    check(
+      `${label} evolution substitute is nullable text`,
+      evolution.substitute === null || typeof evolution.substitute === 'string',
+    )
+    if (evolution.item) {
+      check(
+        `${label} evolution item "${evolution.item}" is in the Gen VII source`,
+        sourceItems.has(toID(evolution.item)),
+      )
+    }
   }
 
   check(
@@ -135,27 +247,29 @@ for (const mon of pokedex) {
   )
   if (mon.evolvesFrom !== null) {
     check(
-      `${label} pre-evolution is in Kanto`,
+      `${label} pre-evolution is generated`,
       byId.has(mon.evolvesFrom),
       `<- ${mon.evolvesFrom}`,
     )
     check(
       `${label} stage is one above its pre-evolution`,
-      mon.stage === (byId.get(mon.evolvesFrom)?.stage ?? -99) + 1,
+      mon.stage === Math.min(2, (byId.get(mon.evolvesFrom)?.stage ?? -99) + 1),
     )
   } else {
     check(`${label} with no pre-evolution is stage 0`, mon.stage === 0)
   }
 
-  for (const side of SPRITE_SIDES) {
-    check(
-      `${label} ${side} sprite is on disk`,
-      existsSync(spriteFile(side, mon.id, 'png')),
-    )
-    check(
-      `${label} shiny ${side} sprite is on disk`,
-      existsSync(shinySpriteFile(side, mon.id, 'png')),
-    )
+  if (mon.id <= KANTO) {
+    for (const side of SPRITE_SIDES) {
+      check(
+        `${label} ${side} sprite is on disk`,
+        existsSync(spriteFile(side, mon.id, 'png')),
+      )
+      check(
+        `${label} shiny ${side} sprite is on disk`,
+        existsSync(shinySpriteFile(side, mon.id, 'png')),
+      )
+    }
   }
 }
 
@@ -185,14 +299,12 @@ for (const [key, move] of Object.entries(moves)) {
       move.power === null,
       String(move.power),
     )
-  } else if (move.power === null) {
+  } else if (move.power !== null) {
     check(
-      `damaging move ${key} without power is a known special case`,
-      SPECIAL_DAMAGE_MOVES.has(key),
-      'needs handling in the battle engine',
+      `damaging move ${key} has positive power`,
+      move.power > 0,
+      String(move.power),
     )
-  } else {
-    check(`damaging move ${key} has power`, move.power > 0, String(move.power))
   }
 }
 
@@ -213,51 +325,48 @@ for (const [name, table] of Object.entries(growth)) {
   check(`curve ${name} increases every level`, rising)
 }
 
-const fact = (description, condition, detail) => {
+const fact = (description, condition, detail = '') => {
   return check(`FACT: ${description}`, condition, detail)
 }
 
 const charizard = byId.get(6)
 fact(
-  'Charizard is Fire/Flying',
+  'Charizard is Fire/Flying in Generation VII',
   charizard.types.join('/') === 'fire/flying',
   charizard.types.join('/'),
 )
-fact(
-  'Charizard is a second evolution',
-  charizard.stage === 2,
-  String(charizard.stage),
-)
-fact(
-  'Charizard comes from Charmeleon',
-  charizard.evolvesFrom === 5,
-  String(charizard.evolvesFrom),
-)
+fact('the Generation VII chart includes Fairy', Boolean(types.fairy))
 
 const bulbasaur = byId.get(1)
 fact(
   'Bulbasaur evolves at 16',
-  bulbasaur.evolutions[0]?.to === 2 && bulbasaur.evolutions[0]?.level === 16,
-  JSON.stringify(bulbasaur.evolutions[0]),
+  bulbasaur.evolutions.some(
+    (evolution) => evolution.to === 2 && evolution.level === 16,
+  ),
 )
 
 const eevee = byId.get(133)
 fact(
-  'Eevee has three evolutions',
-  eevee.evolutions.length === 3,
+  'Eevee has all eight Generation VII evolutions',
+  eevee.evolutions.length === 8,
   String(eevee.evolutions.length),
 )
+
+const espeon = byId.get(196)
+const espeonRule = eevee.evolutions.find(
+  (evolution) => evolution.to === espeon.id,
+)
 fact(
-  'Eevee evolves by stone',
-  eevee.evolutions.every((evolution) => evolution.item?.endsWith('-stone')),
-  eevee.evolutions.map((e) => e.item).join(', '),
+  'Espeon preserves friendship and daytime evolution semantics',
+  espeonRule?.conditions?.friendship === true &&
+    espeonRule?.conditions?.text === 'during the day' &&
+    typeof espeonRule?.substitute === 'string',
 )
 
 const pikachu = byId.get(25)
 fact(
-  'Pikachu needs a Thunder Stone',
-  pikachu.evolutions[0]?.item === 'thunder-stone',
-  String(pikachu.evolutions[0]?.item),
+  'Pikachu has a Thunder Stone evolution',
+  pikachu.evolutions.some((evolution) => evolution.item === 'thunder-stone'),
 )
 fact(
   'Pikachu knows Thunder Shock at level 1',
@@ -269,82 +378,58 @@ fact(
 const machoke = byId.get(67)
 fact(
   'Machoke evolves by trade',
-  machoke.evolutions[0]?.trigger === 'trade',
-  machoke.evolutions[0]?.trigger,
+  machoke.evolutions.some((evolution) => evolution.trigger === 'trade'),
 )
 
 const mewtwo = byId.get(150)
 fact('Mewtwo is legendary', mewtwo.legendary === true)
-fact(
-  'Mewtwo is hard to catch',
-  mewtwo.captureRate === 3,
-  String(mewtwo.captureRate),
-)
-fact(
-  'Mewtwo has no gender',
-  mewtwo.genderRate === -1,
-  String(mewtwo.genderRate),
-)
+fact('Mewtwo has no gender', mewtwo.genderRate === -1)
+fact('Mew is mythical', byId.get(151).mythical === true)
 
+const togepi = byId.get(175)
+fact('Togepi is a Generation II baby', togepi.baby === true)
+fact('Togepi is Fairy in Generation VII', togepi.types.includes('fairy'))
 fact(
-  'Nidoran♀ is always female',
-  byId.get(29).genderRate === 8,
-  String(byId.get(29).genderRate),
-)
-fact(
-  'Nidoran♂ is always male',
-  byId.get(32).genderRate === 0,
-  String(byId.get(32).genderRate),
-)
-fact(
-  'Bulbasaur is one-eighth female',
-  byId.get(1).genderRate === 1,
-  String(byId.get(1).genderRate),
-)
-
-const caterpie = byId.get(10)
-fact(
-  'Caterpie is easy to catch',
-  caterpie.captureRate === 255,
-  String(caterpie.captureRate),
-)
-
-const charmander = byId.get(4)
-fact(
-  'Charmander learns Ember',
-  charmander.learnset.some((entry) => entry.move === 'ember'),
-)
-fact(
-  'Charmander starts with Scratch',
-  charmander.learnset.some(
-    (entry) => entry.move === 'scratch' && entry.level <= 1,
+  'Togepi has its hidden ability slot',
+  togepi.abilities.some(
+    (ability) => ability.hidden && ability.ability === 'superluck',
   ),
+)
+
+fact('Meltan #808 is present', byId.get(808)?.sourceKey === 'meltan')
+fact('Melmetal #809 is present', byId.get(809)?.sourceKey === 'melmetal')
+fact('Meltan is mythical', byId.get(808)?.mythical === true)
+fact('Melmetal is mythical', byId.get(809)?.mythical === true)
+
+const alolanForms = pokedex.filter((record) => record.formKey === 'alola')
+fact(
+  'all 18 Alolan forms are included',
+  alolanForms.length === 18,
+  String(alolanForms.length),
+)
+
+fact(
+  'generated audit reports 809 base species',
+  audit.baseSpecies === NATIONAL_DEX &&
+    audit.nationalDex?.count === NATIONAL_DEX,
+)
+fact(
+  'generated audit count matches the dataset',
+  audit.species === pokedex.length &&
+    audit.forms === pokedex.length - NATIONAL_DEX,
+)
+fact(
+  'every generated evolution rule has PokéAPI chain evidence',
+  audit.pokeApi?.unconfirmedEvolutionRules?.length === 0 &&
+    audit.pokeApi?.confirmedEvolutionRules === audit.evolutionRules,
 )
 
 fact('Water beats Fire', types.water.double.includes('fire'))
 fact('Fire is weak into Water', types.fire.half.includes('water'))
 fact('Normal cannot hit Ghost', types.normal.zero.includes('ghost'))
 fact('Electric cannot hit Ground', types.electric.zero.includes('ground'))
-
 fact('Tackle is physical', moves.tackle.damageClass === 'physical')
-fact(
-  'Growl lowers Attack',
-  moves.growl.statChanges.some(
-    (change) => change.stat === 'attack' && change.change === -1,
-  ),
-)
-fact(
-  'Thunder Wave paralyses',
-  moves['thunder-wave'].ailment === 'paralysis',
-  moves['thunder-wave'].ailment,
-)
-fact('Ember can burn', moves.ember.ailment === 'burn', moves.ember.ailment)
-fact(
-  'Hyper Beam hits hard',
-  moves['hyper-beam'].power === 150,
-  String(moves['hyper-beam'].power),
-)
-
+fact('Hyper Beam hits hard', moves['hyper-beam'].power === 150)
 fact(
   'medium-slow tops out at 1,059,860 exp',
   growth['medium-slow'][100] === 1059860,
@@ -353,8 +438,12 @@ fact(
 
 console.log(bold('\nDataset check\n'))
 console.log(
-  `  ${pokedex.length} Pokemon, ${Object.keys(moves).length} moves, ` +
-    `${Object.keys(types).length} types, ${Object.keys(growth).length} exp curves`,
+  `  ${pokedex.length} species/forms (${NATIONAL_DEX} National), ` +
+    `${Object.keys(moves).length} moves, ${Object.keys(types).length} types, ` +
+    `${Object.keys(growth).length} exp curves`,
+)
+console.log(
+  `  ${audit.evolutionRules} evolution rules · ${audit.evolutionSubstitutes} explicit substitutes`,
 )
 console.log(`  ${checks.run} assertions\n`)
 

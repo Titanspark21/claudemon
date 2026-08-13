@@ -22,6 +22,7 @@ assets/victory.wav
 bin/claudemon
 commands/claudemon-setup.md
 data/form-ids.json
+data/generation-vii-audit.json
 data/growth.json
 data/moves.json
 data/pokedex.json
