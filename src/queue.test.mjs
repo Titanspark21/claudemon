@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeEach, expect, test } from 'vitest'
@@ -34,8 +34,8 @@ beforeEach(() => {
 })
 
 test('Should append encounters in order instead of replacing the waiting one', () => {
-  offerEncounter(encounter('First', '2026-08-13T00:00:00.000Z'), 60_000, 0)
-  offerEncounter(encounter('Second', '2026-08-13T00:00:01.000Z'), 60_000, 0)
+  offerEncounter(encounter('First', '2026-08-13T00:00:00.000Z'))
+  offerEncounter(encounter('Second', '2026-08-13T00:00:01.000Z'))
 
   expect(peekQueue().map((entry) => entry.name)).toEqual(['First', 'Second'])
 })
@@ -93,9 +93,10 @@ test('Should prune expired entries while keeping later live encounters', () => {
   )
 
   expect(current.name).toBe('Live')
+  expect(peekQueue().map((entry) => entry.name)).toEqual(['Live'])
 })
 
-test('Should clear every queued encounter only when explicitly asked', () => {
+test('Should clear only the current encounter so the next one can surface', () => {
   writeFileSync(
     QUEUE_FILE,
     [
@@ -108,5 +109,5 @@ test('Should clear every queued encounter only when explicitly asked', () => {
 
   clearEncounter()
 
-  expect(readFileSync(QUEUE_FILE, 'utf8')).toBe('')
+  expect(peekQueue().map((entry) => entry.name)).toEqual(['Second'])
 })
