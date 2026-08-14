@@ -28,6 +28,7 @@ export const effectivenessMessage = (multiplier) => {
 
 export const battleSideOf = (battle, actor) => {
   if (actor === 'player' || actor === 'foe') return actor
+  if (actor?.side === 'player' || actor?.side === 'foe') return actor.side
   if (actor === battle.player) return 'player'
   if (actor === battle.foe) return 'foe'
 

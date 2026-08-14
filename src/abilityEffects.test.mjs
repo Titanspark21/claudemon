@@ -1542,6 +1542,104 @@ describe('live battle ability integration', () => {
     })
   })
 
+  test('Should extend ability-set weather and terrain from the setter held item', () => {
+    const rainSetter = liveMon(25, 'drizzle', 'growl')
+    rainSetter.heldItem = 'damp-rock'
+    const rain = createLiveBattle({
+      playerMon: rainSetter,
+      wildMon: liveMon(16, 'keeneye', 'growl', 2),
+      seed: 13,
+    })
+
+    expect(rain.field.weather).toEqual({
+      key: 'rain',
+      source: { side: 'player', ability: 'drizzle' },
+      turns: 8,
+    })
+
+    const terrainSetter = liveMon(25, 'grassysurge', 'growl')
+    terrainSetter.heldItem = 'terrain-extender'
+    const terrain = createLiveBattle({
+      playerMon: terrainSetter,
+      wildMon: liveMon(16, 'keeneye', 'growl', 3),
+      seed: 14,
+    })
+
+    expect(terrain.field.terrain).toEqual({
+      key: 'grassy',
+      source: { side: 'player', ability: 'grassysurge' },
+      turns: 8,
+    })
+  })
+
+  test('Should activate a grounded terrain seed when the opposing setter switches in', () => {
+    const player = liveMon(25, 'keeneye', 'growl')
+    player.heldItem = 'grassy-seed'
+    const foe = liveMon(1, 'grassysurge', 'growl', 2)
+    const current = createLiveBattle({
+      playerMon: player,
+      wildMon: foe,
+      seed: 15,
+    })
+
+    expect(current.field.terrain).toMatchObject({
+      key: 'grassy',
+      source: { side: 'foe', ability: 'grassysurge' },
+    })
+    expect(current.player.stages.defense).toBe(1)
+    expect(current.player.mon.heldItem).toBeNull()
+  })
+
+  test('Should replace fields deterministically when opposing setters switch in', () => {
+    const player = liveMon(25, 'drizzle', 'growl')
+    player.heldItem = 'damp-rock'
+    const foe = liveMon(4, 'drought', 'growl', 2)
+    foe.heldItem = 'heat-rock'
+    const current = createLiveBattle({
+      playerMon: player,
+      wildMon: foe,
+      seed: 16,
+    })
+
+    expect(current.field.weather).toEqual({
+      key: 'sun',
+      source: { side: 'foe', ability: 'drought' },
+      turns: 8,
+    })
+    expect(
+      current.pendingEvents.filter((event) =>
+        ['ability', 'field'].includes(event.type),
+      ),
+    ).toEqual([
+      {
+        type: 'ability',
+        side: 'player',
+        ability: 'drizzle',
+        cause: 'switch-in',
+      },
+      {
+        type: 'field',
+        kind: 'weather',
+        key: 'rain',
+        source: { side: 'player', ability: 'drizzle' },
+        turns: 8,
+      },
+      {
+        type: 'ability',
+        side: 'foe',
+        ability: 'drought',
+        cause: 'switch-in',
+      },
+      {
+        type: 'field',
+        kind: 'weather',
+        key: 'sun',
+        source: { side: 'foe', ability: 'drought' },
+        turns: 8,
+      },
+    ])
+  })
+
   test('Should apply Intimidate once for the side that actually switches in', () => {
     const player = liveMon(25, 'intimidate', 'growl')
     const foe = liveMon(16, 'intimidate', 'growl', 2)

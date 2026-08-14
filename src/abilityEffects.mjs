@@ -406,10 +406,14 @@ const switchField = (kind, key) =>
         sourceAbility(state),
         'switch-in',
       )
+      const source = {
+        side: sourceSide(state),
+        ability: sourceAbility(state),
+      }
       const events =
         kind === 'weather'
-          ? startWeather(state.battle, key, sourceAbility(state))
-          : startTerrain(state.battle, key, sourceAbility(state))
+          ? startWeather(state.battle, key, source)
+          : startTerrain(state.battle, key, source)
       state.events.push(...events)
     },
     100,

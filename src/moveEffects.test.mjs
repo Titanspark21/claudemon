@@ -293,7 +293,7 @@ test('Should start weather and terrain from their Generation VII setter moves', 
   const battle = {
     field: createBattleField(),
     effects: [],
-    player: { mon: { species: 25 } },
+    player: { mon: { species: 25, heldItem: 'damp-rock' } },
     foe: { mon: { species: 16 } },
   }
 
@@ -304,10 +304,11 @@ test('Should start weather and terrain from their Generation VII setter moves', 
     kind: 'weather',
     key: 'rain',
     source: { side: 'player', move: 'rain-dance' },
-    turns: 5,
+    turns: 8,
   })
   expect(battle.field.weather.key).toBe('rain')
 
+  battle.player.mon.heldItem = 'terrain-extender'
   expect(
     applyMoveFieldEffect(battle, 'player', { key: 'grassy-terrain' }),
   ).toContainEqual({
@@ -315,7 +316,7 @@ test('Should start weather and terrain from their Generation VII setter moves', 
     kind: 'terrain',
     key: 'grassy',
     source: { side: 'player', move: 'grassy-terrain' },
-    turns: 5,
+    turns: 8,
   })
   expect(battle.field.terrain.key).toBe('grassy')
   expect(applyMoveFieldEffect(battle, 'player', { key: 'tackle' })).toEqual([])

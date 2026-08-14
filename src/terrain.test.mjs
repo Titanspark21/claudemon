@@ -166,6 +166,12 @@ test('Should resolve effect actors from side names and actor references', () => 
   }
 
   expect(battleSideOf(battle, 'player')).toBe('player')
+  expect(
+    battleSideOf(battle, { side: 'player', move: 'electric-terrain' }),
+  ).toBe('player')
+  expect(battleSideOf(battle, { side: 'foe', ability: 'grassysurge' })).toBe(
+    'foe',
+  )
   expect(battleSideOf(battle, battle.player)).toBe('player')
   expect(battleSideOf(battle, battle.foe)).toBe('foe')
   expect(battleSideOf(battle, null)).toBeNull()
