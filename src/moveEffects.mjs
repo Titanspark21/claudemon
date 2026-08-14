@@ -102,14 +102,26 @@ const effectRegistry = (sources) => {
   return registry
 }
 
+const weatherIsSuppressed = (battle) =>
+  ['player', 'foe'].some((side) =>
+    ['airlock', 'cloudnine'].includes(battle?.[side]?.mon?.ability),
+  )
+
+const activeFieldHandlers = (battle) =>
+  fieldHandlers(battle.field).filter(
+    (handler) =>
+      !weatherIsSuppressed(battle) || handler.sourceType !== 'weather',
+  )
+
 export const runMoveEffectPhase = (battle, phase, context) => {
   const registry = effectRegistry([
     ...(battle.effects ?? []),
     ...moveEffectHandlers(context.move),
-    ...(battle.field ? fieldHandlers(battle.field) : []),
+    ...(battle.field ? activeFieldHandlers(battle) : []),
   ])
 
   return runEffectPhase(battle, phase, {
+    ...context,
     attacker: context.attacker,
     defender: context.defender,
     move: context.move,
@@ -122,8 +134,8 @@ export const runMoveEffectPhase = (battle, phase, context) => {
 
 export const runFieldEffectPhase = (battle, phase, events) => {
   const registry = effectRegistry([
-    ...battle.effects,
-    ...fieldHandlers(battle.field),
+    ...(battle.effects ?? []),
+    ...activeFieldHandlers(battle),
   ])
 
   return runEffectPhase(battle, phase, {

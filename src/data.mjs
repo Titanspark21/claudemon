@@ -22,6 +22,7 @@ export const loadData = () => {
       speciesIdentities.records.map((record) => [record.sourceKey, record]),
     ),
     moves: read('moves.json'),
+    abilities: read('abilities.json'),
     mechanicsCoverage: read('mechanics-coverage.json'),
     types: read('types.json'),
     growth: read('growth.json'),
