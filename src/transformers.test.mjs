@@ -28,6 +28,9 @@ const rawSave = {
       nickname: 'Sparky',
       exp: 135,
       ivs: { hp: 20, attack: 3 },
+      nature: 'adamant',
+      ability: 'blaze',
+      heldItem: 'charcoal',
       stats: { hp: 21, attack: 11 },
       hp: 18,
       moves: [{ move: 'ember', pp: 24, maxPp: 25, learnedAt: 9 }],
@@ -117,10 +120,13 @@ test('Should map a Pokemon to the ten stored fields and its slots to three', () 
   const [mon] = transformResponseSave(rawSave).party
 
   expect(Object.keys(mon).sort()).toEqual([
+    'ability',
     'exp',
+    'heldItem',
     'hp',
     'ivs',
     'moves',
+    'nature',
     'nickname',
     'shiny',
     'species',
@@ -129,6 +135,9 @@ test('Should map a Pokemon to the ten stored fields and its slots to three', () 
     'statusTurns',
   ])
   expect(mon.level).toBeUndefined()
+  expect(mon.nature).toBe('adamant')
+  expect(mon.ability).toBe('blaze')
+  expect(mon.heldItem).toBe('charcoal')
   expect(mon.shiny).toBe(true)
   expect(mon.moves).toEqual([{ move: 'ember', pp: 24, maxPp: 25 }])
 })
@@ -137,6 +146,9 @@ test('Should give a save written before a field existed an empty one instead', (
   const save = transformResponseSave({ version: 1, party: [{ species: 4 }] })
 
   expect(save.party[0].moves).toEqual([])
+  expect(save.party[0].nature).toBeUndefined()
+  expect(save.party[0].ability).toBeUndefined()
+  expect(save.party[0].heldItem).toBeNull()
   expect(save.party[0].shiny, 'a save from before shinies has none').toBe(false)
   expect(save.box).toEqual([])
   expect(save.bag).toEqual({})
@@ -635,6 +647,9 @@ test('Should map only the fields a trade code carries', () => {
       nickname: 'SPARKY',
       exp: 1728,
       ivs: { hp: 22, attack: 9 },
+      nature: 'jolly',
+      ability: 'static',
+      heldItem: 'light-ball',
       stats: { hp: 33, attack: 19 },
       hp: 30,
       moves: [{ move: 'thunder-shock', pp: 28, maxPp: 30, learnedAt: 1 }],
@@ -653,6 +668,9 @@ test('Should map only the fields a trade code carries', () => {
     { move: 'thunder-shock', pp: 28, maxPp: 30 },
   ])
   expect(trade.mon.stats, 'stats are rebuilt on arrival').toBeUndefined()
+  expect(trade.mon.nature).toBe('jolly')
+  expect(trade.mon.ability).toBe('static')
+  expect(trade.mon.heldItem).toBe('light-ball')
   expect(trade.mon.level).toBeUndefined()
   expect(trade.cheatMode).toBeUndefined()
 })
@@ -670,6 +688,9 @@ test('Should write a trade with the same fields it reads', () => {
       nickname: null,
       exp: 1728,
       ivs: { hp: 22 },
+      nature: 'calm',
+      ability: 'static',
+      heldItem: null,
       stats: { hp: 33 },
       hp: 30,
       moves: [],

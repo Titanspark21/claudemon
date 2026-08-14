@@ -107,10 +107,13 @@ src/itemUse.test.mjs
 src/learnset.mjs
 src/learnset.test.mjs
 src/log.mjs
+src/natures.mjs
+src/natures.test.mjs
 src/paths.mjs
 src/png.mjs
 src/png.test.mjs
 src/pokemon.mjs
+src/pokemon.test.mjs
 src/progression.mjs
 src/queue.mjs
 src/reveal.mjs

@@ -53,6 +53,7 @@ test('Should carry the exact Pokémon over to the other game and out of this one
   const sparky = createPokemon(25, 14, makeRng(7), true)
 
   sparky.nickname = 'SPARKY'
+  sparky.heldItem = 'light-ball'
   sparky.hp = 5
   sparky.status = 'paralysis'
   sparky.moves[0].pp = 3
@@ -73,6 +74,9 @@ test('Should carry the exact Pokémon over to the other game and out of this one
   expect(displayName(taken.mon)).toBe('SPARKY')
   expect(levelOf(taken.mon)).toBe(14)
   expect(taken.mon.ivs).toEqual(sparky.ivs)
+  expect(taken.mon.nature).toBe(sparky.nature)
+  expect(taken.mon.ability).toBe(sparky.ability)
+  expect(taken.mon.heldItem).toBe('light-ball')
   expect(taken.mon.stats).toEqual(sparky.stats)
   expect(taken.mon.hp).toBe(5)
   expect(taken.mon.status).toBe('paralysis')

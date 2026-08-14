@@ -2,7 +2,8 @@ import { AILMENT_IMMUNE_TYPES, SHINY_ODDS } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
 import { expForLevel, levelFromExp } from './exp.mjs'
 import { movesAtLevel } from './learnset.mjs'
-import { chance } from './rng.mjs'
+import { rollNature } from './natures.mjs'
+import { chance, makeRng, pick } from './rng.mjs'
 import { rollIvs, statsAtLevel } from './stats.mjs'
 
 export const makeMoveSlot = (name) => {
@@ -13,15 +14,72 @@ export const makeMoveSlot = (name) => {
 
 export const rollShiny = (rng) => chance(rng, SHINY_ODDS)
 
+export const rollAbility = (speciesId, rng, hiddenChance = 0.05) => {
+  const slots = species(speciesId).abilities ?? []
+  const hidden = slots.filter((slot) => slot.hidden)
+  const normal = slots.filter((slot) => !slot.hidden)
+
+  if (hidden.length > 0 && chance(rng, hiddenChance))
+    return pick(rng, hidden).ability
+  if (normal.length > 0) return pick(rng, normal).ability
+  if (hidden.length > 0) return pick(rng, hidden).ability
+
+  return null
+}
+
+export const legalAbilityAfterEvolution = (mon, targetSpecies) => {
+  const targetSlots = species(targetSpecies).abilities ?? []
+
+  if (targetSlots.length === 0) return null
+
+  const alreadyLegal = targetSlots.find((slot) => slot.ability === mon.ability)
+
+  if (alreadyLegal) return alreadyLegal.ability
+
+  const sourceSlot = (species(mon.species).abilities ?? []).find(
+    (slot) => slot.ability === mon.ability,
+  )
+  const matchingSlot = sourceSlot
+    ? targetSlots.find((slot) => slot.slot === sourceSlot.slot)
+    : null
+
+  if (matchingSlot) return matchingSlot.ability
+
+  return (targetSlots.find((slot) => !slot.hidden) ?? targetSlots[0]).ability
+}
+
+const identityRngFor = (speciesId, ivs) => {
+  let seed = speciesId >>> 0
+
+  for (const value of [
+    ivs.hp,
+    ivs.attack,
+    ivs.defense,
+    ivs.spAttack,
+    ivs.spDefense,
+    ivs.speed,
+  ]) {
+    seed = Math.imul(seed ^ value, 0x01000193) >>> 0
+  }
+
+  return makeRng(seed)
+}
+
 export const createPokemon = (speciesId, level, rng, shiny = false) => {
   const ivs = rollIvs(rng)
-  const stats = statsAtLevel(speciesId, level, ivs)
+  const identityRng = identityRngFor(speciesId, ivs)
+  const nature = rollNature(identityRng)
+  const ability = rollAbility(speciesId, identityRng)
+  const stats = statsAtLevel(speciesId, level, ivs, nature)
 
   return {
     species: speciesId,
     nickname: null,
     exp: expForLevel(speciesId, level),
     ivs,
+    nature,
+    ability,
+    heldItem: null,
     stats,
     hp: stats.hp,
     moves: movesAtLevel(speciesId, level).map(makeMoveSlot),
@@ -72,7 +130,7 @@ export const isImmuneToAilment = (mon, ailment) => {
 export const refreshStats = (mon) => {
   const previousMax = mon.stats.hp
 
-  mon.stats = statsAtLevel(mon.species, levelOf(mon), mon.ivs)
+  mon.stats = statsAtLevel(mon.species, levelOf(mon), mon.ivs, mon.nature)
 
   const gained = mon.stats.hp - previousMax
 
@@ -125,11 +183,17 @@ export const levelUpEvolution = (mon) => {
 }
 
 export const evolveInto = (mon, speciesId) => {
-  const fraction = mon.stats.hp > 0 ? mon.hp / mon.stats.hp : 1
+  const previousMax = mon.stats?.hp ?? 0
+  const wasFainted = mon.hp <= 0
+  const fraction = previousMax > 0 ? mon.hp / previousMax : 1
+  const ability = legalAbilityAfterEvolution(mon, speciesId)
 
   mon.species = speciesId
-  mon.stats = statsAtLevel(speciesId, levelOf(mon), mon.ivs)
-  mon.hp = Math.max(1, Math.round(mon.stats.hp * fraction))
+  mon.ability = ability
+  mon.stats = statsAtLevel(speciesId, levelOf(mon), mon.ivs, mon.nature)
+  mon.hp = wasFainted
+    ? 0
+    : Math.max(1, Math.min(mon.stats.hp, Math.round(mon.stats.hp * fraction)))
 
   return mon
 }

@@ -106,13 +106,16 @@ const arrivingMove = (slot) => {
 }
 
 const arrivingMon = (mon) => {
-  const stats = statsAtLevel(mon.species, levelOf(mon), mon.ivs)
+  const stats = statsAtLevel(mon.species, levelOf(mon), mon.ivs, mon.nature)
 
   return {
     species: mon.species,
     nickname: mon.nickname,
     exp: mon.exp,
     ivs: mon.ivs,
+    nature: mon.nature,
+    ability: mon.ability,
+    heldItem: mon.heldItem ?? null,
     stats,
     hp: Math.max(0, Math.min(stats.hp, Math.round(mon.hp))),
     moves: mon.moves.map(arrivingMove),

@@ -165,10 +165,14 @@ test('Should hatch the egg only once it has come the whole way', () => {
 test('Should hatch what the egg was carrying, shiny and all, at the level an egg hatches', () => {
   const shinyEgg = { species: PIKACHU, steps: EGG_STEPS, shiny: true }
   const hatched = hatchEgg(shinyEgg, makeRng(3))
+  const repeated = hatchEgg(shinyEgg, makeRng(3))
 
   expect(hatched.species).toBe(PIKACHU)
   expect(levelOf(hatched)).toBe(EGG_LEVEL)
   expect(hatched.shiny).toBe(true)
+  expect(hatched.nature).toBe(repeated.nature)
+  expect(hatched.ability).toBe(repeated.ability)
+  expect(hatched.heldItem).toBeNull()
   expect(hatched.hp).toBe(hatched.stats.hp)
   expect(
     hatched.moves.length,
@@ -221,6 +225,12 @@ test('Should stop feeding EXP to one that is already at the highest level', () =
 
 test('Should take one out of the team or the box and put it in a slot', () => {
   const box = [aMon(RATTATA), aMon(MAGNEMITE)]
+  box[1].heldItem = 'metal-coat'
+  const identity = {
+    nature: box[1].nature,
+    ability: box[1].ability,
+    heldItem: box[1].heldItem,
+  }
   const save = aSave({ party: [aMon(PIKACHU), aMon(BULBASAUR)], box })
 
   expect(daycareCandidates(save).map((entry) => entry.source)).toEqual([
@@ -234,6 +244,11 @@ test('Should take one out of the team or the box and put it in a slot', () => {
 
   expect(fromBox.ok).toBe(true)
   expect(fromBox.mon.species).toBe(MAGNEMITE)
+  expect({
+    nature: fromBox.mon.nature,
+    ability: fromBox.mon.ability,
+    heldItem: fromBox.mon.heldItem,
+  }).toEqual(identity)
   expect(save.box.map((mon) => mon.species)).toEqual([RATTATA])
 
   const fromParty = leaveAtDaycare(save, 'party', 0)

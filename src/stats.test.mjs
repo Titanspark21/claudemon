@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 
 import { IV_MAX, STAT_NAMES } from './constants.mjs'
 import { makeRng } from './rng.mjs'
-import { rollIvs, statsAtLevel } from './stats.mjs'
+import { ivPercentage, rollIvs, statsAtLevel } from './stats.mjs'
 
 test('Should grow stats with level and carry the flat HP bonus', () => {
   const low = statsAtLevel(
@@ -43,4 +43,28 @@ test('Should roll an in-range IV for every stat', () => {
     expect(ivs[stat]).toBeGreaterThanOrEqual(0)
     expect(ivs[stat]).toBeLessThanOrEqual(IV_MAX)
   }
+})
+
+test('Should apply nature after the base IV stat formula and never modify HP', () => {
+  const ivs = Object.fromEntries(STAT_NAMES.map((stat) => [stat, 15]))
+  const neutral = statsAtLevel(4, 50, ivs, 'hardy')
+  const adamant = statsAtLevel(4, 50, ivs, 'adamant')
+
+  expect(adamant.hp).toBe(neutral.hp)
+  expect(adamant.attack).toBe(Math.floor(neutral.attack * 1.1))
+  expect(adamant.spAttack).toBe(Math.floor(neutral.spAttack * 0.9))
+  expect(adamant.defense).toBe(neutral.defense)
+  expect(adamant.speed).toBe(neutral.speed)
+})
+
+test('Should report IV percentage over all six stats', () => {
+  expect(
+    ivPercentage(Object.fromEntries(STAT_NAMES.map((stat) => [stat, 0]))),
+  ).toBe(0)
+  expect(
+    ivPercentage(Object.fromEntries(STAT_NAMES.map((stat) => [stat, IV_MAX]))),
+  ).toBe(100)
+  expect(
+    ivPercentage(Object.fromEntries(STAT_NAMES.map((stat) => [stat, 15]))),
+  ).toBeCloseTo((15 / IV_MAX) * 100)
 })
