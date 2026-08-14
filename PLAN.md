@@ -182,39 +182,6 @@ monDetail(mon, options) -> string[]
       minimum size and a wide terminal and capture both layouts.
 - [ ] Commit: `visual: show Pokemon identity and IV details`
 
-### Task V2: Add Pokédex search, scalable filters, and separate completion
-
-**Files:**
-
-- Create: `src/dexFilter.mjs`
-- Create: `src/dexFilter.test.mjs`
-- Modify: `src/ui/views/dex.mjs`
-- Modify: `src/ui/views/helpers.mjs`
-- Modify: `src/ui/views/constants.mjs`
-- Modify: `src/app.mjs`
-- Test: `test/app.test.mjs`
-
-**Interfaces:**
-
-```js
-filterDex(entries, { query, generation, type, biome, status, shiny, form }) -> entries
-dexCompletion(save, dataset) -> { nationalCaught, nationalTotal, formsCaught, formsTotal }
-nextDexFilter(current, input) -> filter
-```
-
-- [ ] Add failing tests for combined filters, accent/case-insensitive name
-      search, numeric search, synthetic forms, an empty result, stable cursor
-      position, and National count excluding forms.
-- [ ] Run `npm test -- src/dexFilter.test.mjs src/ui/views/helpers.test.mjs` and
-      confirm failures.
-- [ ] Implement pure filtering independently of terminal rendering.
-- [ ] Add a compact filter bar and keyboard flow that keeps arrows for list
-      navigation and exposes search/filter help without crowding narrow terminals.
-- [ ] Show `x/809` National completion and a separate forms figure.
-- [ ] Verify with generated 809-species fixture data and manually exercise each
-      filter in the real app.
-- [ ] Commit: `visual: make the expanded Pokedex searchable`
-
 ### Task V3: Draw biome travel and fork decisions on the home screen
 
 **Files:**
