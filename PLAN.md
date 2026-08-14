@@ -376,18 +376,18 @@ validateCoverage(dataset, coverage) -> ValidationResult
 coverageReport(dataset, coverage) -> string
 ```
 
-- [ ] Add failing tests for an unclassified ability/item/move, a supported
+- [x] Add failing tests for an unclassified ability/item/move, a supported
       record without a handler, an exclusion without a reason, an unused stale
       entry, and a species referencing an unknown record.
 - [ ] Run `npm test -- tools/mechanicsCoverage.test.mjs`.
-- [ ] Generate the complete imported key list and classify each record as
+- [x] Generate the complete imported key list and classify each record as
       `supported`, `no-effect-in-singles`, `blocked-by-excluded-system`, or
       `deferred-complex-one-off`.
-- [ ] Require `handler` for supported records and a concrete `reason` for every
+- [x] Require `handler` for supported records and a concrete `reason` for every
       other status. Do not use arbitrary numeric implementation caps.
-- [ ] Add `npm run mechanics:coverage` that prints totals and exits nonzero for
+- [x] Add `npm run mechanics:coverage` that prints totals and exits nonzero for
       any gap; invoke it from data validation and CI.
-- [ ] Review every deferred one-off against the rule “shared hook or modest
+- [x] Review every deferred one-off against the rule “shared hook or modest
       handler means implement it,” then commit the approved baseline.
 - [ ] Commit: `data: make mechanics coverage explicit`
 
