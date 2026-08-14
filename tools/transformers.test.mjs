@@ -440,6 +440,9 @@ test('Should write moves keyed by name with the camelCase names and key order da
       healing: null,
       flinch_chance: null,
       crit_rate: 0,
+      flags: ['heal'],
+      fixed_damage: null,
+      ohko: false,
     },
   })
 
@@ -463,9 +466,15 @@ test('Should write moves keyed by name with the camelCase names and key order da
     'healing',
     'flinchChance',
     'critRate',
+    'flags',
+    'fixedDamage',
+    'ohko',
   ])
   expect(moves.absorb.damageClass).toBe('special')
   expect(moves.absorb.critRate).toBe(0)
+  expect(moves.absorb.flags).toEqual(['heal'])
+  expect(moves.absorb.fixedDamage).toBeNull()
+  expect(moves.absorb.ohko).toBe(false)
   expect(moves.absorb.statChanges).toEqual([{ stat: 'spAttack', change: -1 }])
   expect(moves.absorb).not.toHaveProperty('damage_class')
   expect(moves.absorb).not.toHaveProperty('crit_rate')

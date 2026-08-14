@@ -47,14 +47,44 @@ export const LEECH_SEED_FRACTION = 8
 export const FALLBACK_POWER = { 'low-kick': 50 }
 export const RUN_ODDS = { max: 0.95, speedFactor: 0.5, perAttempt: 0.15 }
 export const FOE_AI_SCORES = { defaultPower: 40, status: 15 }
-export const OHKO_MOVES = new Set(['guillotine', 'horn-drill', 'fissure'])
-
-export const UNSUPPORTED_MOVES = new Set([
-  'counter',
-  'mirror-move',
-  'metronome',
-  'transform',
+export const MULTI_HIT_ROLLS = [2, 2, 2, 3, 3, 3, 4, 5]
+export const MOVE_GENERIC_COVERAGE_HANDLERS = new Set([
+  'move:damage',
+  'move:status-family',
+  'move:multi-hit',
+  'move:drain',
+  'move:recoil',
+  'move:no-op',
 ])
+export const MOVE_SPECIAL_FIXED_DAMAGE = new Set(['super-fang', 'psywave'])
+export const MOVE_RUNTIME_ONE_OFF_HANDLERS = new Set([
+  'move:superfang',
+  'move:psywave',
+  'move:raindance',
+  'move:sunnyday',
+  'move:sandstorm',
+  'move:hail',
+  'move:electricterrain',
+  'move:grassyterrain',
+  'move:psychicterrain',
+  'move:mistyterrain',
+])
+export const MOVE_FIELD_EFFECTS = {
+  'rain-dance': { kind: 'weather', key: 'rain' },
+  'sunny-day': { kind: 'weather', key: 'sun' },
+  sandstorm: { kind: 'weather', key: 'sandstorm' },
+  hail: { kind: 'weather', key: 'hail' },
+  'electric-terrain': { kind: 'terrain', key: 'electric' },
+  'grassy-terrain': { kind: 'terrain', key: 'grassy' },
+  'psychic-terrain': { kind: 'terrain', key: 'psychic' },
+  'misty-terrain': { kind: 'terrain', key: 'misty' },
+}
+export const WEATHER_BALL_TYPES = {
+  rain: 'water',
+  sun: 'fire',
+  sandstorm: 'rock',
+  hail: 'ice',
+}
 
 export const STRUGGLE = {
   move: 'struggle',
@@ -69,6 +99,9 @@ export const STRUGGLE = {
     ailment: null,
     statChanges: [],
     critRate: 0,
+    flags: [],
+    fixedDamage: null,
+    ohko: false,
   },
 }
 

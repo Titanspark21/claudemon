@@ -57,6 +57,24 @@ test('Should skip a disabled slot even when it scores best', () => {
   expect(pickFoeMove(battle)).toBe(0)
 })
 
+test('Should skip deferred and unwired moves before scoring', () => {
+  const battle = {
+    player: { mon: { species: 4, stats: { speed: 50 }, status: null } },
+    foe: {
+      mon: {
+        moves: [
+          { move: 'metronome', pp: 10, maxPp: 10 },
+          { move: 'counter', pp: 20, maxPp: 20 },
+          { move: 'tackle', pp: 35, maxPp: 35 },
+        ],
+      },
+      volatile: emptyVolatile(),
+    },
+  }
+
+  expect(pickFoeMove(battle)).toBe(2)
+})
+
 test('Should let priority beat speed when deciding who moves first', () => {
   const battle = {
     rng: () => 0.2,

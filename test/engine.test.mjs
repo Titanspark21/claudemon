@@ -988,6 +988,103 @@ test('Should fall back to Struggle when the only move left is disabled', () => {
   expect(texts.some((text) => text.includes('is disabled'))).toBe(false)
 })
 
+test('Should execute imported move metadata through battle runtime paths', () => {
+  const slot = (key) => ({
+    move: key,
+    pp: moveOf(key).pp,
+    maxPp: moveOf(key).pp,
+  })
+
+  const weatherPlayer = aPokemon(4, 50)
+  const weatherFoe = aPokemon(10, 50)
+
+  weatherPlayer.moves = [slot('rain-dance')]
+  weatherFoe.moves = [slot('growl')]
+
+  const weatherBattle = createBattle({
+    playerMon: weatherPlayer,
+    wildMon: weatherFoe,
+    seed: 1,
+  })
+
+  submitAction(weatherBattle, { type: 'move', index: 0 })
+
+  expect(weatherBattle.field.weather).toMatchObject({ key: 'rain', turns: 4 })
+
+  const fixedPlayer = aPokemon(4, 50)
+  const fixedFoe = aPokemon(143, 50)
+
+  fixedPlayer.moves = [slot('dragon-rage')]
+  fixedFoe.moves = [slot('growl')]
+
+  const fixedBattle = createBattle({
+    playerMon: fixedPlayer,
+    wildMon: fixedFoe,
+    seed: 1,
+  })
+  const fixedHp = fixedFoe.hp
+
+  submitAction(fixedBattle, { type: 'move', index: 0 })
+
+  expect(fixedFoe.hp).toBe(fixedHp - 40)
+
+  const levelPlayer = aPokemon(4, 50)
+  const levelFoe = aPokemon(143, 50)
+
+  levelPlayer.moves = [slot('seismic-toss')]
+  levelFoe.moves = [slot('growl')]
+
+  const levelBattle = createBattle({
+    playerMon: levelPlayer,
+    wildMon: levelFoe,
+    seed: 1,
+  })
+  const levelHp = levelFoe.hp
+
+  submitAction(levelBattle, { type: 'move', index: 0 })
+
+  expect(levelFoe.hp).toBe(levelHp - 50)
+
+  const ohkoPlayer = aPokemon(4, 50)
+  const ohkoFoe = aPokemon(143, 50)
+
+  ohkoPlayer.moves = [slot('sheer-cold')]
+  ohkoFoe.moves = [slot('growl')]
+
+  const ohkoBattle = createBattle({
+    playerMon: ohkoPlayer,
+    wildMon: ohkoFoe,
+    seed: 1,
+  })
+
+  ohkoBattle.rng = () => 0
+
+  const ohkoTexts = textsOf(
+    submitAction(ohkoBattle, { type: 'move', index: 0 }),
+  )
+
+  expect(ohkoFoe.hp).toBe(0)
+  expect(ohkoTexts).toContain("It's a one-hit KO!")
+
+  const deferredPlayer = aPokemon(4, 50)
+  const deferredFoe = aPokemon(10, 50)
+
+  deferredPlayer.moves = [slot('metronome')]
+  deferredFoe.moves = [slot('growl')]
+
+  const deferredBattle = createBattle({
+    playerMon: deferredPlayer,
+    wildMon: deferredFoe,
+    seed: 1,
+  })
+  const deferredTexts = textsOf(
+    submitAction(deferredBattle, { type: 'move', index: 0 }),
+  )
+
+  expect(deferredTexts).toContain('But it failed!')
+  expect(deferredTexts.join(' ')).toMatch(/copy|replay|battle state/i)
+})
+
 test('Should ignore an action once the battle is over', () => {
   const battle = createBattle({
     playerMon: aPokemon(4, 20),

@@ -303,6 +303,9 @@ const mapWriteMove = (move) => {
     healing: move.healing,
     flinchChance: move.flinch_chance,
     critRate: move.crit_rate,
+    flags: move.flags,
+    fixedDamage: move.fixed_damage,
+    ohko: move.ohko,
   }
 }
 

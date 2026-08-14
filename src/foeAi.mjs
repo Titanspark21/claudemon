@@ -1,6 +1,7 @@
 import { effectiveSpeed, moveSlotOf } from './battleActor.mjs'
 import { FOE_AI_SCORES } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
+import { moveCanExecute } from './moveEffects.mjs'
 import { chance } from './rng.mjs'
 import { effectiveness } from './typechart.mjs'
 import { isMoveDisabled } from './volatile.mjs'
@@ -17,14 +18,18 @@ const scoreFoeMove = (move, playerTypes) => {
 export const pickFoeMove = (battle) => {
   const playerTypes = species(battle.player.mon.species).types
 
-  let bestIndex = 0
+  let bestIndex = null
   let bestScore = -1
 
   battle.foe.mon.moves.forEach((slot, index) => {
     if (slot.pp <= 0) return
     if (isMoveDisabled(battle.foe, index)) return
 
-    const score = scoreFoeMove(moveData(slot.move), playerTypes)
+    const move = { ...moveData(slot.move), key: slot.move }
+
+    if (!moveCanExecute(battle, 'foe', move)) return
+
+    const score = scoreFoeMove(move, playerTypes)
 
     if (score > bestScore) {
       bestScore = score

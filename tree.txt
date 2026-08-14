@@ -112,6 +112,8 @@ src/itemUse.test.mjs
 src/learnset.mjs
 src/learnset.test.mjs
 src/log.mjs
+src/moveEffects.mjs
+src/moveEffects.test.mjs
 src/natures.mjs
 src/natures.test.mjs
 src/paths.mjs

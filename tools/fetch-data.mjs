@@ -295,6 +295,11 @@ const ratioPercent = (ratio) => {
 
 const runtimeMove = (move) => {
   const multihit = Array.isArray(move.multihit) ? move.multihit : null
+  const flags = Object.keys(move.flags ?? {})
+    .filter((key) => move.flags[key])
+    .sort()
+  const fixedDamage =
+    Number.isFinite(move.damage) || move.damage === 'level' ? move.damage : null
 
   return {
     name: move.name,
@@ -327,6 +332,9 @@ const runtimeMove = (move) => {
       (entry) => entry.volatileStatus === 'flinch',
     ),
     crit_rate: Math.max(0, (move.critRatio ?? 1) - 1),
+    flags,
+    fixed_damage: fixedDamage,
+    ohko: Boolean(move.ohko),
   }
 }
 

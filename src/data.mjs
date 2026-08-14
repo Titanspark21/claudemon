@@ -22,6 +22,7 @@ export const loadData = () => {
       speciesIdentities.records.map((record) => [record.sourceKey, record]),
     ),
     moves: read('moves.json'),
+    mechanicsCoverage: read('mechanics-coverage.json'),
     types: read('types.json'),
     growth: read('growth.json'),
     biomes: read('biomes.json'),
@@ -98,6 +99,14 @@ export const move = (name) => {
   const found = loadData().moves[name]
 
   if (!found) throw new Error(`no move named ${name}`)
+
+  return found
+}
+
+export const moveCoverage = (name) => {
+  const found = loadData().mechanicsCoverage.moves[name]
+
+  if (!found) throw new Error(`no move coverage named ${name}`)
 
   return found
 }
