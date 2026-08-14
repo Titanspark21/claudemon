@@ -15,6 +15,7 @@ import {
   clampSelection,
   columnRows,
   currentIndex,
+  detailColumnWidth,
   dexMark,
   dexSelectionAfterChange,
   dexSelectionAfterSort,
@@ -30,6 +31,7 @@ import {
   pushNote,
   rowsLeftFor,
   sortedDex,
+  stackedDetailRows,
   sortedPartyEntries,
   updateFooter,
   updateHeading,
@@ -322,6 +324,18 @@ test('Should leave the rows undivided when there is no second column to divide',
     columnRows(list, ['detail'], 6).map(stripAnsi),
     'a right column brings the divider with it',
   ).toEqual([' one     │  detail', ' two     │  '])
+})
+
+test('Should keep detail beside an 80-column list and stack it at minimum width', () => {
+  expect(detailColumnWidth({ cols: 80 }, 30)).toBe(45)
+  expect(detailColumnWidth({ cols: 40 }, 30)).toBeNull()
+  expect(stackedDetailRows(['one', 'two'], ['Identity', 'IVs'])).toEqual([
+    ' one',
+    ' two',
+    '',
+    ' Identity',
+    ' IVs',
+  ])
 })
 
 test('Should hand back the rows a screen has left once its footer and note are spoken for', () => {

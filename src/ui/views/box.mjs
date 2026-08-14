@@ -1,5 +1,6 @@
 import { PARTY_LIMIT } from '../../constants.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
+import { monDetail } from '../detail.mjs'
 import { menuList, withFooter, wrap } from '../widgets.mjs'
 import {
   BOX_HINTS,
@@ -12,6 +13,7 @@ import {
 } from './constants.mjs'
 import {
   columnRows,
+  detailColumnWidth,
   monColumn,
   monRow,
   nextPartySort,
@@ -19,7 +21,9 @@ import {
   partyEntryAt,
   partySelectionAfterSort,
   pushNote,
+  rowsLeftFor,
   sortedPartyEntries,
+  stackedDetailRows,
 } from './helpers.mjs'
 
 export const draw = (ctx, size) => {
@@ -59,14 +63,25 @@ export const draw = (ctx, size) => {
     width: LIST_WIDTH,
   })
 
-  const right = monColumn(selected, size, ctx.spriteScale)
+  const detailWidth = detailColumnWidth(size, LIST_WIDTH)
+  const right =
+    detailWidth == null
+      ? monDetail(selected, { width: Math.max(1, size.cols - 2) })
+      : monColumn(selected, size, ctx.spriteScale, detailWidth)
+  const note = noteRows(ctx.boxMessage)
+  const footer = [dim(BOX_HINTS), dim(TRADE_KEY_HINTS)]
+  const budget = rowsLeftFor(rows, lines, footer, note)
+  const body =
+    detailWidth == null
+      ? stackedDetailRows(list, right)
+      : columnRows(list, right, LIST_WIDTH)
 
-  for (const row of columnRows(list, right, LIST_WIDTH)) lines.push(row)
+  for (const row of body.slice(0, budget)) lines.push(row)
 
-  pushNote(lines, noteRows(ctx.boxMessage))
+  pushNote(lines, note)
 
   return {
-    lines: withFooter(lines, [dim(BOX_HINTS), dim(TRADE_KEY_HINTS)], rows),
+    lines: withFooter(lines, footer, rows),
     overlays,
   }
 }
