@@ -15,6 +15,22 @@ export const makeRng = (seed) => {
 
 export const randomSeed = () => Math.floor(Math.random() * 0x100000000) >>> 0
 
+export const seedFromRng = (rng) => Math.floor(rng() * 0x100000000) >>> 0
+
+export const mixSeed = (seed, salt = 0) => {
+  let value = ((seed >>> 0) ^ (salt >>> 0)) >>> 0
+
+  value ^= value >>> 16
+  value = Math.imul(value, 0x7feb352d)
+  value ^= value >>> 15
+  value = Math.imul(value, 0x846ca68b)
+  value ^= value >>> 16
+
+  return value >>> 0
+}
+
+export const seedUnit = (seed, salt = 0) => mixSeed(seed, salt) / 0x100000000
+
 export const randInt = (rng, min, max) => {
   return min + Math.floor(rng() * (max - min + 1))
 }

@@ -20,6 +20,7 @@ const {
   markSeen,
   partyIsWipedOut,
   publishStatus,
+  publishStatusSnapshot,
   recordPlayday,
   saveGame,
   setLead,
@@ -37,6 +38,10 @@ const { readStatus } = await import('../src/status.mjs')
 if (!isDataReady()) {
   throw new Error('dataset missing — run: node tools/fetch-data.mjs')
 }
+
+test('Should read a missing save as no game yet', () => {
+  expect(loadSave()).toBeNull()
+})
 
 test('Should start a new save with a level 5 starter and some supplies', () => {
   const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
@@ -116,6 +121,19 @@ test('Should publish the biome and visit revision with the status', () => {
   publishStatus(save)
 
   expect(readStatus()).toMatchObject({ biome: 'forest', visitRevision: 3 })
+})
+
+test('Should publish an expedition snapshot without making a closed companion look live', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(8) })
+
+  save.expedition = { biome: 'coast', visitRevision: 5 }
+  publishStatusSnapshot(save, 123)
+
+  expect(readStatus()).toMatchObject({
+    biome: 'coast',
+    visitRevision: 5,
+    heartbeat: 123,
+  })
 })
 
 test('Should fill in the fields a save is missing rather than failing to load it', () => {

@@ -29,20 +29,16 @@ const mergeStatus = (current, incoming) => {
   return incoming
 }
 
-export const writeStatus = ({
-  lead,
-  balls,
-  money,
-  caught,
-  biome = null,
-  visitRevision = 0,
-}) => {
+const persistStatus = (
+  { lead, balls, money, caught, biome = null, visitRevision = 0 },
+  heartbeat,
+) => {
   const incoming = {
     lead,
     balls,
     money,
     caught,
-    heartbeat: Date.now(),
+    heartbeat,
     biome,
     visitRevision,
   }
@@ -58,6 +54,12 @@ export const writeStatus = ({
   } catch {
     return null
   }
+}
+
+export const writeStatus = (status) => persistStatus(status, Date.now())
+
+export const writeStatusSnapshot = (status, heartbeat = 0) => {
+  return persistStatus(status, heartbeat)
 }
 
 export const companionIsLive = (status) => {

@@ -75,6 +75,40 @@ const mapDaycare = (daycare) => {
   }
 }
 
+const mapDeparture = (departure) => {
+  if (!departure) return null
+
+  return {
+    paths: departure.paths ? [...departure.paths] : [],
+    atWorkedMs: departure.atWorkedMs,
+  }
+}
+
+const mapExpedition = (expedition) => {
+  if (!expedition) return null
+
+  return {
+    version: expedition.version,
+    biome: expedition.biome,
+    visitSeed: expedition.visitSeed,
+    visitRevision: expedition.visitRevision,
+    visitStartedWorkedMs: expedition.visitStartedWorkedMs,
+    workedMs: expedition.workedMs,
+    elapsedMs: expedition.elapsedMs,
+    forcedTargetMs: expedition.forcedTargetMs,
+    optionalRoll: expedition.optionalRoll,
+    optionalTargetMs: expedition.optionalTargetMs,
+    optionalPaths: expedition.optionalPaths
+      ? [...expedition.optionalPaths]
+      : [],
+    forcedPaths: expedition.forcedPaths ? [...expedition.forcedPaths] : [],
+    autoPathIndex: expedition.autoPathIndex,
+    optionalOffered: expedition.optionalOffered ?? false,
+    optionalDismissed: expedition.optionalDismissed ?? false,
+    pendingDeparture: mapDeparture(expedition.pendingDeparture),
+  }
+}
+
 const mapSave = (save) => {
   return {
     version: save.version,
@@ -91,6 +125,7 @@ const mapSave = (save) => {
       ? save.achievements.map(mapAchievement)
       : [],
     trades: mapTrades(save.trades),
+    expedition: mapExpedition(save.expedition),
   }
 }
 

@@ -389,6 +389,11 @@ test('Should ask for a name and a starter on a first run, and end up with a save
 
   expect(app.mode).toBe('starter')
   expect(app.setup.step).toBe('name')
+  expect(app.syncExpedition()).toEqual({
+    changed: false,
+    departed: false,
+    events: [],
+  })
 
   type(app, 'Ash')
   expect(app.setup.name).toBe('Ash')

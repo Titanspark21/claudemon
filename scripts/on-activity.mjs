@@ -13,11 +13,13 @@ import {
   rollEncounters,
   stepsWhileWorking,
 } from '../src/encounter.mjs'
+import { advanceExpedition, autoChooseDeparture } from '../src/expedition.mjs'
 import { logError } from '../src/log.mjs'
-import { offerEncounter, readEncounter } from '../src/queue.mjs'
+import { clearEncounter, offerEncounter, readEncounter } from '../src/queue.mjs'
 import { makeRng, randomSeed } from '../src/rng.mjs'
-import { readStatus } from '../src/status.mjs'
-import { bankActiveWindow, workedSince } from '../src/worked.mjs'
+import { loadSave, publishStatusSnapshot, saveGame } from '../src/state.mjs'
+import { companionIsLive, readStatus } from '../src/status.mjs'
+import { bankActiveWindow, readWorked, workedSince } from '../src/worked.mjs'
 import { DEFAULT_LEAD_LEVEL } from './constants.mjs'
 import { readStdin } from './stdin.mjs'
 import { transformResponseHookEvent } from './transformers.mjs'
@@ -32,7 +34,7 @@ const pendingStepsOf = (previous) => {
   return Math.max(0, previous.pendingSteps)
 }
 
-const walkWhileWorking = (sessionId, now) => {
+const walkWhileWorking = (sessionId, now, travelBlocked = false) => {
   const previous = readActivity(sessionId)
 
   if (previous?.state !== 'working') return
@@ -48,6 +50,10 @@ const walkWhileWorking = (sessionId, now) => {
   const walked = {
     lastStepAt: stepClockAt + taken,
     pendingSteps: 0,
+  }
+
+  if (travelBlocked) {
+    return { ...walked, pendingSteps: steps + pending }
   }
 
   if (readEncounter(ttlMs)) return walked
@@ -95,6 +101,31 @@ const accrueWorkedTime = (sessionId, now) => {
   bankActiveWindow(interval)
 }
 
+const syncExpedition = () => {
+  const save = loadSave()
+
+  if (!save?.expedition) return false
+
+  const worked = readWorked()
+  const status = readStatus()
+
+  advanceExpedition(save.expedition, worked.totalMs)
+
+  const departed = save.expedition.pendingDeparture != null
+
+  if (departed && !companionIsLive(status)) {
+    autoChooseDeparture(save.expedition)
+  }
+
+  if (departed) clearEncounter()
+
+  const saved = saveGame(save, { publish: false })
+
+  publishStatusSnapshot(saved, status?.heartbeat ?? 0)
+
+  return saved.expedition.pendingDeparture != null
+}
+
 const main = async () => {
   const raw = await readStdin()
 
@@ -110,10 +141,11 @@ const main = async () => {
   const now = Date.now()
 
   accrueWorkedTime(session, now)
+  const travelBlocked = syncExpedition()
 
   switch (event) {
     case 'PreToolUse': {
-      const walked = walkWhileWorking(session, now)
+      const walked = walkWhileWorking(session, now, travelBlocked)
 
       noteTool(session, cwd, payload.tool_name, walked)
       break
@@ -124,7 +156,7 @@ const main = async () => {
       break
 
     case 'Stop': {
-      const walked = walkWhileWorking(session, now)
+      const walked = walkWhileWorking(session, now, travelBlocked)
 
       endTurn(session, cwd, walked)
       break

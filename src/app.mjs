@@ -31,6 +31,7 @@ import {
   walkEgg,
 } from './daycare.mjs'
 import { encounterSpecies } from './encounter.mjs'
+import { advanceExpedition, autoChooseDeparture } from './expedition.mjs'
 import {
   advanceMessage,
   backOutOfBattleMenu,
@@ -245,12 +246,31 @@ export const createApp = ({
     process.exit(0)
   }
 
+  ctx.syncExpedition = ({ autoDepart = false } = {}) => {
+    if (!ctx.save?.expedition) {
+      return { changed: false, departed: false, events: [] }
+    }
+
+    ctx.worked = readWorked()
+
+    const before = JSON.stringify(ctx.save.expedition)
+    const events = advanceExpedition(ctx.save.expedition, ctx.worked.totalMs)
+    const departed = ctx.save.expedition.pendingDeparture != null
+
+    if (autoDepart && departed) autoChooseDeparture(ctx.save.expedition)
+
+    return {
+      changed: before !== JSON.stringify(ctx.save.expedition),
+      departed,
+      events,
+    }
+  }
+
   ctx.persist = () => {
     if (ctx.gym) return
     if (!ctx.save) return
 
-    ctx.worked = readWorked()
-
+    ctx.syncExpedition()
     recordAchievements(ctx.save, ctx.worked)
     ctx.save = saveGame(ctx.save)
   }
@@ -289,6 +309,15 @@ export const createApp = ({
 
   ctx.pump = () => {
     if (ctx.gym) return false
+
+    const travel = ctx.syncExpedition({ autoDepart: true })
+
+    if (travel.departed) clearEncounter()
+
+    if (travel.changed) {
+      recordAchievements(ctx.save, ctx.worked)
+      ctx.save = saveGame(ctx.save)
+    }
 
     const ttlMs = encounterTtlMs(ctx.config)
     const next = readEncounter(ttlMs)
