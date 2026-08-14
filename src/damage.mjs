@@ -1,4 +1,4 @@
-import { stageMultiplier } from './battleActor.mjs'
+import { battleStats, battleTypes, stageMultiplier } from './battleActor.mjs'
 import { other } from './battleEvents.mjs'
 import {
   CRIT_MULTIPLIER,
@@ -6,7 +6,6 @@ import {
   FALLBACK_POWER,
   STAB_MULTIPLIER,
 } from './constants.mjs'
-import { species } from './data.mjs'
 import { levelOf } from './pokemon.mjs'
 import { randInt } from './rng.mjs'
 import { effectiveness } from './typechart.mjs'
@@ -46,10 +45,10 @@ export const computeDamage = (battle, attackerSide, move, isCrit) => {
   const defenseStat = physical ? 'defense' : 'spDefense'
 
   const a =
-    attacker.mon.stats[attackStat] *
+    battleStats(attacker)[attackStat] *
     (isCrit ? 1 : stageMultiplier(attacker.stages[attackStat]))
   const d =
-    defender.mon.stats[defenseStat] *
+    battleStats(defender)[defenseStat] *
     (isCrit ? 1 : stageMultiplier(defender.stages[defenseStat]))
 
   let damage = baseDamage({
@@ -61,15 +60,12 @@ export const computeDamage = (battle, attackerSide, move, isCrit) => {
 
   if (isCrit) damage = Math.floor(damage * CRIT_MULTIPLIER)
 
-  const attackerTypes = species(attacker.mon.species).types
+  const attackerTypes = battleTypes(attacker)
 
   if (attackerTypes.includes(move.type))
     damage = Math.floor(damage * STAB_MULTIPLIER)
 
-  const multiplier = effectiveness(
-    move.type,
-    species(defender.mon.species).types,
-  )
+  const multiplier = effectiveness(move.type, battleTypes(defender))
 
   damage = Math.floor(damage * multiplier)
 

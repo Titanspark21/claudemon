@@ -1,5 +1,9 @@
+import {
+  battleAbility,
+  battleTypes as actorBattleTypes,
+  setBattleAbility,
+} from './battleActor.mjs'
 import { applyDamage, applyHeal, other } from './battleEvents.mjs'
-import { species } from './data.mjs'
 import { chance, pick } from './rng.mjs'
 import { startTerrain } from './terrain.mjs'
 import { battleSideOf, effectiveness, isGrounded } from './typechart.mjs'
@@ -299,13 +303,11 @@ const ownDefense = (state) => defenderSide(state) === sourceSide(state)
 const maxHp = (mon) => mon?.stats?.hp ?? 1
 const hpRatio = (mon) => (mon ? mon.hp / maxHp(mon) : 0)
 const weather = (state) =>
-  WEATHER_SUPPRESSORS.has(state.battle?.player?.mon?.ability) ||
-  WEATHER_SUPPRESSORS.has(state.battle?.foe?.mon?.ability)
+  WEATHER_SUPPRESSORS.has(battleAbility(state.battle?.player)) ||
+  WEATHER_SUPPRESSORS.has(battleAbility(state.battle?.foe))
     ? null
     : (state.field?.weather?.key ?? null)
 const terrain = (state) => state.field?.terrain?.key ?? null
-
-const typesOf = (mon) => mon?.battleTypes ?? species(mon.species).types
 
 const setBattleTypes = (mon, types) => {
   mon.battleTypes = [...new Set(types)]
@@ -314,7 +316,7 @@ const setBattleTypes = (mon, types) => {
 const activeAbility = (battle, ability) => {
   return ['player', 'foe'].some((side) => {
     const actor = battle?.[side]
-    return actor?.mon?.hp > 0 && actor.mon.ability === ability
+    return actor?.mon?.hp > 0 && battleAbility(actor) === ability
   })
 }
 
@@ -356,9 +358,10 @@ const inflictStatus = (state, side, status, cause) => {
   const mon = state.battle?.[side]?.mon
   if (!mon || mon.status) return false
 
-  const immunity = STATUS_IMMUNITIES[mon.ability]
+  const ability = battleAbility(state.battle?.[side])
+  const immunity = STATUS_IMMUNITIES[ability]
   if (immunity?.has(status)) return false
-  if (mon.ability === 'leafguard' && weather(state) === 'sun') return false
+  if (ability === 'leafguard' && weather(state) === 'sun') return false
 
   mon.status = status
   mon.statusTurns = 0
@@ -677,10 +680,10 @@ define(['trace'], [
     'ability-copy',
     (state) => {
       const side = sourceSide(state)
-      const copied = state.battle[other(side)]?.mon?.ability
+      const copied = battleAbility(state.battle[other(side)])
       if (!copied || copied === 'trace') return
       emitAbilityReveal(state.events, side, 'trace', 'switch-in')
-      state.battle[side].mon.ability = copied
+      setBattleAbility(state.battle[side], copied)
       abilityState(state.battle, side).copiedFrom = other(side)
       state.events.push({ type: 'ability-copy', side, ability: copied })
       return { replacement: { side, ability: copied } }
@@ -1068,10 +1071,12 @@ define(['wonderguard'], [
     'effectiveness-immunity',
     (state) => {
       if (!ownDefense(state) || state.move?.damageClass === 'status') return
-      const defender = sourceMon(state)
       const mult =
         state.effectiveness ??
-        effectiveness(state.move?.type, typesOf(defender))
+        effectiveness(
+          state.move?.type,
+          actorBattleTypes(state.battle[sourceSide(state)]),
+        )
       if (mult <= 1) return { cancelled: true }
     },
     100,
@@ -1341,11 +1346,12 @@ define(['effectspore'], contactReaction('contact-random-status', (state) => {
 define(['mummy'], contactReaction('contact-ability-change', (state) => {
   const target = attackerSide(state)
   if (!target) return
-  const mon = state.battle[target].mon
-  if (!mon?.ability || mon.ability === 'mummy') return
+  const actor = state.battle[target]
+  const ability = battleAbility(actor)
+  if (!ability || ability === 'mummy') return
   emitAbilityReveal(state.events, sourceSide(state), 'mummy', 'contact')
-  const previous = mon.ability
-  mon.ability = 'mummy'
+  const previous = ability
+  setBattleAbility(actor, 'mummy')
   state.events.push({
     type: 'ability-change',
     side: target,
@@ -1363,7 +1369,12 @@ define(['colorchange'], [
     )
       return
     const mon = sourceMon(state)
-    if (typesOf(mon).includes(state.move.type)) return
+    if (
+      actorBattleTypes(state.battle[sourceSide(state)]).includes(
+        state.move.type,
+      )
+    )
+      return
     emitAbilityReveal(state.events, sourceSide(state), 'colorchange', 'hit')
     setBattleTypes(mon, [state.move.type])
     state.events.push({
@@ -1381,7 +1392,8 @@ define(['protean'], [
     (state) => {
       if (!ownAttack(state) || !state.move?.type) return
       const mon = sourceMon(state)
-      if (typesOf(mon).length === 1 && typesOf(mon)[0] === state.move.type)
+      const currentTypes = actorBattleTypes(state.battle[sourceSide(state)])
+      if (currentTypes.length === 1 && currentTypes[0] === state.move.type)
         return
       emitAbilityReveal(state.events, sourceSide(state), 'protean', 'move')
       setBattleTypes(mon, [state.move.type])
@@ -2085,7 +2097,7 @@ define(['magnetpull'], [
         target !== other(sourceSide(state))
       )
         return
-      if (typesOf(state.battle[target].mon).includes('steel'))
+      if (actorBattleTypes(state.battle[target]).includes('steel'))
         return { cancelled: true }
     },
     100,
@@ -2103,7 +2115,7 @@ define(['shadowtag'], [
         target !== other(sourceSide(state))
       )
         return
-      if (state.battle[target].mon.ability !== 'shadowtag')
+      if (battleAbility(state.battle[target]) !== 'shadowtag')
         return { cancelled: true }
     },
     100,
@@ -2332,7 +2344,12 @@ define(['magician'], [
     const mon = sourceMon(state)
     const foeSide = defenderSide(state)
     const foe = state.battle[foeSide]?.mon
-    if (!mon || mon.heldItem || !foe?.heldItem || foe.ability === 'stickyhold')
+    if (
+      !mon ||
+      mon.heldItem ||
+      !foe?.heldItem ||
+      battleAbility(state.battle[foeSide]) === 'stickyhold'
+    )
       return
     mon.heldItem = foe.heldItem
     foe.heldItem = null
@@ -2349,7 +2366,12 @@ define(['pickpocket'], contactReaction('item-steal', (state) => {
   const mon = sourceMon(state)
   const foeSide = attackerSide(state)
   const foe = state.battle[foeSide]?.mon
-  if (!mon || mon.heldItem || !foe?.heldItem || foe.ability === 'stickyhold')
+  if (
+    !mon ||
+    mon.heldItem ||
+    !foe?.heldItem ||
+    battleAbility(state.battle[foeSide]) === 'stickyhold'
+  )
     return
   mon.heldItem = foe.heldItem
   foe.heldItem = null
@@ -2581,6 +2603,6 @@ export const abilityBreaksMold = (abilityKey) => MOLD_BREAKERS.has(abilityKey)
 export const weatherIsSuppressed = (battle) =>
   ['player', 'foe'].some(
     (side) =>
-      WEATHER_SUPPRESSORS.has(battle?.[side]?.mon?.ability) &&
+      WEATHER_SUPPRESSORS.has(battleAbility(battle?.[side])) &&
       battle[side].mon.hp > 0,
   )

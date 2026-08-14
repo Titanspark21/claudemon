@@ -1,3 +1,4 @@
+import { battleAbility } from './battleActor.mjs'
 import { hasItem } from './data.mjs'
 import { registerEffect, runEffectPhase } from './effects.mjs'
 import { itemHandlersForSide } from './itemEffects.mjs'
@@ -26,7 +27,7 @@ export const registerHeldItemEffects = (battle, side) => {
       side,
       handler: (state) => {
         if (battle?.[side]?.mon?.heldItem !== held) return
-        if (battle?.[side]?.mon?.ability === 'klutz') return
+        if (battleAbility(battle?.[side]) === 'klutz') return
         return handler.handler(state)
       },
     })

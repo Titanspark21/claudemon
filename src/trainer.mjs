@@ -48,6 +48,8 @@ const rollMon = (rng, leadLevel, species) => {
     species: chosen.id,
     name: chosen.name,
     level: pickLevel(rng, leadLevel, TRAINER_LEVEL_SPREAD),
+    ...(chosen.heldItem ? { heldItem: chosen.heldItem } : {}),
+    ...(chosen.mega ? { mega: true } : {}),
   }
 }
 

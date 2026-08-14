@@ -1,5 +1,5 @@
 import { AILMENT_IMMUNE_TYPES, SHINY_ODDS } from './constants.mjs'
-import { move as moveData, species } from './data.mjs'
+import { move as moveData, species, speciesIdentity } from './data.mjs'
 import { expForLevel, levelFromExp } from './exp.mjs'
 import { movesAtLevel } from './learnset.mjs'
 import { rollNature } from './natures.mjs'
@@ -115,16 +115,20 @@ export const levelOf = (mon) => levelFromExp(mon.species, mon.exp)
 
 export const isFainted = (mon) => mon.hp <= 0
 
-export const hpFraction = (mon, denominator) => {
-  return Math.max(1, Math.floor(mon.stats.hp / denominator))
+export const hpFraction = (mon, denominator, maxHp = mon.stats.hp) => {
+  return Math.max(1, Math.floor(maxHp / denominator))
 }
 
-export const isImmuneToAilment = (mon, ailment) => {
+export const isImmuneToAilment = (
+  mon,
+  ailment,
+  types = species(mon.species).types,
+) => {
   const immune = AILMENT_IMMUNE_TYPES[ailment]
 
   if (!immune) return false
 
-  return species(mon.species).types.some((type) => immune.includes(type))
+  return types.some((type) => immune.includes(type))
 }
 
 export const refreshStats = (mon) => {
@@ -159,13 +163,33 @@ export const pendingEvolution = (mon, level = levelOf(mon)) => {
   return null
 }
 
-export const stoneEvolution = (mon, item) => {
-  for (const evolution of species(mon.species).evolutions) {
-    if (evolution.trigger === 'use-item' && evolution.item === item)
-      return evolution.to
-  }
+const chooseEvolution = (candidates, formKey = null) => {
+  if (candidates.length === 0) return null
+  if (formKey == null) return candidates[0].to
 
-  return null
+  const wanted = formKey === 'base' ? null : formKey
+  return (
+    candidates.find(
+      (candidate) => speciesIdentity(candidate.to).formKey === wanted,
+    )?.to ?? null
+  )
+}
+
+export const stoneEvolution = (mon, item, formKey = null) => {
+  const candidates = species(mon.species).evolutions.filter(
+    (evolution) => evolution.trigger === 'use-item' && evolution.item === item,
+  )
+
+  return chooseEvolution(candidates, formKey)
+}
+
+export const linkCableEvolution = (mon, formKey = null) => {
+  const candidates = species(mon.species).evolutions.filter((evolution) => {
+    if (evolution.trigger !== 'trade') return false
+    return evolution.item == null || evolution.item === mon.heldItem
+  })
+
+  return chooseEvolution(candidates, formKey)
 }
 
 export const canEvolveByStone = (mon) => {

@@ -1,3 +1,4 @@
+import { battleAbility } from './battleActor.mjs'
 import {
   MOVE_FIELD_EFFECTS,
   MOVE_GENERIC_COVERAGE_HANDLERS,
@@ -104,7 +105,7 @@ const effectRegistry = (sources) => {
 
 const weatherIsSuppressed = (battle) =>
   ['player', 'foe'].some((side) =>
-    ['airlock', 'cloudnine'].includes(battle?.[side]?.mon?.ability),
+    ['airlock', 'cloudnine'].includes(battleAbility(battle?.[side])),
   )
 
 const activeFieldHandlers = (battle) =>

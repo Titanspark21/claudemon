@@ -9,6 +9,7 @@ import {
   TRADE_VERSION,
 } from './constants.mjs'
 import { hasMove, hasSpecies, move as moveData } from './data.mjs'
+import { isPersistentSpecies } from './forms.mjs'
 import { canSpare, pokemonList } from './helpers.mjs'
 import { TRADE_FILE } from './paths.mjs'
 import { levelOf } from './pokemon.mjs'
@@ -39,7 +40,8 @@ export const encodeTrade = (mon, trainer, id) => {
 }
 
 const isReadableMon = (mon) => {
-  if (!hasSpecies(mon.species)) return false
+  if (!hasSpecies(mon.species) || !isPersistentSpecies(mon.species))
+    return false
   if (!Number.isFinite(mon.exp)) return false
   if (!Number.isFinite(mon.hp)) return false
   if (!STAT_NAMES.every((stat) => Number.isInteger(mon.ivs?.[stat])))

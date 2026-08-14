@@ -1,3 +1,4 @@
+import { battleSpecies } from '../../battleActor.mjs'
 import { ITEMS } from '../../constants.mjs'
 import { move as moveData } from '../../data.mjs'
 import { expProgress } from '../../exp.mjs'
@@ -82,7 +83,11 @@ const foeHeader = (battle, width, caught) => {
 const foeSpriteFile = (battle) => {
   if (battle.trainerIntro) return trainerSpriteFile(battle.state.trainer.sprite)
 
-  return monSpriteFile('front', battle.foeMon.species, battle.foeMon.shiny)
+  const actor = battle.state.foe
+  const speciesId =
+    actor.mon === battle.foeMon ? battleSpecies(actor) : battle.foeMon.species
+
+  return monSpriteFile('front', speciesId, battle.foeMon.shiny)
 }
 
 const playerInfo = (mon, hp, width) => {
@@ -155,7 +160,7 @@ export const draw = (ctx, size) => {
   const fitted = fitBattleSprites(
     size,
     foeSpriteFile(battle),
-    monSpriteFile('back', player.species, player.shiny),
+    monSpriteFile('back', battleSpecies(battle.state.player), player.shiny),
     ctx.spriteScale,
   )
 

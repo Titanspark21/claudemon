@@ -110,6 +110,8 @@ src/fileLock.mjs
 src/fileLock.test.mjs
 src/foeAi.mjs
 src/foeAi.test.mjs
+src/forms.mjs
+src/forms.test.mjs
 src/gym.mjs
 src/gym.test.mjs
 src/heldItems.mjs
@@ -123,6 +125,8 @@ src/itemUse.test.mjs
 src/learnset.mjs
 src/learnset.test.mjs
 src/log.mjs
+src/mega.mjs
+src/mega.test.mjs
 src/moveEffects.mjs
 src/moveEffects.test.mjs
 src/natures.mjs

@@ -1163,6 +1163,7 @@ const trainerBattle = (save, opponent, seed, lead) => {
 
     if (entry.heldItem && canHoldItem(entry.heldItem))
       mon.heldItem = entry.heldItem
+    if (entry.mega) mon.trainerMega = true
 
     return mon
   })

@@ -1,7 +1,7 @@
-import { effectiveSpeed, moveSlotOf } from './battleActor.mjs'
+import { battleTypes, effectiveSpeed, moveSlotOf } from './battleActor.mjs'
 import { other } from './battleEvents.mjs'
 import { FOE_AI_SCORES } from './constants.mjs'
-import { move as moveData, species } from './data.mjs'
+import { move as moveData } from './data.mjs'
 import { runEffectPhase } from './effects.mjs'
 import { moveCanExecute } from './moveEffects.mjs'
 import { chance } from './rng.mjs'
@@ -18,7 +18,7 @@ const scoreFoeMove = (move, playerTypes) => {
 }
 
 export const pickFoeMove = (battle) => {
-  const playerTypes = species(battle.player.mon.species).types
+  const playerTypes = battleTypes(battle.player)
 
   if (battle.foe.choiceMove) {
     const lockedIndex = battle.foe.mon.moves.findIndex(

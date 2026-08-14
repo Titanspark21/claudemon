@@ -10,26 +10,19 @@ import {
   PAIRED_EGG_LINES,
 } from './constants.mjs'
 import { species } from './data.mjs'
+import { baseFamilyRoot, regionalEggRoot } from './forms.mjs'
 import { canSpare, pokemonList } from './helpers.mjs'
 import { createPokemon, genderOf, levelOf, refreshStats } from './pokemon.mjs'
 import { chance } from './rng.mjs'
 import { stow } from './state.mjs'
-
-const baseFormOf = (speciesId) => {
-  const from = species(speciesId).evolvesFrom
-
-  if (from === null) return speciesId
-
-  return baseFormOf(from)
-}
 
 const isDitto = (mon) => mon.species === DITTO_ID
 
 const canBreedAtAll = (mon) => !species(mon.species).legendary
 
 const sharesLine = (left, right) => {
-  const line = baseFormOf(left.species)
-  const other = baseFormOf(right.species)
+  const line = baseFamilyRoot(left.species)
+  const other = baseFamilyRoot(right.species)
 
   return line === other || PAIRED_EGG_LINES[line] === other
 }
@@ -67,8 +60,8 @@ const motherOf = (left, right) => {
   return right
 }
 
-const eggSpeciesFor = (left, right) => {
-  return baseFormOf(motherOf(left, right).species)
+export const eggSpeciesForPair = (left, right) => {
+  return regionalEggRoot(motherOf(left, right))
 }
 
 export const eggFromPair = (save, rng) => {
@@ -78,7 +71,7 @@ export const eggFromPair = (save, rng) => {
   const [left, right] = save.daycare.slots
 
   save.daycare.egg = {
-    species: eggSpeciesFor(left, right),
+    species: eggSpeciesForPair(left, right),
     steps: 0,
     shiny: chance(rng, EGG_SHINY_ODDS),
   }

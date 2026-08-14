@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 
+import { battleAbility } from './battleActor.mjs'
 import {
   abilityBreaksMold,
   abilityEffectFamilies,
@@ -57,7 +58,7 @@ export const abilityHandlers = (abilityKey) => {
 
 export const abilityIsActive = (battle, side, context = {}) => {
   const actor = battle?.[side]
-  if (!actor?.mon?.ability || actor.mon.hp <= 0) return false
+  if (!battleAbility(actor) || actor.mon.hp <= 0) return false
   if (actor.volatile?.abilitySuppressed || actor.mon.abilitySuppressed)
     return false
 
@@ -76,7 +77,7 @@ export const abilityIsActive = (battle, side, context = {}) => {
     attackerSide &&
     attackerSide !== side &&
     context.defender === side &&
-    abilityBreaksMold(battle[attackerSide]?.mon?.ability)
+    abilityBreaksMold(battleAbility(battle[attackerSide]))
   )
     return false
 
@@ -100,7 +101,7 @@ export const registerAbilityEffects = (battle, side) => {
     (entry) => !(entry.sourceType === 'ability' && entry.side === side),
   )
 
-  const abilityKey = normalizeAbilityKey(battle[side].mon.ability)
+  const abilityKey = normalizeAbilityKey(battleAbility(battle[side]))
   if (!abilityKey) return battle.effects
 
   for (const handler of abilityHandlers(abilityKey))
@@ -108,7 +109,7 @@ export const registerAbilityEffects = (battle, side) => {
       ...handler,
       side,
       handler: (state) => {
-        if (normalizeAbilityKey(battle[side]?.mon?.ability) !== abilityKey)
+        if (normalizeAbilityKey(battleAbility(battle[side])) !== abilityKey)
           return
         if (
           ['switchIn', 'switchOut'].includes(state.phase) &&

@@ -21,8 +21,15 @@ import {
 } from './constants.mjs'
 import { refreshAbilityEffects } from './abilities.mjs'
 import { moveHasFlag } from './abilityEffects.mjs'
-import { hasItem, item, move as moveData, species } from './data.mjs'
-import { effectiveSpeed, moveSlotOf, stageMultiplier } from './battleActor.mjs'
+import { hasItem, item, move as moveData } from './data.mjs'
+import {
+  battleAbility,
+  battleMaxHp,
+  battleTypes,
+  effectiveSpeed,
+  moveSlotOf,
+  stageMultiplier,
+} from './battleActor.mjs'
 import { createBattleField, normalizeBattleField } from './battleField.mjs'
 import { refreshHeldItemEffects } from './battleEffects.mjs'
 import { applyDamage, applyHeal, label, other, say } from './battleEvents.mjs'
@@ -36,6 +43,12 @@ import {
 import { decideOrder, pickFoeMove } from './foeAi.mjs'
 import { runEffectPhase } from './effects.mjs'
 import { heldCriticalStage, heldDrainMultiplier } from './itemEffects.mjs'
+import {
+  canMegaEvolve,
+  megaEvolve,
+  revertBattleForm,
+  trainerWantsMega,
+} from './mega.mjs'
 import {
   applyMoveFieldEffect,
   moveExecutionFailure,
@@ -113,6 +126,8 @@ export const createBattle = ({
     effects: [],
     abilityState: {},
     pendingEvents: [],
+    megaUsed: { player: false, foe: false },
+    megaSelected: false,
     player: {
       mon: playerMon,
       stages: emptyStages(),
@@ -171,6 +186,8 @@ export const rehydrate = (battle) => {
   battle.effects ??= []
   battle.abilityState ??= {}
   battle.pendingEvents ??= []
+  battle.megaUsed ??= { player: false, foe: false }
+  battle.megaSelected ??= false
   refreshAbilityEffects(battle)
   refreshHeldItemEffects(battle)
 
@@ -367,9 +384,13 @@ const applyStatusAilment = (
   if (status.cancelled) return
 
   const corrosion =
-    battle[attackerSide]?.mon?.ability === 'corrosion' &&
+    battleAbility(battle[attackerSide]) === 'corrosion' &&
     ['poison', 'badly-poisoned'].includes(status.value)
-  if (!corrosion && isImmuneToAilment(defender.mon, status.value)) return
+  if (
+    !corrosion &&
+    isImmuneToAilment(defender.mon, status.value, battleTypes(defender))
+  )
+    return
 
   defender.mon.status = status.value
   defender.mon.statusTurns =
@@ -609,8 +630,7 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
     return
   }
 
-  const defenderTypes =
-    defender.mon.battleTypes ?? species(defender.mon.species).types
+  const defenderTypes = battleTypes(defender)
   const typeMultiplier = effectiveness(move.type, defenderTypes)
   const immunity = runMoveEffectPhase(battle, 'checkImmunity', {
     attacker,
@@ -643,7 +663,7 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
       const healed = applyHeal(
         battle,
         attackerSide,
-        Math.floor((attacker.mon.stats.hp * move.healing) / 100),
+        Math.floor((battleMaxHp(attacker) * move.healing) / 100),
         events,
       )
       if (healed > 0)
@@ -738,8 +758,7 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
     return
   }
 
-  const attackerTypes =
-    attacker.mon.battleTypes ?? species(attacker.mon.species).types
+  const attackerTypes = battleTypes(attacker)
   let hits = rollHitCount(battle, move)
   const hitOverride = runMoveEffectPhase(battle, 'beforeAction', {
     kind: 'hit-count',
@@ -879,7 +898,7 @@ const endOfTurnDamage = (battle, side, events) => {
 
   const adjusted = runEffectPhase(battle, 'modifyDamage', {
     defender: side,
-    value: hpFraction(mon, fraction),
+    value: hpFraction(mon, fraction, battleMaxHp(battle[side])),
     indirect: true,
     cause: mon.status,
     events,
@@ -891,8 +910,12 @@ const endOfTurnDamage = (battle, side, events) => {
 }
 
 const finish = (battle, outcome, events) => {
+  for (const side of ['player', 'foe'])
+    events.push(...revertBattleForm(battle, side))
+
   battle.over = true
   battle.outcome = outcome
+  battle.megaSelected = false
 
   events.push({ type: 'end', outcome })
 }
@@ -1074,6 +1097,16 @@ export const submitAction = (battle, action) => {
     events.push(...battle.pendingEvents)
     battle.pendingEvents = []
   }
+
+  if (action.type === 'mega' || action.type === 'toggle-mega') {
+    const enabled = !battle.megaSelected
+    if (enabled && !canMegaEvolve(battle, 'player')) return events
+
+    battle.megaSelected = enabled
+    events.push({ type: 'mega-toggle', side: 'player', enabled })
+    return events
+  }
+
   battle.turn++
 
   if (action.type === 'ball') {
@@ -1096,6 +1129,15 @@ export const submitAction = (battle, action) => {
   } else if (action.type === 'run') {
     if (attemptRun(battle, events)) return events
   } else if (action.type === 'move') {
+    const wantsMega =
+      action.mega === true ||
+      action.megaEvolve === true ||
+      battle.megaSelected === true
+    battle.megaSelected = false
+
+    if (wantsMega) events.push(...megaEvolve(battle, 'player'))
+    if (trainerWantsMega(battle)) events.push(...megaEvolve(battle, 'foe'))
+
     const foeMoveIndex = pickFoeMove(battle)
 
     if (decideOrder(battle, action.index, foeMoveIndex)) {

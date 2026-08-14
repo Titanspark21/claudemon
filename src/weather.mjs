@@ -1,3 +1,4 @@
+import { battleMaxHp, battleTypes } from './battleActor.mjs'
 import { applyDamage } from './battleEvents.mjs'
 import {
   FIELD_DEFAULT_TURNS,
@@ -9,7 +10,7 @@ import {
   WEATHER_KEYS,
   WEATHER_POWER_MULTIPLIER,
 } from './constants.mjs'
-import { species } from './data.mjs'
+
 import { heldFieldDuration } from './itemEffects.mjs'
 import { isFainted } from './pokemon.mjs'
 import { replaceFieldEffect } from './battleField.mjs'
@@ -72,7 +73,7 @@ const sandRockDefense = ({ battle, field, defender, move, value }) => {
 
   if (!side) return value
 
-  const types = species(battle[side].mon.species).types
+  const types = battleTypes(battle[side])
 
   if (!types.includes('rock')) return value
 
@@ -93,7 +94,7 @@ const weatherResidual = ({ battle, field, events }) => {
 
   for (const side of ['player', 'foe']) {
     const mon = battle[side].mon
-    const types = species(mon.species).types
+    const types = battleTypes(battle[side])
 
     if (
       isFainted(mon) ||
@@ -104,7 +105,7 @@ const weatherResidual = ({ battle, field, events }) => {
 
     const amount = Math.max(
       1,
-      Math.floor(mon.stats.hp / FIELD_RESIDUAL_FRACTION),
+      Math.floor(battleMaxHp(battle[side]) / FIELD_RESIDUAL_FRACTION),
     )
 
     applyDamage(battle, side, amount, events)

@@ -1,3 +1,4 @@
+import { battleMaxHp } from './battleActor.mjs'
 import { FOE_LABELS } from './constants.mjs'
 import { displayName, isFainted } from './pokemon.mjs'
 
@@ -32,7 +33,7 @@ export const applyHeal = (battle, side, amount, events) => {
 
   if (isFainted(mon)) return 0
 
-  const healed = Math.min(amount, mon.stats.hp - mon.hp)
+  const healed = Math.min(amount, battleMaxHp(battle[side]) - mon.hp)
 
   if (healed <= 0) return 0
 

@@ -1,3 +1,5 @@
+import { assertPersistentSpecies } from './forms.mjs'
+
 const mapMoveSlot = (slot) => {
   return {
     move: slot.move,
@@ -7,6 +9,8 @@ const mapMoveSlot = (slot) => {
 }
 
 const mapPokemon = (mon) => {
+  assertPersistentSpecies(mon.species)
+
   return {
     species: mon.species,
     nickname: mon.nickname,
@@ -243,6 +247,8 @@ const mapTrainerMon = (mon) => {
     species: mon.species,
     name: mon.name,
     level: mon.level,
+    ...(mon.heldItem ? { heldItem: mon.heldItem } : {}),
+    ...(mon.mega ? { mega: true } : {}),
   }
 }
 
@@ -321,6 +327,8 @@ export const transformResponseUpdateState = (state) => {
 export const transformRequestWriteUpdateState = (state) => mapUpdateState(state)
 
 const mapTradeMon = (mon) => {
+  assertPersistentSpecies(mon.species)
+
   return {
     species: mon.species,
     nickname: mon.nickname,
