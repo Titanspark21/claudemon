@@ -211,6 +211,7 @@ src/worked.mjs
 src/worked.test.mjs
 test/activity.test.mjs
 test/app.test.mjs
+test/encounter-biome.test.mjs
 test/encounter.test.mjs
 test/engine.test.mjs
 test/game.test.mjs
@@ -228,6 +229,7 @@ tools/biomes.mjs
 tools/biomes.test.mjs
 tools/check-data.mjs
 tools/constants.mjs
+tools/encounterSimulation.mjs
 tools/fetch-data.mjs
 tools/fetch-sprites.mjs
 tools/generate-species-identities.mjs

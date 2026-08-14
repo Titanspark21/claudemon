@@ -58,15 +58,17 @@ const walkWhileWorking = (sessionId, now, travelBlocked = false) => {
 
   if (readEncounter(ttlMs)) return walked
 
-  const level = readStatus()?.lead?.level
+  const status = readStatus()
+  const level = status?.lead?.level
   const leadLevel = typeof level === 'number' ? level : null
+  const biome = typeof status?.biome === 'string' ? status.biome : null
 
   const encounters = rollEncounters({
     steps: Math.min(config.maxSteps, steps + pending),
     leadLevel,
     rng: makeRng(randomSeed()),
     config,
-    species: loadSpeciesTable(leadLevel ?? DEFAULT_LEAD_LEVEL),
+    species: loadSpeciesTable(leadLevel ?? DEFAULT_LEAD_LEVEL, biome),
   })
 
   const [encounter] = encounters
