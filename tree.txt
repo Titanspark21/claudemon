@@ -166,6 +166,8 @@ src/ui/text.mjs
 src/ui/text.test.mjs
 src/ui/views/bag.mjs
 src/ui/views/battle.mjs
+src/ui/views/biome.mjs
+src/ui/views/biome.test.mjs
 src/ui/views/box.mjs
 src/ui/views/constants.mjs
 src/ui/views/daycare.mjs

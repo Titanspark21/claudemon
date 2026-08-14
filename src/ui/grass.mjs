@@ -65,13 +65,60 @@ const tile = (pixels, art, palette, { y, phase = 0, scale, width, height }) => {
   }
 }
 
-export const bandImage = ({ cols, step = 0, walking = false, scale = 1 }) => {
+const BIOME_GRASS = Object.freeze({
+  meadow: { behind: GRASS_BEHIND, front: GRASS_IN_FRONT },
+  forest: {
+    behind: { '.': null, g: [30, 66, 42], G: [44, 96, 54] },
+    front: { '.': null, g: [54, 118, 62], G: [74, 148, 72] },
+  },
+  wetlands: {
+    behind: { '.': null, g: [36, 78, 72], G: [48, 108, 98] },
+    front: { '.': null, g: [62, 136, 120], G: [82, 168, 146] },
+  },
+  coast: {
+    behind: { '.': null, g: [92, 110, 94], G: [120, 138, 108] },
+    front: { '.': null, g: [116, 154, 144], G: [142, 182, 164] },
+  },
+  highlands: {
+    behind: { '.': null, g: [64, 76, 62], G: [88, 104, 78] },
+    front: { '.': null, g: [106, 124, 92], G: [132, 148, 106] },
+  },
+  badlands: {
+    behind: { '.': null, g: [92, 64, 42], G: [126, 82, 48] },
+    front: { '.': null, g: [154, 98, 54], G: [190, 122, 64] },
+  },
+  frostlands: {
+    behind: { '.': null, g: [86, 112, 118], G: [112, 142, 148] },
+    front: { '.': null, g: [142, 178, 184], G: [178, 210, 214] },
+  },
+  'city-powerworks': {
+    behind: { '.': null, g: [76, 76, 68], G: [108, 104, 76] },
+    front: { '.': null, g: [138, 128, 76], G: [184, 166, 78] },
+  },
+  'mystic-ruins': {
+    behind: { '.': null, g: [64, 54, 76], G: [90, 68, 104] },
+    front: { '.': null, g: [116, 82, 132], G: [148, 104, 164] },
+  },
+})
+
+export const biomeGrassPalette = (biome = 'meadow') => {
+  return BIOME_GRASS[biome] ?? BIOME_GRASS.meadow
+}
+
+export const bandImage = ({
+  cols,
+  step = 0,
+  walking = false,
+  scale = 1,
+  biome = 'meadow',
+}) => {
   const width = Math.max(1, Math.floor(cols))
   const height = BAND_PX * scale
   const pixels = new Uint8Array(width * height * 4)
   const frame = walking ? WALK[step % WALK.length] : IDLE
+  const grass = biomeGrassPalette(biome)
 
-  tile(pixels, BACK_TILE, GRASS_BEHIND, {
+  tile(pixels, BACK_TILE, grass.behind, {
     y: BACK_TOP * scale,
     scale,
     width,
@@ -86,7 +133,7 @@ export const bandImage = ({ cols, step = 0, walking = false, scale = 1 }) => {
     height,
   })
 
-  tile(pixels, FRONT_TILE, GRASS_IN_FRONT, {
+  tile(pixels, FRONT_TILE, grass.front, {
     y: FRONT_TOP * scale,
     phase: Math.floor((FRONT_TILE[0].length * scale) / 2),
     scale,

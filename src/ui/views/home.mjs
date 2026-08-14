@@ -49,6 +49,12 @@ import {
   UPDATE_NOTICES,
   WALK_HINTS,
 } from './constants.mjs'
+import {
+  drawBiomeStatus,
+  drawFork,
+  hasBiomeFork,
+  onBiomeKey,
+} from './biome.mjs'
 import { clampSelection, menuColumns } from './helpers.mjs'
 
 export const menuItems = (ctx) => {
@@ -215,15 +221,31 @@ export const draw = (ctx, size) => {
 
   lines.push(activity ? ` ${activity}` : '')
 
+  for (const row of drawBiomeStatus(ctx.save.expedition, size))
+    lines.push(` ${row}`)
+
   const update = updateRow(ctx.updateNotice)
 
   if (update) lines.push(` ${update}`)
 
-  const grassAt = encounter
-    ? pushEncounterField(lines, ctx, encounter, size)
-    : pushQuietField(lines, working, cols)
+  const fork = drawFork(ctx.save.expedition, ctx.biomeSelection, size)
+  let grassAt = -1
 
-  lines.push('')
+  if (fork.length > 0) {
+    if (encounter) {
+      lines.push(centre(encounterHeading(encounter), cols))
+      lines.push(centre(countdownRow(encounter), cols))
+      lines.push('')
+    }
+
+    for (const row of fork) lines.push(` ${row}`)
+  } else {
+    grassAt = encounter
+      ? pushEncounterField(lines, ctx, encounter, size)
+      : pushQuietField(lines, working, cols)
+  }
+
+  if (fork.length === 0) lines.push('')
 
   if (lead) {
     const party = ctx.save.party.map((mon) => {
@@ -261,12 +283,16 @@ export const draw = (ctx, size) => {
 
   const scale = bandScale(size)
 
-  if (rows - 3 - menuRows.length - lines.length >= bandRows(scale)) {
+  if (
+    grassAt >= 0 &&
+    rows - 3 - menuRows.length - lines.length >= bandRows(scale)
+  ) {
     const band = grassLines({
       cols: width,
       step: ctx.scene.step,
       walking: !encounter && working,
       scale,
+      biome: ctx.save.expedition?.biome,
     })
     lines.splice(grassAt, 0, ...band.map((row) => ` ${row}`))
   }
@@ -281,6 +307,14 @@ export const draw = (ctx, size) => {
 }
 
 export const onKey = (ctx, key) => {
+  if (
+    hasBiomeFork(ctx.save?.expedition) &&
+    ['left', 'right', 'up', 'down', 'enter', 'space'].includes(key.name)
+  ) {
+    onBiomeKey(ctx, key)
+    return
+  }
+
   if (key.name === 'u' && ctx.updateNotice?.kind === 'available') {
     ctx.startUpdate()
     return

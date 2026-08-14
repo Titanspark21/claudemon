@@ -415,6 +415,153 @@ test('Should ask for a name and a starter on a first run, and end up with a save
   expect(loadSave().trainer.name, 'and it should be on disk').toBe('Ash')
 })
 
+test('Should let home keys stay at an optional fork or choose a mandatory route', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+
+  Object.assign(save.expedition, {
+    biome: 'meadow',
+    optionalOffered: true,
+    optionalDismissed: false,
+    optionalPaths: ['forest', 'wetlands'],
+    pendingDeparture: null,
+  })
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  expect(app.biomeSelection, 'Stay is the safe default').toBe(1)
+
+  press(app, 'enter')
+
+  expect(app.save.expedition.biome).toBe('meadow')
+  expect(app.save.expedition.optionalOffered).toBe(false)
+  expect(app.save.expedition.optionalDismissed).toBe(true)
+
+  app.save.expedition.pendingDeparture = {
+    paths: ['forest', 'wetlands'],
+    atWorkedMs: app.save.expedition.workedMs,
+  }
+  app.biomeSelection = 0
+
+  press(app, 'right')
+  press(app, 'enter')
+
+  expect(app.save.expedition.biome).toBe('wetlands')
+  expect(app.save.expedition.pendingDeparture).toBeNull()
+})
+
+test('Should keep encounter countdown and team visible while an optional fork is open', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(3) })
+
+  Object.assign(save.expedition, {
+    optionalOffered: true,
+    optionalDismissed: false,
+    optionalPaths: ['forest', 'wetlands'],
+    pendingDeparture: null,
+  })
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  queueEncounter(app, {
+    species: 25,
+    name: 'Pikachu',
+    level: 5,
+    seed: 77,
+    shiny: false,
+    at: new Date().toISOString(),
+  })
+
+  const size = { cols: 44, rows: 18 }
+  const lines = homeView.draw(app, size).lines
+  const text = stripAnsi(lines.join('\n'))
+
+  expect(text).toContain('it slips back into the grass in')
+  expect(text).toContain('Fork in the road')
+  expect(text).toContain('Team')
+  expect(lines.length).toBeLessThanOrEqual(size.rows)
+  expect(lines.every((line) => visibleLength(line) <= size.cols)).toBe(true)
+})
+
+test('Should update biome selection when expedition sync opens each decision type', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(4) })
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  Object.assign(app.save.expedition, {
+    visitStartedWorkedMs: 0,
+    workedMs: 0,
+    elapsedMs: 0,
+    forcedTargetMs: Number.MAX_SAFE_INTEGER,
+    optionalTargetMs: 0,
+    optionalOffered: false,
+    optionalDismissed: false,
+    optionalPaths: ['forest', 'wetlands'],
+    pendingDeparture: null,
+  })
+  app.biomeSelection = 0
+
+  const optional = app.syncExpedition()
+
+  expect(optional.events.map((event) => event.type)).toContain('optional-fork')
+  expect(app.biomeSelection).toBe(1)
+
+  Object.assign(app.save.expedition, {
+    forcedTargetMs: 0,
+    optionalOffered: false,
+    optionalDismissed: true,
+    forcedPaths: ['forest', 'wetlands'],
+    pendingDeparture: null,
+  })
+  app.biomeSelection = 1
+
+  const mandatory = app.syncExpedition()
+
+  expect(mandatory.events.map((event) => event.type)).toContain(
+    'forced-departure',
+  )
+  expect(app.biomeSelection).toBe(0)
+
+  const firstRun = createApp({
+    screen: stubScreen(),
+    save: null,
+    config: { ...DEFAULT_CONFIG },
+  })
+  expect(firstRun.chooseBiomePath('forest')).toBe(false)
+})
+
+test('Should keep a mandatory departure visible while the companion is live', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(2) })
+
+  save.expedition.pendingDeparture = {
+    paths: ['forest', 'wetlands'],
+    atWorkedMs: save.expedition.workedMs,
+  }
+
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.pump()
+
+  expect(app.save.expedition.biome).toBe('meadow')
+  expect(app.save.expedition.pendingDeparture?.paths).toEqual([
+    'forest',
+    'wetlands',
+  ])
+})
+
 test('Should keep asking for a name when the one given is empty', () => {
   const app = createApp({
     screen: stubScreen(),

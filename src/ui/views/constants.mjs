@@ -47,6 +47,30 @@ export const HOME_SPRITE_RESERVED_ROWS = 16
 export const HOME_TEAM_PANEL_TITLE = 'Team'
 export const HOME_HINTS = ' ← → choose · [enter] open · [q] quit'
 
+export const BIOME_STYLES = Object.freeze({
+  meadow: { name: 'Meadow', mark: '✿', colour: [108, 176, 88] },
+  forest: { name: 'Forest', mark: '♣', colour: [70, 132, 82] },
+  wetlands: { name: 'Wetlands', mark: '≈', colour: [72, 154, 146] },
+  coast: { name: 'Coast', mark: '≋', colour: [96, 160, 190] },
+  highlands: { name: 'Highlands', mark: '▲', colour: [138, 154, 126] },
+  badlands: { name: 'Badlands', mark: '◆', colour: [184, 126, 76] },
+  frostlands: { name: 'Frostlands', mark: '✦', colour: [158, 202, 212] },
+  'city-powerworks': {
+    name: 'City & Powerworks',
+    mark: '⚡',
+    colour: [190, 174, 82],
+  },
+  'mystic-ruins': { name: 'Mystic Ruins', mark: '◇', colour: [152, 112, 174] },
+})
+
+export const BIOME_FORK_MESSAGES = {
+  optionalTitle: 'Fork in the road',
+  mandatoryTitle: 'Time to move',
+  stay: 'Stay',
+  automatic: 'Away = automatic path choice',
+  hint: '← → choose · [enter] travel',
+}
+
 export const ACTIVITY_MESSAGES = {
   waiting: 'Claude needs you',
   working: 'Claude is working',

@@ -6,6 +6,7 @@ import {
   BAND_PX,
   bandImage,
   bandRows,
+  biomeGrassPalette,
   grassLines,
   walkerColumn,
 } from '../src/ui/grass.mjs'
@@ -21,7 +22,7 @@ import { draw as drawTeam } from '../src/ui/views/team.mjs'
 import { draw as drawDaycare } from '../src/ui/views/daycare.mjs'
 import { draw as drawGym } from '../src/ui/views/gym.mjs'
 import { draw as drawGyms } from '../src/ui/views/gyms.mjs'
-import { DEFAULT_CONFIG } from '../src/constants.mjs'
+import { BIOME_IDS, DEFAULT_CONFIG } from '../src/constants.mjs'
 import { itemsInBag } from '../src/shop.mjs'
 import {
   MIN_CANVAS_COLS,
@@ -513,6 +514,15 @@ test('Should make every row of the band exactly as wide as it was given room for
   for (const row of grassLines({ cols: BAND_COLS, step: 7, walking: true })) {
     expect(visibleLength(row)).toBe(BAND_COLS)
   }
+})
+
+test('Should give every biome a distinct field palette', () => {
+  const fields = BIOME_IDS.map((biome) =>
+    Array.from(bandImage({ cols: BAND_COLS, biome }).pixels).join(','),
+  )
+
+  expect(new Set(fields).size).toBe(BIOME_IDS.length)
+  expect(biomeGrassPalette('not-a-biome')).toBe(biomeGrassPalette('meadow'))
 })
 
 test('Should leave no holes in the field', () => {

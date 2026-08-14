@@ -31,7 +31,10 @@ import {
   walkEgg,
 } from './daycare.mjs'
 import { encounterSpecies } from './encounter.mjs'
-import { advanceExpedition, autoChooseDeparture } from './expedition.mjs'
+import {
+  advanceExpedition,
+  chooseBiomePath as chooseExpeditionPath,
+} from './expedition.mjs'
 import {
   advanceMessage,
   backOutOfBattleMenu,
@@ -169,6 +172,10 @@ export const createApp = ({
     scene: { step: 0, frames: 0 },
 
     homeSelection: 0,
+    biomeSelection:
+      save?.expedition?.optionalOffered && !save?.expedition?.pendingDeparture
+        ? 1
+        : 0,
     dexSelection: 0,
     dexSort: 'number',
     dexFilter: { ...DEFAULT_DEX_FILTER },
@@ -246,7 +253,7 @@ export const createApp = ({
     process.exit(0)
   }
 
-  ctx.syncExpedition = ({ autoDepart = false } = {}) => {
+  ctx.syncExpedition = () => {
     if (!ctx.save?.expedition) {
       return { changed: false, departed: false, events: [] }
     }
@@ -257,13 +264,41 @@ export const createApp = ({
     const events = advanceExpedition(ctx.save.expedition, ctx.worked.totalMs)
     const departed = ctx.save.expedition.pendingDeparture != null
 
-    if (autoDepart && departed) autoChooseDeparture(ctx.save.expedition)
+    if (events.some((event) => event.type === 'optional-fork'))
+      ctx.biomeSelection = 1
+    if (events.some((event) => event.type === 'forced-departure'))
+      ctx.biomeSelection = 0
 
     return {
       changed: before !== JSON.stringify(ctx.save.expedition),
       departed,
       events,
     }
+  }
+
+  ctx.chooseBiomePath = (choice) => {
+    const expedition = ctx.save?.expedition
+
+    if (!expedition) return false
+
+    const before = JSON.stringify(expedition)
+    const biome = expedition.biome
+
+    chooseExpeditionPath(expedition, choice)
+
+    if (before === JSON.stringify(expedition)) return false
+
+    if (expedition.biome !== biome) {
+      clearEncounter()
+      ctx.encounter = null
+      ctx.homeSelection = Math.max(0, ctx.homeSelection - 1)
+    }
+
+    ctx.biomeSelection =
+      expedition.optionalOffered && !expedition.pendingDeparture ? 1 : 0
+    ctx.persist()
+
+    return true
   }
 
   ctx.persist = () => {
@@ -310,7 +345,7 @@ export const createApp = ({
   ctx.pump = () => {
     if (ctx.gym) return false
 
-    const travel = ctx.syncExpedition({ autoDepart: true })
+    const travel = ctx.syncExpedition()
 
     if (travel.departed) clearEncounter()
 
@@ -323,7 +358,7 @@ export const createApp = ({
     const next = readEncounter(ttlMs)
 
     if (!next) {
-      if (!ctx.encounter) return false
+      if (!ctx.encounter) return travel.changed
 
       ctx.encounter = null
       ctx.homeSelection = Math.max(0, ctx.homeSelection - 1)
@@ -331,7 +366,7 @@ export const createApp = ({
       return true
     }
 
-    if (isSameEncounter(next, ctx.encounter)) return false
+    if (isSameEncounter(next, ctx.encounter)) return travel.changed
 
     ctx.encounter = { ...next, expiresAt: encounterExpiresAt(next, ttlMs) }
     ctx.homeSelection = 0
