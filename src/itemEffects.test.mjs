@@ -590,8 +590,8 @@ describe('held-item direct and type-changing families', () => {
   })
 
   test('generated move records preserve contact metadata for contact items', () => {
-    expect(moveData('tackle').contact).toBe(true)
-    expect(moveData('ember').contact).toBe(false)
+    expect(moveData('tackle').flags).toContain('contact')
+    expect(moveData('ember').flags).not.toContain('contact')
   })
 })
 

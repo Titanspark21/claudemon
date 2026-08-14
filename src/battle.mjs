@@ -564,11 +564,7 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
   }
 
   if (slot) slot.pp--
-  if (
-    heldRecord?.choice &&
-    !attacker.choiceMove &&
-    move.key !== STRUGGLE.move
-  )
+  if (heldRecord?.choice && !attacker.choiceMove && move.key !== STRUGGLE.move)
     attacker.choiceMove = move.key
 
   const changedType = runMoveEffectPhase(battle, 'modifyMoveType', {
@@ -841,36 +837,34 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
   if (battle.abilityState?.[attackerSide])
     battle.abilityState[attackerSide].suppressSecondary = false
 
-  if (!isFainted(defender.mon) && !suppressSecondary) {
-    const secondary = runMoveEffectPhase(battle, 'afterHit', {
-      kind: 'secondary-effect',
+  const secondary = runMoveEffectPhase(battle, 'afterHit', {
+    kind: 'secondary-effect',
+    attacker,
+    defender,
+    targetSide: defenderSide,
+    causeSide: attackerSide,
+    move,
+    value: total,
+    damage: total,
+    contact,
+    events,
+  })
+
+  if (!isFainted(defender.mon) && !suppressSecondary && !secondary.cancelled) {
+    applyAilment(battle, attackerSide, move, events)
+    applyStatChanges(battle, attackerSide, move, events)
+
+    const flinch = runMoveEffectPhase(battle, 'tryStatus', {
       attacker,
       defender,
       targetSide: defenderSide,
       causeSide: attackerSide,
       move,
-      value: total,
-      damage: total,
-      contact,
+      status: 'flinch',
+      value: 'flinch',
       events,
     })
-
-    if (!secondary.cancelled) {
-      applyAilment(battle, attackerSide, move, events)
-      applyStatChanges(battle, attackerSide, move, events)
-
-      const flinch = runMoveEffectPhase(battle, 'tryStatus', {
-        attacker,
-        defender,
-        targetSide: defenderSide,
-        causeSide: attackerSide,
-        move,
-        status: 'flinch',
-        value: 'flinch',
-        events,
-      })
-      if (!flinch.cancelled) applyFlinch(battle, defenderSide, move)
-    }
+    if (!flinch.cancelled) applyFlinch(battle, defenderSide, move)
   }
 }
 

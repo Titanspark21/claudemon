@@ -1,4 +1,3 @@
-import { moveHasFlag } from './abilityEffects.mjs'
 import { effectiveSpeed } from './battleActor.mjs'
 import { applyDamage, applyHeal, label, other, say } from './battleEvents.mjs'
 import { item, species } from './data.mjs'
@@ -8,6 +7,15 @@ import { chance } from './rng.mjs'
 import { battleSideOf, effectiveness, isGrounded } from './typechart.mjs'
 
 const clampStage = (value) => Math.max(-6, Math.min(6, value))
+
+const moveMakesContact = (move) => {
+  if (move?.contact === false) return false
+  if (move?.contact === true) return true
+  if (move?.flags instanceof Set) return move.flags.has('contact')
+  if (Array.isArray(move?.flags)) return move.flags.includes('contact')
+
+  return Boolean(move?.flags?.contact)
+}
 
 const stage = (battle, side, stat, amount) => {
   const actor = battle[side]
@@ -265,7 +273,7 @@ const rockyHelmet = (key) =>
   descriptor(key, 'afterHit', (state) => {
     if (!sourceIs(state, state.defender, key)) return
     if (!state.value || state.value <= 0) return
-    if (!moveHasFlag(state.move, 'contact')) return
+    if (!moveMakesContact(state.move)) return
 
     const attackerSide = battleSideOf(state.battle, state.attacker)
 
