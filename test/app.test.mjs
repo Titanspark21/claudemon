@@ -47,7 +47,7 @@ const daycareView = await import('../src/ui/views/daycare.mjs')
 const tradeView = await import('../src/ui/views/trade.mjs')
 const dexView = await import('../src/ui/views/dex.mjs')
 const trainerView = await import('../src/ui/views/trainer.mjs')
-const { stripAnsi } = await import('../src/ui/text.mjs')
+const { stripAnsi, visibleLength } = await import('../src/ui/text.mjs')
 const { makeRng } = await import('../src/rng.mjs')
 const { VERSION } = await import('../src/version.mjs')
 
@@ -2372,6 +2372,137 @@ test('Should keep the cursor on the same species when the Pokedex flips to A-Z',
   press(app, 's')
 
   expect(app.dexSelection, 'and back again').toBe(0)
+})
+
+test('Should search the expanded Pokedex by accent-free name and synthetic form ID', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+  save.dex.seen.push(669)
+  save.dex.forms = {
+    seen: [10001],
+    caught: [10001],
+    shiny: [],
+  }
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.openHomeSelection('dex')
+  press(app, '/')
+  type(app, 'FLABEBE')
+
+  expect(app.dexSearchActive).toBe(true)
+  expect(app.dexFilter.query).toBe('FLABEBE')
+  expect(dexText(app).normalize('NFC')).toContain('FLABÉBÉ')
+
+  press(app, 'enter')
+  press(app, 'x')
+  press(app, '/')
+  type(app, '10001')
+  press(app, 'enter')
+
+  const form = dexText(app)
+  expect(form).toContain('RATTATA-ALOLA')
+  expect(form).toContain('#019')
+})
+
+test('Should expose every compact Pokedex filter and separate National from form completion', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+  save.dex.shiny.push(1)
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.openHomeSelection('dex')
+
+  expect(dexText(app)).toContain('National 1/809 · Forms 0/95')
+
+  press(app, 'g')
+  expect(app.dexFilter.generation).toBe(1)
+  press(app, 'x')
+
+  press(app, 't')
+  expect(app.dexFilter.type).toBe('bug')
+  press(app, 'x')
+
+  press(app, 'b')
+  expect(app.dexFilter.biome).toBe('meadow')
+  press(app, 'x')
+
+  press(app, 'c')
+  expect(app.dexFilter.status).toBe('caught')
+  press(app, 'x')
+
+  press(app, 'y')
+  expect(app.dexFilter.shiny).toBe(true)
+  press(app, 'x')
+
+  press(app, 'f')
+  expect(app.dexFilter.form).toBe('base')
+
+  press(app, '?')
+  expect(dexText(app)).toContain('g generation · t type · b biome')
+})
+
+test('Should keep Pokedex filters legible at the 80-column terminal width', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.openHomeSelection('dex')
+  press(app, 'g')
+  press(app, 'b')
+  press(app, 'c')
+  press(app, '?')
+
+  const { lines } = dexView.draw(app, { cols: 80, rows: 24 })
+  const plain = lines.map(stripAnsi).join('\n')
+
+  expect(lines).toHaveLength(23)
+  expect(lines.every((line) => visibleLength(line) <= 80)).toBe(true)
+  expect(plain).toContain('Filters:')
+  expect(plain).toContain('g generation · t type · b biome')
+  expect(plain).toContain('[/] search')
+})
+
+test('Should preserve Pokedex cursor identity as search narrows and clears, including an empty result', () => {
+  const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
+  save.dex.seen.push(25)
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.openHomeSelection('dex')
+  app.dexSelection = 24
+
+  press(app, '/')
+  type(app, 'pikachu')
+  press(app, 'enter')
+
+  expect(app.dexSelection).toBe(0)
+  expect(dexText(app)).toContain('PIKACHU')
+
+  press(app, 'x')
+  expect(app.dexSelection, 'Pikachu returns to its National position').toBe(24)
+
+  press(app, '/')
+  type(app, 'definitely-no-such-pokemon')
+  press(app, 'enter')
+
+  expect(dexText(app)).toContain('No Pokédex entries match these filters.')
+  expect(app.dexSelection).toBe(0)
+
+  press(app, 'down')
+  press(app, 'pageup')
+  press(app, 'pagedown')
+  expect(app.dexSelection).toBe(0)
 })
 
 test('Should refuse a full team, and keep the team its last Pokemon', () => {
