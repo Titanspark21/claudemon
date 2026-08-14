@@ -9,6 +9,7 @@ import {
   TERRAIN_KEYS,
   TERRAIN_POWER_MULTIPLIER,
 } from './constants.mjs'
+import { heldFieldDuration } from './itemEffects.mjs'
 import { isFainted } from './pokemon.mjs'
 import { battleSideOf, isGrounded } from './typechart.mjs'
 import { weatherHandlers } from './weather.mjs'
@@ -35,9 +36,18 @@ export const startTerrain = (
   assertTerrain(key)
   assertTurns(turns)
 
-  replaceFieldEffect(battle.field, 'terrain', { key, source, turns })
+  const side = battleSideOf(battle, source)
+  const duration = side
+    ? heldFieldDuration(battle, side, 'terrain', key, turns)
+    : turns
 
-  return [{ type: 'field', kind: 'terrain', key, source, turns }]
+  replaceFieldEffect(battle.field, 'terrain', {
+    key,
+    source,
+    turns: duration,
+  })
+
+  return [{ type: 'field', kind: 'terrain', key, source, turns: duration }]
 }
 
 const terrainPower = ({ battle, field, attacker, defender, move, value }) => {

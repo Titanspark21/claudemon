@@ -25,6 +25,7 @@ export const GENERATION_PASSES = [
 export const OUTPUTS = [
   'pokedex.json',
   'moves.json',
+  'items.json',
   'types.json',
   'growth.json',
   'generation-vii-audit.json',

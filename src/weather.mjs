@@ -10,6 +10,7 @@ import {
   WEATHER_POWER_MULTIPLIER,
 } from './constants.mjs'
 import { species } from './data.mjs'
+import { heldFieldDuration } from './itemEffects.mjs'
 import { isFainted } from './pokemon.mjs'
 import { replaceFieldEffect } from './battleField.mjs'
 import { battleSideOf } from './typechart.mjs'
@@ -36,9 +37,18 @@ export const startWeather = (
   assertWeather(key)
   assertTurns(turns)
 
-  replaceFieldEffect(battle.field, 'weather', { key, source, turns })
+  const side = battleSideOf(battle, source)
+  const duration = side
+    ? heldFieldDuration(battle, side, 'weather', key, turns)
+    : turns
 
-  return [{ type: 'field', kind: 'weather', key, source, turns }]
+  replaceFieldEffect(battle.field, 'weather', {
+    key,
+    source,
+    turns: duration,
+  })
+
+  return [{ type: 'field', kind: 'weather', key, source, turns: duration }]
 }
 
 const weatherPower = ({ field, move, value }) => {
@@ -85,7 +95,12 @@ const weatherResidual = ({ battle, field, events }) => {
     const mon = battle[side].mon
     const types = species(mon.species).types
 
-    if (isFainted(mon) || immuneToResidual(weather, types)) continue
+    if (
+      isFainted(mon) ||
+      mon.heldItem === 'safety-goggles' ||
+      immuneToResidual(weather, types)
+    )
+      continue
 
     const amount = Math.max(
       1,

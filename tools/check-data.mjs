@@ -41,6 +41,7 @@ const read = (name) => {
 
 const pokedex = read('pokedex.json')
 const moves = read('moves.json')
+const items = read('items.json')
 const types = read('types.json')
 const growth = read('growth.json')
 const identities = read('form-ids.json')
@@ -53,6 +54,9 @@ const sourceAbilities = new Set(
   [...generation.abilities].map((entry) => entry.id),
 )
 const sourceItems = new Set([...generation.items].map((entry) => entry.id))
+const itemSourceKeys = new Set(
+  Object.values(items).map((entry) => entry.sourceKey),
+)
 const mechanicsValidation = validateCoverage(
   {
     moves,
@@ -82,6 +86,22 @@ check(
 check(
   `pokedex holds ${NATIONAL_DEX} base National Dex species`,
   pokedex.filter((record) => record.formKey === null).length === NATIONAL_DEX,
+)
+check(
+  'every Generation VII item has a normalized runtime record',
+  [...sourceItems].every((key) => itemSourceKeys.has(key)),
+  `${itemSourceKeys.size}/${sourceItems.size}`,
+)
+check(
+  'every runtime item has an explicit mechanics classification',
+  Object.values(items).every((entry) =>
+    [
+      'supported',
+      'no-effect-in-singles',
+      'blocked-by-excluded-system',
+      'deferred-complex-one-off',
+    ].includes(entry.status),
+  ),
 )
 
 for (let id = 1; id <= NATIONAL_DEX; id++)
@@ -172,7 +192,10 @@ for (const record of pokedex.filter(
 }
 
 const biomeReportText = existsSync(bundledDataFile('biome-report.md'))
-  ? readFileSync(bundledDataFile('biome-report.md'), 'utf8')
+  ? readFileSync(bundledDataFile('biome-report.md'), 'utf8').replace(
+      /\r\n/g,
+      '\n',
+    )
   : ''
 for (const heading of [
   '## Pools',

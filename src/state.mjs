@@ -137,6 +137,7 @@ export const recordInDex = (save, mon) => {
 
 const migrate = (save) => {
   for (const mon of allPokemon(save)) {
+    mon.heldItem ??= null
     recordInDex(save, mon)
     refreshStats(mon)
   }

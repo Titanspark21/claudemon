@@ -69,9 +69,15 @@ const startTrap = (battle, side, move, events) => {
 
   if (volatileState.trap) return
 
+  const attackerItem = battle[other(side)].mon.heldItem
+
   volatileState.trap = {
     move: move.name,
-    turns: randInt(battle.rng, TRAP_TURNS.min, TRAP_TURNS.max),
+    turns:
+      attackerItem === 'grip-claw'
+        ? 7
+        : randInt(battle.rng, TRAP_TURNS.min, TRAP_TURNS.max),
+    bindingBand: attackerItem === 'binding-band',
   }
 
   announce(
@@ -220,7 +226,9 @@ const tickTrap = (battle, side, events) => {
 
   trap.turns--
 
-  applyDamage(battle, side, hpFraction(battle[side].mon, TRAP_FRACTION), events)
+  const fraction = trap.bindingBand ? 6 : TRAP_FRACTION
+
+  applyDamage(battle, side, hpFraction(battle[side].mon, fraction), events)
   say(
     events,
     `${label(battle, side)} ${VOLATILE_MESSAGES.hurtBy} ${trap.move}!`,

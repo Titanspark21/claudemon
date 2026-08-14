@@ -14,7 +14,6 @@ import {
   FRAMES_PER_STEP,
   GYM_MESSAGES,
   HOME_NOTICES,
-  ITEMS,
   TRADE_MESSAGES,
   TRAINER_MESSAGES,
 } from './constants.mjs'
@@ -61,7 +60,7 @@ import {
   rollbackGymRun,
 } from './gym.mjs'
 import { canSpare } from './helpers.mjs'
-import { applyItem } from './itemUse.mjs'
+import { giveHeldItem, applyItem, takeHeldItem } from './itemUse.mjs'
 import { describeStep } from './progression.mjs'
 import { createPokemon, displayName } from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
@@ -69,7 +68,12 @@ import { CARD_FILE } from './paths.mjs'
 import { copyToClipboard } from './clipboard.mjs'
 import { decodeTrade, giveAway, takeIn, writeTradeCode } from './trade.mjs'
 import { makeRng, randomSeed } from './rng.mjs'
-import { buy, itemsInBag, usableOnParty } from './shop.mjs'
+import { buy, itemInfo, itemsInBag, usableOnParty } from './shop.mjs'
+import {
+  awardProgressionHeldItems,
+  canHoldItem,
+  rollWildHeldItem,
+} from './heldItems.mjs'
 import { revealFile } from './reveal.mjs'
 import { play, startMusic, stopMusic } from './sound.mjs'
 import {
@@ -246,7 +250,7 @@ export const createApp = ({
   }
 
   ctx.quit = () => {
-    ctx.persist()
+    if (!ctx.battle || ctx.battle.state.over) ctx.persist()
 
     ctx.stopMusic()
     screen.stop()
@@ -711,7 +715,10 @@ export const createApp = ({
   }
 
   ctx.openBag = () => {
-    if (itemsInBag(ctx.save).length === 0) {
+    if (
+      itemsInBag(ctx.save).length === 0 &&
+      !ctx.save.party.some((mon) => mon.heldItem)
+    ) {
       ctx.bagMessage = BAG_MESSAGES.empty
       return
     }
@@ -730,8 +737,24 @@ export const createApp = ({
 
     if (!mon) return
 
+    if (canHoldItem(key)) {
+      const result = giveHeldItem(ctx.save, key, mon)
+
+      ctx.bagMessage = result.message
+      if (!result.ok) return
+
+      ctx.persist()
+      ctx.bagSelection = null
+      return
+    }
+
     if (!usableOnParty(key)) {
-      ctx.bagMessage = `Save the ${ITEMS[key].name} for something in the grass.`
+      const info = itemInfo(key)
+
+      ctx.bagMessage =
+        info?.kind === 'ball'
+          ? `Save the ${info.name} for something in the grass.`
+          : `The ${info?.name ?? key} cannot be used on a party Pokémon.`
       return
     }
 
@@ -821,11 +844,22 @@ export const createApp = ({
     ctx.closeTrade()
   }
 
+  ctx.takeHeldItem = (index) => {
+    const mon = ctx.save.party[index]
+
+    if (!mon) return
+
+    const result = takeHeldItem(ctx.save, mon)
+
+    ctx.bagMessage = result.message
+    if (result.ok) ctx.persist()
+  }
+
   ctx.buyItem = (key, quantity) => {
     const result = buy(ctx.save, key, quantity)
 
     ctx.shopMessage = result.ok
-      ? `Bought ${quantity} ${ITEMS[key].name}. Thank you!`
+      ? `Bought ${quantity} ${itemInfo(key).name}. Thank you!`
       : result.reason
 
     if (result.ok) ctx.persist()
@@ -922,12 +956,22 @@ export const createApp = ({
     }
 
     const gym = gymOf(ctx.gym)
-    const wording = hasBadge(ctx.save, gym.id)
+    const alreadyEarned = hasBadge(ctx.save, gym.id)
+    const wording = alreadyEarned
       ? GYM_MESSAGES.stillYours
       : GYM_MESSAGES.earned
+    const previousBadgeCount = ctx.save.badges.length
 
     awardBadge(ctx.save, gym.id)
-    leaveForGymList(ctx, gym.id, `${gym.badge} ${wording}`)
+
+    const rewards = alreadyEarned
+      ? []
+      : awardProgressionHeldItems(ctx.save, previousBadgeCount)
+    const rewardText = rewards.length
+      ? ` · Received ${rewards.map((key) => itemInfo(key).name).join(', ')}.`
+      : ''
+
+    leaveForGymList(ctx, gym.id, `${gym.badge} ${wording}${rewardText}`)
   }
 
   ctx.leaveGym = (message) => {
@@ -1081,6 +1125,11 @@ const wildBattle = (save, encounter, lead) => {
     makeRng(encounter.seed),
     encounter.shiny,
   )
+  wild.heldItem = rollWildHeldItem(
+    encounter.species,
+    'ultra-sun-ultra-moon',
+    makeRng((encounter.seed ^ 0x48454c44) >>> 0),
+  )
 
   markFaced(save, encounter.species)
 
@@ -1106,11 +1155,16 @@ const encounterTrainer = (trainer) => {
 
 const trainerBattle = (save, opponent, seed, lead) => {
   const team = opponent.team.map((entry, index) => {
-    return createPokemon(
+    const mon = createPokemon(
       entry.species,
       entry.level,
       makeRng((seed + index) >>> 0),
     )
+
+    if (entry.heldItem && canHoldItem(entry.heldItem))
+      mon.heldItem = entry.heldItem
+
+    return mon
   })
 
   markFaced(save, team[0].species)

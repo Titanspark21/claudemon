@@ -24,6 +24,7 @@ export const loadData = () => {
     moves: read('moves.json'),
     abilities: read('abilities.json'),
     mechanicsCoverage: read('mechanics-coverage.json'),
+    items: read('items.json'),
     types: read('types.json'),
     growth: read('growth.json'),
     biomes: read('biomes.json'),
@@ -111,3 +112,15 @@ export const moveCoverage = (name) => {
 
   return found
 }
+
+export const hasItem = (key) => Boolean(loadData().items[key])
+
+export const item = (key) => {
+  const found = loadData().items[key]
+
+  if (!found) throw new Error(`no item named ${key}`)
+
+  return found
+}
+
+export const items = () => loadData().items

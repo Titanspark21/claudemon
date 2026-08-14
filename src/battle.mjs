@@ -21,9 +21,10 @@ import {
 } from './constants.mjs'
 import { refreshAbilityEffects } from './abilities.mjs'
 import { moveHasFlag } from './abilityEffects.mjs'
-import { move as moveData, species } from './data.mjs'
+import { hasItem, item, move as moveData, species } from './data.mjs'
 import { effectiveSpeed, moveSlotOf, stageMultiplier } from './battleActor.mjs'
 import { createBattleField, normalizeBattleField } from './battleField.mjs'
+import { refreshHeldItemEffects } from './battleEffects.mjs'
 import { applyDamage, applyHeal, label, other, say } from './battleEvents.mjs'
 import { attemptCatch } from './capture.mjs'
 import { computeDamage, FIXED_DAMAGE } from './damage.mjs'
@@ -34,6 +35,7 @@ import {
 } from './exp.mjs'
 import { decideOrder, pickFoeMove } from './foeAi.mjs'
 import { runEffectPhase } from './effects.mjs'
+import { heldCriticalStage, heldDrainMultiplier } from './itemEffects.mjs'
 import {
   applyMoveFieldEffect,
   moveExecutionFailure,
@@ -76,14 +78,18 @@ export const emptyStages = () => {
 }
 
 const runSwitchInEffects = (battle, side, events) => {
+  refreshAbilityEffects(battle)
+  refreshHeldItemEffects(battle)
   runEffectPhase(battle, 'switchIn', { side, events })
   refreshAbilityEffects(battle)
+  refreshHeldItemEffects(battle)
 }
 
 const initializeBattleEffects = (battle) => {
   const events = []
 
   refreshAbilityEffects(battle)
+  refreshHeldItemEffects(battle)
   runEffectPhase(battle, 'battleStart', { events })
   runSwitchInEffects(battle, 'player', events)
   runSwitchInEffects(battle, 'foe', events)
@@ -134,6 +140,7 @@ export const switchIn = (battle, mon) => {
   battle.player.mon = mon
   battle.player.stages = emptyStages()
   battle.player.volatile = emptyVolatile()
+  battle.player.choiceMove = null
   battle.abilityState ??= {}
   battle.abilityState.player = {}
 
@@ -165,6 +172,7 @@ export const rehydrate = (battle) => {
   battle.abilityState ??= {}
   battle.pendingEvents ??= []
   refreshAbilityEffects(battle)
+  refreshHeldItemEffects(battle)
 
   return battle
 }
@@ -444,7 +452,11 @@ const applyRecoil = (battle, attackerSide, amount, move, events) => {
 }
 
 const applyDrain = (battle, attackerSide, drain, total, move, events) => {
-  const amount = Math.max(1, Math.floor((total * Math.abs(drain)) / 100))
+  const boost = drain > 0 ? heldDrainMultiplier(battle[attackerSide].mon) : 1
+  const amount = Math.max(
+    1,
+    Math.floor(((total * Math.abs(drain)) / 100) * boost),
+  )
 
   if (drain < 0) return applyRecoil(battle, attackerSide, amount, move, events)
 
@@ -512,6 +524,21 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
     return
   }
 
+  const held = attacker.mon.heldItem
+  const heldRecord = held && hasItem(held) ? item(held) : null
+
+  if (
+    heldRecord?.choice &&
+    attacker.choiceMove &&
+    attacker.choiceMove !== move.key
+  ) {
+    say(
+      events,
+      `${label(battle, attackerSide)} is locked into ${moveData(attacker.choiceMove).name}!`,
+    )
+    return
+  }
+
   const before = runMoveEffectPhase(battle, 'beforeAction', {
     attacker,
     defender,
@@ -537,6 +564,12 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
   }
 
   if (slot) slot.pp--
+  if (
+    heldRecord?.choice &&
+    !attacker.choiceMove &&
+    move.key !== STRUGGLE.move
+  )
+    attacker.choiceMove = move.key
 
   const changedType = runMoveEffectPhase(battle, 'modifyMoveType', {
     attacker,
@@ -598,6 +631,17 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
   if (move.damageClass === 'status') {
     applyStatChanges(battle, attackerSide, move, events)
     applyAilment(battle, attackerSide, move, events)
+
+    runMoveEffectPhase(battle, 'afterDamage', {
+      attacker,
+      defender,
+      attackerSide,
+      defenderSide,
+      move,
+      value: 0,
+      damage: 0,
+      events,
+    })
 
     if (move.healing) {
       const healed = applyHeal(
@@ -662,6 +706,7 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
       attackerSide,
       defenderSide,
       move,
+      value: dealt,
       damage: dealt,
       hpBefore,
       contact: moveHasFlag(move, 'contact'),
@@ -683,10 +728,12 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
     attacker,
     defender,
     move,
-    value: move.critRate ?? 0,
+    value: (move.critRate ?? 0) + heldCriticalStage(attacker.mon),
     events,
   }).value
-  const critChance = critStage > 0 ? HIGH_CRIT_CHANCE : CRIT_CHANCE
+  const critChance = [CRIT_CHANCE, HIGH_CRIT_CHANCE, 0.5, 1][
+    Math.min(3, Math.max(0, Math.floor(critStage)))
+  ]
   const isCrit = chance(battle.rng, critChance)
   const computed = computeDamage(battle, attackerSide, move, isCrit)
 
@@ -748,6 +795,7 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
       defenderSide,
       move,
       moveIndex,
+      value: dealt,
       damage: dealt,
       hpBefore,
       contact,
@@ -801,6 +849,9 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
       targetSide: defenderSide,
       causeSide: attackerSide,
       move,
+      value: total,
+      damage: total,
+      contact,
       events,
     })
 
@@ -949,8 +1000,22 @@ const checkFaint = (battle, events) => {
 }
 
 const runOdds = (battle) => {
-  const playerSpeed = effectiveSpeed(battle.player)
-  const foeSpeed = effectiveSpeed(battle.foe)
+  const playerSpeed = runEffectPhase(battle, 'modifySpeed', {
+    side: 'player',
+    attacker: 'player',
+    defender: 'foe',
+    value: effectiveSpeed(battle.player),
+    paralysisApplied: battle.player.mon.status === 'paralysis',
+    events: [],
+  }).value
+  const foeSpeed = runEffectPhase(battle, 'modifySpeed', {
+    side: 'foe',
+    attacker: 'foe',
+    defender: 'player',
+    value: effectiveSpeed(battle.foe),
+    paralysisApplied: battle.foe.mon.status === 'paralysis',
+    events: [],
+  }).value
 
   if (playerSpeed >= foeSpeed) return 1
 
@@ -970,7 +1035,10 @@ const attemptRun = (battle, events) => {
     events,
   })
 
-  if (abilityEscape.cancelled || isTrapped(battle.player)) {
+  if (
+    abilityEscape.cancelled ||
+    (isTrapped(battle.player) && battle.player.mon.heldItem !== 'shed-shell')
+  ) {
     say(events, TURN_MESSAGES.cantEscape)
     return false
   }
@@ -1041,12 +1109,14 @@ export const submitAction = (battle, action) => {
 
       if (checkFaint(battle, events)) return events
 
+      refreshHeldItemEffects(battle)
       useMove(battle, 'foe', foeMoveIndex, events)
     } else {
       useMove(battle, 'foe', foeMoveIndex, events)
 
       if (checkFaint(battle, events)) return events
 
+      refreshHeldItemEffects(battle)
       useMove(battle, 'player', action.index, events)
     }
 
@@ -1064,6 +1134,7 @@ export const submitAction = (battle, action) => {
     endOfTurnVolatile(battle, side, events)
   }
 
+  refreshHeldItemEffects(battle)
   runFieldEffectPhase(battle, 'endTurn', events)
   checkFaint(battle, events)
 

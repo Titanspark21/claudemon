@@ -20,6 +20,17 @@ const scoreFoeMove = (move, playerTypes) => {
 export const pickFoeMove = (battle) => {
   const playerTypes = species(battle.player.mon.species).types
 
+  if (battle.foe.choiceMove) {
+    const lockedIndex = battle.foe.mon.moves.findIndex(
+      (slot, index) =>
+        slot.move === battle.foe.choiceMove &&
+        slot.pp > 0 &&
+        !isMoveDisabled(battle.foe, index),
+    )
+
+    if (lockedIndex >= 0) return lockedIndex
+  }
+
   let bestIndex = null
   let bestScore = -1
 

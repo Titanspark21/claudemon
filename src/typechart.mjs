@@ -38,6 +38,7 @@ export const isGrounded = (battle, side) => {
   const mon = battle[side].mon
   const types = species(mon.species).types
 
+  if (mon.heldItem === 'iron-ball') return true
   if (types.includes('flying')) return false
   if (mon.ability === 'levitate') return false
   if (mon.heldItem === 'air-balloon') return false

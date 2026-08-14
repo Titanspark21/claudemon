@@ -1,5 +1,4 @@
-import { ITEMS } from '../../constants.mjs'
-import { SHOP_STOCK, countOf } from '../../shop.mjs'
+import { countOf, itemInfo, shopStock } from '../../shop.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import {
   menuList,
@@ -28,14 +27,17 @@ export const draw = (ctx, size) => {
   const { cols, rows } = size
   const lines = []
   const width = Math.min(cols - 2, MAX_SHOP_WIDTH)
+  const stock = shopStock(ctx.save)
+
+  ctx.shopSelection = Math.min(ctx.shopSelection, Math.max(0, stock.length - 1))
 
   lines.push(
     ` ${brightYellow('◓')} ${bold(SHOP_TITLE)}   ${dim(SHOP_MONEY_LABEL)} ${bold(money(ctx.save.money))}`,
   )
   lines.push('')
 
-  const entries = SHOP_STOCK.map((key) => {
-    const item = ITEMS[key]
+  const entries = stock.map((key) => {
+    const item = itemInfo(key)
     const owned = countOf(ctx.save, key)
     const affordable = ctx.save.money >= item.price
     const price = money(item.price)
@@ -55,7 +57,7 @@ export const draw = (ctx, size) => {
     lines.push(` ${row}`)
   }
 
-  const chosen = ITEMS[SHOP_STOCK[ctx.shopSelection]]
+  const chosen = itemInfo(stock[ctx.shopSelection])
   const prompt = ctx.shopMessage ?? dim(SHOP_PROMPT)
 
   lines.push('')
@@ -68,7 +70,8 @@ export const draw = (ctx, size) => {
 }
 
 export const onKey = (ctx, key) => {
-  const total = SHOP_STOCK.length
+  const stock = shopStock(ctx.save)
+  const total = stock.length
 
   if (key.name === 'up' || key.name === 'k') {
     ctx.shopSelection = wrap(ctx.shopSelection - 1, total)
@@ -77,9 +80,9 @@ export const onKey = (ctx, key) => {
     ctx.shopSelection = wrap(ctx.shopSelection + 1, total)
     ctx.shopMessage = null
   } else if (key.name === 'enter' || key.name === 'space') {
-    ctx.buyItem(SHOP_STOCK[ctx.shopSelection], 1)
+    ctx.buyItem(stock[ctx.shopSelection], 1)
   } else if (key.name === '5') {
-    ctx.buyItem(SHOP_STOCK[ctx.shopSelection], BULK_QUANTITY)
+    ctx.buyItem(stock[ctx.shopSelection], BULK_QUANTITY)
   } else if (key.name === 'escape' || key.name === 'q') {
     ctx.shopMessage = null
     ctx.setMode('home')

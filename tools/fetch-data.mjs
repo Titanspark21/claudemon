@@ -6,6 +6,7 @@ import { Dex } from '@pkmn/dex'
 import { BUNDLED_DATA_DIR, bundledDataFile, DATA_DIR } from '../src/paths.mjs'
 import { bold, brightGreen, dim } from '../src/ui/ansi.mjs'
 import { pass as runPass } from './progress.mjs'
+import { buildItemRecords, loadItemCoverage } from './itemData.mjs'
 import {
   buildBiomePools,
   buildBiomeReport,
@@ -597,6 +598,10 @@ const main = async () => {
   const moveOutput = transformRequestWriteMoves(moves)
   const typeOutput = transformRequestWriteTypes(types)
   const growthOutput = transformRequestWriteGrowth(growth)
+  const itemOutput = buildItemRecords(
+    [...generation.items].filter((entry) => entry.exists),
+    loadItemCoverage(),
+  )
   const sourceAbilities = new Set(
     [...generation.abilities].map((entry) => entry.id),
   )
@@ -662,6 +667,7 @@ const main = async () => {
   const outputs = [
     ['pokedex.json', pokedex],
     ['moves.json', moveOutput],
+    ['items.json', itemOutput],
     ['types.json', typeOutput],
     ['growth.json', growthOutput],
     ['generation-vii-audit.json', audit],

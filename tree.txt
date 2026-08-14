@@ -27,6 +27,7 @@ data/biomes.json
 data/form-ids.json
 data/generation-vii-audit.json
 data/growth.json
+data/items.json
 data/mechanics-coverage.json
 data/moves.json
 data/pokedex.json
@@ -78,6 +79,7 @@ src/app.mjs
 src/battle.mjs
 src/battleActor.mjs
 src/battleActor.test.mjs
+src/battleEffects.mjs
 src/battleEvents.mjs
 src/battleEvents.test.mjs
 src/battleField.mjs
@@ -110,8 +112,12 @@ src/foeAi.mjs
 src/foeAi.test.mjs
 src/gym.mjs
 src/gym.test.mjs
+src/heldItems.mjs
+src/heldItems.test.mjs
 src/helpers.mjs
 src/helpers.test.mjs
+src/itemEffects.mjs
+src/itemEffects.test.mjs
 src/itemUse.mjs
 src/itemUse.test.mjs
 src/learnset.mjs
@@ -226,6 +232,7 @@ tools/fetch-data.mjs
 tools/fetch-sprites.mjs
 tools/generate-species-identities.mjs
 tools/install.mjs
+tools/itemData.mjs
 tools/mechanicsCoverage.mjs
 tools/mechanicsCoverage.test.mjs
 tools/pool.mjs

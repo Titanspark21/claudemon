@@ -1,7 +1,7 @@
-import { ITEMS } from '../../constants.mjs'
+import { canHoldItem } from '../../heldItems.mjs'
 import { monSpriteFile } from '../../paths.mjs'
 import { displayName, speciesName, stoneEvolution } from '../../pokemon.mjs'
-import { countOf, itemsInBag, usableOnParty } from '../../shop.mjs'
+import { countOf, itemInfo, itemsInBag, usableOnParty } from '../../shop.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { EVOLVES_MARK } from '../constants.mjs'
 import { monDetail } from '../detail.mjs'
@@ -25,29 +25,51 @@ import {
   zipColumns,
 } from './helpers.mjs'
 
+const heldLabel = (mon) => {
+  if (!mon.heldItem) return 'holding nothing'
+
+  return `holding ${itemInfo(mon.heldItem)?.name ?? mon.heldItem}`
+}
+
 const bagNote = (ctx, bag, index, mon) => {
   if (ctx.bagMessage) return ctx.bagMessage
 
   const key = bag[index]
 
-  if (!key) return gray(EMPTY_BAG_MESSAGE)
+  if (!key) {
+    return mon.heldItem
+      ? `${displayName(mon).toUpperCase()} is ${heldLabel(mon)}. Press [u] to take it back.`
+      : gray(EMPTY_BAG_MESSAGE)
+  }
 
   const target = stoneEvolution(mon, key)
 
   if (target) {
-    return `${brightYellow(EVOLVES_MARK)} ${displayName(mon).toUpperCase()} ${TEAM_MESSAGES.wouldBecome} ${speciesName(
-      target,
-    ).toUpperCase()}.`
+    return `${brightYellow(EVOLVES_MARK)} ${displayName(mon).toUpperCase()} ${TEAM_MESSAGES.wouldBecome} ${speciesName(target).toUpperCase()}.`
   }
 
-  return dim(
-    usableOnParty(key) ? ITEMS[key].description : TEAM_MESSAGES.notForParty,
-  )
+  const info = itemInfo(key)
+
+  if (canHoldItem(key)) {
+    const consumed = info.consumed
+      ? ' It is consumed when its battle effect triggers.'
+      : ''
+
+    return `${info.description}${consumed} ${displayName(mon).toUpperCase()} is ${heldLabel(mon)}.`
+  }
+
+  return dim(usableOnParty(key) ? info.description : TEAM_MESSAGES.notForParty)
 }
 
 const itemRow = (ctx, key, selected) => {
-  const name = usableOnParty(key) ? ITEMS[key].name : gray(ITEMS[key].name)
-  const mark = stoneEvolution(selected, key) ? brightYellow(EVOLVES_MARK) : ' '
+  const info = itemInfo(key)
+  const usable = usableOnParty(key) || canHoldItem(key)
+  const name = usable ? info.name : gray(info.name)
+  const mark = stoneEvolution(selected, key)
+    ? brightYellow(EVOLVES_MARK)
+    : selected.heldItem === key
+      ? brightYellow('◆')
+      : ' '
 
   return `${mark} ${padRight(name, BAG_ITEM_NAME_WIDTH)} ${dim(`x${countOf(ctx.save, key)}`)}`
 }
@@ -114,9 +136,15 @@ export const onKey = (ctx, key) => {
     ctx.bagSelection = wrap(index + 1, bag.length)
     ctx.bagMessage = null
   } else if (key.name === 'enter' || key.name === 'space') {
+    if (!bag[index]) return
+
     const entry = partyEntryAt(ctx.save.party, ctx.teamSelection, ctx.teamSort)
 
     ctx.useFromBag(bag[index], entry.index)
+  } else if (key.name === 'u') {
+    const entry = partyEntryAt(ctx.save.party, ctx.teamSelection, ctx.teamSort)
+
+    ctx.takeHeldItem(entry.index)
   } else if (key.name === 'escape' || key.name === 'q' || key.name === 'i') {
     ctx.closeBag()
   }

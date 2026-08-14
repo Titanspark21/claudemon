@@ -1839,9 +1839,9 @@
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "lightclay": {
-      "status": "supported",
-      "handler": "item:lightclay",
-      "source": "@pkmn/data 0.10.11 · Generation VII"
+      "status": "deferred-complex-one-off",
+      "source": "@pkmn/data 0.10.11 · Generation VII",
+      "reason": "Screen and barrier duration state is not modeled by the current singles battle engine."
     },
     "lifeorb": {
       "status": "supported",
@@ -1849,9 +1849,9 @@
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "powerherb": {
-      "status": "supported",
-      "handler": "item:powerherb",
-      "source": "@pkmn/data 0.10.11 · Generation VII"
+      "status": "deferred-complex-one-off",
+      "source": "@pkmn/data 0.10.11 · Generation VII",
+      "reason": "Charge-turn move state is not modeled by the current move executor."
     },
     "toxicorb": {
       "status": "supported",
@@ -1879,9 +1879,9 @@
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "metronome": {
-      "status": "supported",
-      "handler": "item:metronome",
-      "source": "@pkmn/data 0.10.11 · Generation VII"
+      "status": "deferred-complex-one-off",
+      "source": "@pkmn/data 0.10.11 · Generation VII",
+      "reason": "Consecutive-use move chain state is not modeled by the current battle actor."
     },
     "ironball": {
       "status": "supported",
@@ -1894,9 +1894,9 @@
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "destinyknot": {
-      "status": "supported",
-      "handler": "item:destinyknot",
-      "source": "@pkmn/data 0.10.11 · Generation VII"
+      "status": "deferred-complex-one-off",
+      "source": "@pkmn/data 0.10.11 · Generation VII",
+      "reason": "Attraction is not modeled by the current volatile-status engine."
     },
     "blacksludge": {
       "status": "supported",
@@ -2179,9 +2179,9 @@
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "floatstone": {
-      "status": "supported",
-      "handler": "item:floatstone",
-      "source": "@pkmn/data 0.10.11 · Generation VII"
+      "status": "deferred-complex-one-off",
+      "source": "@pkmn/data 0.10.11 · Generation VII",
+      "reason": "Weight-sensitive move and damage mechanics are not modeled by the current damage engine."
     },
     "rockyhelmet": {
       "status": "supported",
@@ -2194,14 +2194,14 @@
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "redcard": {
-      "status": "supported",
-      "handler": "item:redcard",
-      "source": "@pkmn/data 0.10.11 · Generation VII"
+      "status": "deferred-complex-one-off",
+      "source": "@pkmn/data 0.10.11 · Generation VII",
+      "reason": "Reactive forced switching is not modeled by the current battle action engine."
     },
     "ringtarget": {
-      "status": "supported",
-      "handler": "item:ringtarget",
-      "source": "@pkmn/data 0.10.11 · Generation VII"
+      "status": "deferred-complex-one-off",
+      "source": "@pkmn/data 0.10.11 · Generation VII",
+      "reason": "Type-immunity suppression is not modeled by the current type-effectiveness engine."
     },
     "bindingband": {
       "status": "supported",
@@ -2219,9 +2219,9 @@
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "ejectbutton": {
-      "status": "supported",
-      "handler": "item:ejectbutton",
-      "source": "@pkmn/data 0.10.11 · Generation VII"
+      "status": "deferred-complex-one-off",
+      "source": "@pkmn/data 0.10.11 · Generation VII",
+      "reason": "Reactive forced switching is not modeled by the current battle action engine."
     },
     "normalgem": {
       "status": "supported",
@@ -2704,9 +2704,9 @@
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "adrenalineorb": {
-      "status": "supported",
-      "handler": "item:adrenalineorb",
-      "source": "@pkmn/data 0.10.11 · Generation VII"
+      "status": "deferred-complex-one-off",
+      "source": "@pkmn/data 0.10.11 · Generation VII",
+      "reason": "Intimidate-triggered reactions depend on the ability pipeline that is not yet landed on this queue branch."
     },
     "icestone": {
       "status": "supported",
