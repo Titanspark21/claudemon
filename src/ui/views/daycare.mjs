@@ -35,11 +35,13 @@ import {
 import {
   clampSelection,
   columnRows,
+  detailColumnWidth,
   monColumn,
   monRow,
   noteRows,
   pushNote,
   rowsLeftFor,
+  stackedDetailRows,
   zipColumns,
 } from './helpers.mjs'
 
@@ -143,13 +145,18 @@ const drawSlots = (ctx, size) => {
   const note = noteRows(ctx.daycareMessage)
   const footer = [dim(DAYCARE_HINTS)]
   const budget = rowsLeftFor(rows, lines, footer, note)
-  const right = selected ? monDetail(selected) : []
+  const detailWidth = detailColumnWidth(size, DAYCARE_LIST_WIDTH)
+  const right = selected
+    ? monDetail(selected, {
+        width: detailWidth ?? Math.max(1, cols - 2),
+      })
+    : []
+  const body =
+    detailWidth == null && selected
+      ? stackedDetailRows(list, right)
+      : columnRows(list, right, DAYCARE_LIST_WIDTH)
 
-  for (const row of columnRows(list, right, DAYCARE_LIST_WIDTH).slice(
-    0,
-    budget,
-  ))
-    lines.push(row)
+  for (const row of body.slice(0, budget)) lines.push(row)
 
   pushNote(lines, note)
 
@@ -171,13 +178,18 @@ const drawPick = (ctx, size) => {
   const note = noteRows(ctx.daycareMessage)
   const footer = [dim(DAYCARE_PICK_HINTS)]
   const budget = rowsLeftFor(rows, lines, footer, note)
-  const right = monColumn(candidates[selection].mon, size, ctx.spriteScale)
+  const detailWidth = detailColumnWidth(size, DAYCARE_LIST_WIDTH)
+  const selected = candidates[selection].mon
+  const right =
+    detailWidth == null
+      ? monDetail(selected, { width: Math.max(1, size.cols - 2) })
+      : monColumn(selected, size, ctx.spriteScale, detailWidth)
+  const body =
+    detailWidth == null
+      ? stackedDetailRows(list, right)
+      : columnRows(list, right, DAYCARE_LIST_WIDTH)
 
-  for (const row of columnRows(list, right, DAYCARE_LIST_WIDTH).slice(
-    0,
-    budget,
-  ))
-    lines.push(row)
+  for (const row of body.slice(0, budget)) lines.push(row)
 
   pushNote(lines, note)
 

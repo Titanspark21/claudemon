@@ -11,6 +11,8 @@ import {
   COLUMN_DIVIDER,
   DEX_MARKS,
   DEX_SORT,
+  DETAIL_COLUMN_CHROME,
+  DETAIL_MIN_COLUMN_WIDTH,
   EVOLUTION_WORDING,
   MON_NAME_WIDTH,
   MON_SPRITE_RESERVED_ROWS,
@@ -67,13 +69,25 @@ export const pushNote = (lines, note) => {
   return lines
 }
 
-export const monColumn = (mon, size, scale) => {
+export const monColumn = (mon, size, scale, width) => {
   const sprite = loadSprite(monSpriteFile('front', mon.species, mon.shiny), {
     cols: fitCanvasCols(size, MON_SPRITE_RESERVED_ROWS, scale),
   })
 
-  return [...monDetail(mon), '', ...(sprite ? sprite.rows : [])]
+  return [...monDetail(mon, { width }), '', ...(sprite ? sprite.rows : [])]
 }
+
+export const detailColumnWidth = (size, listWidth) => {
+  const width = size.cols - listWidth - DETAIL_COLUMN_CHROME
+
+  return width >= DETAIL_MIN_COLUMN_WIDTH ? width : null
+}
+
+export const stackedDetailRows = (list, detail) => [
+  ...list.map((row) => ` ${row}`),
+  '',
+  ...detail.map((row) => ` ${row}`),
+]
 
 export const columnRows = (list, right, width) => {
   if (right.length === 0) return list.map((row) => ` ${row}`)

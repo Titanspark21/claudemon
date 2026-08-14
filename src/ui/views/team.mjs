@@ -1,5 +1,6 @@
 import { PARTY_LIMIT } from '../../constants.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
+import { monDetail } from '../detail.mjs'
 import { menuList, withFooter, wrap } from '../widgets.mjs'
 import {
   LEAD_MARK,
@@ -13,6 +14,7 @@ import {
 } from './constants.mjs'
 import {
   columnRows,
+  detailColumnWidth,
   monColumn,
   monRow,
   nextPartySort,
@@ -22,6 +24,7 @@ import {
   pushNote,
   rowsLeftFor,
   sortedPartyEntries,
+  stackedDetailRows,
 } from './helpers.mjs'
 
 const partyRow = (mon, partyIndex) => {
@@ -66,13 +69,20 @@ export const draw = (ctx, size) => {
     width: LIST_WIDTH,
   })
 
-  const right = monColumn(selected, size, ctx.spriteScale)
+  const detailWidth = detailColumnWidth(size, LIST_WIDTH)
+  const right =
+    detailWidth == null
+      ? monDetail(selected, { width: Math.max(1, size.cols - 2) })
+      : monColumn(selected, size, ctx.spriteScale, detailWidth)
   const note = noteRows(ctx.bagMessage ?? ctx.boxMessage)
   const footer = [dim(TEAM_HINTS), dim(TEAM_KEY_HINTS)]
   const budget = rowsLeftFor(rows, lines, footer, note)
+  const body =
+    detailWidth == null
+      ? stackedDetailRows(list, right)
+      : columnRows(list, right, LIST_WIDTH)
 
-  for (const row of columnRows(list, right, LIST_WIDTH).slice(0, budget))
-    lines.push(row)
+  for (const row of body.slice(0, budget)) lines.push(row)
 
   pushNote(lines, note)
 
