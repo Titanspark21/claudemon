@@ -391,45 +391,6 @@ coverageReport(dataset, coverage) -> string
       handler means implement it,” then commit the approved baseline.
 - [ ] Commit: `data: make mechanics coverage explicit`
 
-### Task O5: Add nature, ability, and held-item ownership to Pokémon
-
-**Files:**
-
-- Create: `src/natures.mjs`
-- Create: `src/natures.test.mjs`
-- Modify: `src/stats.mjs`
-- Modify: `src/pokemon.mjs`
-- Modify: `src/transformers.mjs`
-- Modify: `src/trade.mjs`
-- Modify: `src/daycare.mjs`
-- Test: `src/stats.test.mjs`
-- Test: `src/daycare.test.mjs`
-- Test: `src/trade.test.mjs`
-
-**Interfaces:**
-
-```js
-rollNature(rng) -> natureKey
-natureModifiers(natureKey) -> { raised, lowered }
-statsAtLevel(speciesId, level, ivs, nature) -> Stats
-rollAbility(speciesId, rng, hiddenChance) -> abilityKey
-legalAbilityAfterEvolution(mon, targetSpecies) -> abilityKey
-ivPercentage(ivs) -> number
-```
-
-- [ ] Add failing tests for all 25 natures, HP never modified, rounding order,
-      deterministic rolls, hidden rarity boundary, evolution slot preservation,
-      breeding/trade preservation, and held-item round trip.
-- [ ] Run the focused nature/stats/transformer tests.
-- [ ] Add stable fields `nature`, `ability`, and `heldItem` to creation,
-      storage, trade, daycare, evolution, and form changes.
-- [ ] Apply nature after the base IV formula and refresh HP proportion safely
-      when nature or form changes maximum HP.
-- [ ] Keep ability legal across evolution by slot when possible; use a
-      deterministic legal fallback otherwise.
-- [ ] Run focused tests and full coverage.
-- [ ] Commit: `feature: add natures abilities and held items to Pokemon`
-
 ### Task O6: Build the ordered battle-effect pipeline
 
 **Files:**
