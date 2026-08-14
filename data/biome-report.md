@@ -140,3 +140,23 @@ Coherence: 87.0%
 ## Validation
 
 Zero validation errors.
+
+## Encounter simulation
+
+Seed: `1804289383`
+Seeded species rolls: 1000000
+SPEC ordinary-pool target: 173.22 (147.24–199.21, ±15%)
+
+| Biome | Rolls | Ordinary pool | Total pool | Unique seen | Species share p10 / p50 / p90 | Legendary + mythical | Families | Top families |
+| --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | --- |
+| meadow | 111112 | 173 | 197 | 197 | 0.026% / 0.393% / 1.178% | 0.566% | 116 | Oricorio 2.26%, Azurill 2.26%, Hoppip 2.15% |
+| forest | 111111 | 173 | 186 | 186 | 0.141% / 0.459% / 1.157% | 0.262% | 112 | Wurmple 2.74%, Pumpkaboo 2.25%, Scatterbug 2.11% |
+| wetlands | 111111 | 173 | 186 | 186 | 0.129% / 0.442% / 1.193% | 0.427% | 117 | Grimer 4.03%, Diglett 2.87%, Pumpkaboo 2.49% |
+| coast | 111111 | 174 | 190 | 190 | 0.165% / 0.445% / 1.063% | 0.312% | 128 | Geodude 3.58%, Slowpoke 1.97%, Clamperl 1.96% |
+| highlands | 111111 | 173 | 228 | 228 | 0.014% / 0.415% / 1.013% | 1.506% | 146 | Geodude 3.76%, Rattata 3.36%, Rockruff 2.64% |
+| badlands | 111111 | 173 | 188 | 188 | 0.170% / 0.431% / 1.026% | 1.088% | 113 | Trapinch 2.70%, Sandshrew 2.31%, Sandile 2.25% |
+| frostlands | 111111 | 173 | 193 | 193 | 0.044% / 0.419% / 1.007% | 0.517% | 118 | Sandshrew 4.00%, Vulpix 3.58%, Rockruff 3.03% |
+| city-powerworks | 111111 | 174 | 201 | 201 | 0.019% / 0.424% / 0.984% | 0.464% | 133 | Wurmple 2.04%, Weedle 1.72%, Meowth 1.71% |
+| mystic-ruins | 111111 | 173 | 232 | 232 | 0.017% / 0.349% / 1.118% | 1.449% | 151 | Vulpix 4.62%, Rattata 2.89%, Unown 2.25% |
+
+All nine ordinary pools remain within the derived SPEC ±15% breadth target.
