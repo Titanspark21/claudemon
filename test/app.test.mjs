@@ -3446,6 +3446,7 @@ test('Should carry the version on the home screen, and the notice only when ther
 })
 
 test('Should hand over the badge once the whole gym is down, and write it where it survives the terminal', () => {
+  const random = vi.spyOn(Math, 'random').mockReturnValue(0)
   const save = createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) })
 
   save.party = [createPokemon(150, 80, makeRng(2))]
@@ -3494,6 +3495,8 @@ test('Should hand over the badge once the whole gym is down, and write it where 
   expect(app.save.badges).toEqual(['pewter'])
   expect(app.gymMessage).toContain('Boulder Badge')
   expect(loadSave().badges, 'and it is on disk').toEqual(['pewter'])
+
+  random.mockRestore()
 })
 
 test('Should put the save back exactly as it was when the gym beats you', () => {
