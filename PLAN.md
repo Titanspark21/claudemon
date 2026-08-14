@@ -649,57 +649,6 @@ validateBiomePools(records, assignments) -> ValidationResult
       rerun until validation reports zero errors.
 - [ ] Commit: `data: generate broad biome encounter pools`
 
-### Task O13: Implement persistent active-work biome expeditions
-
-**Files:**
-
-- Create: `src/expedition.mjs`
-- Create: `src/expedition.test.mjs`
-- Modify: `src/state.mjs`
-- Modify: `src/app.mjs`
-- Modify: `src/transformers.mjs`
-- Modify: `src/rng.mjs`
-- Modify: `src/constants.mjs`
-
-**Interfaces:**
-
-```js
-createExpedition(seed, workedMs, startingBiome) -> Expedition
-advanceExpedition(expedition, workedMs) -> ExpeditionEvent[]
-forcedVisitTarget(seed) -> activeMs // triangular 30/40/65, mean 45
-optionalForkTarget(seed) -> activeMs | null // 40% of visits, 15–30
-offerOptionalFork(expedition) -> { stay, paths: [biome, biome] }
-forceDeparture(expedition) -> { paths: [biome, biome] }
-chooseBiomePath(expedition, choice) -> Expedition
-autoChooseDeparture(expedition) -> Expedition
-```
-
-- [ ] Add failing tests for triangular 30-minute minimum, 40-minute mode,
-      65-minute maximum and exact 45-minute expected value; only active-work
-      advancement; new/migrated saves starting in Meadow; restart persistence;
-      a 40% optional-fork rate with targets from 15–30 minutes; optional Stay
-      preserving the original forced target; exactly two neighboring departure
-      choices; no encounter after expiry in the old biome; deterministic
-      automatic departure; corrupt-state normalization; and concurrent input.
-- [ ] Run `npm test -- src/expedition.test.mjs src/worked.test.mjs`.
-- [ ] Define and validate a connected travel graph where every biome has enough
-      neighbors to produce two distinct paths.
-- [ ] Store all random decisions as seeds/targets so repainting or restarting
-      cannot reroll visit duration, optional-fork eligibility, optional-fork
-      timing, offered paths, or automatic destination.
-- [ ] When the forced target is reached, leave the old biome immediately. Show
-      two destination choices if the UI can accept input; otherwise choose one
-      deterministically on the next activity tick before rolling an encounter.
-- [ ] Keep an ignored optional offer available until it is dismissed, accepted,
-      or superseded by forced departure; ignoring or choosing Stay must not
-      reset elapsed work or the forced target.
-- [ ] Advance expeditions only from the merged worked-time total completed in
-      Task B1.
-- [ ] Run a seeded simulation of 10,000 visits and assert bounds, graph reach,
-      a mean within 0.25 minutes of 45, optional-fork frequency within one
-      percentage point of 40%, no stuck biome, and stable replay.
-- [ ] Commit: `feature: travel through biomes while Claude works`
-
 ### Task O14: Make encounters biome-aware without shrinking variety
 
 **Files:**
