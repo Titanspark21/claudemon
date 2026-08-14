@@ -406,53 +406,6 @@ src/battleEvents.test.mjs src/battleFlow.test.mjs src/damage.test.mjs`.
       battle coverage.
 - [ ] Commit: `feature: support Generation VII move families`
 
-### Task O9: Implement item inventory, equipping, acquisition, and effects
-
-**Files:**
-
-- Create: `src/heldItems.mjs`
-- Create: `src/heldItems.test.mjs`
-- Create: `src/itemEffects.mjs`
-- Create: `src/itemEffects.test.mjs`
-- Modify: `src/shop.mjs`
-- Modify: `src/itemUse.mjs`
-- Modify: `src/state.mjs`
-- Modify: `src/app.mjs`
-- Modify: `src/ui/views/bag.mjs`
-- Modify: `data/items.json`
-- Modify: `data/mechanics-coverage.json`
-
-**Interfaces:**
-
-```js
-equipHeldItem(save, mon, itemKey) -> { ok, returnedItem, message }
-unequipHeldItem(save, mon) -> { ok, item, message }
-consumeHeldItem(battle, side, cause, events) -> boolean
-itemHandlers(itemKey) -> EffectHandler[]
-rollWildHeldItem(speciesId, versionGroup, rng) -> itemKey | null
-```
-
-- [ ] Add failing inventory tests for equip, safe swap, unequip, full/no item,
-      trade/daycare preservation, battle rollback, exactly-once consumption, wild
-      held rarity, shop badge gates, and Mega Stone uniqueness.
-- [ ] Add table-driven effect tests for type boosters, plates, choice items,
-      Leftovers, Life Orb, Focus Sash, Rocky Helmet, status or HP berries, weather
-      rocks, terrain seeds, Eviolite, Expert Belt, orbs, herbs, and other shared
-      Gen-VII families.
-- [ ] Run focused tests and confirm failures.
-- [ ] Generate item records and categories, then implement inventory operations
-      before battle effects so no effect can create or lose an item accidentally.
-- [ ] Implement all applicable shared families and modest one-offs; classify
-      key/story/contest/mail/cosmetic, doubles-only, Z-Crystal, and blocked records
-      with concrete reasons.
-- [ ] Journal held-item consumption: commit once for resolved wild/trainer
-      battles, restore on Gym/League rollback, and leave the last saved state
-      untouched after a crash before resolution.
-- [ ] Add badge-gated common stock, canonical wild-held rolls, and progression
-      reward tables for rare items and Mega Stones.
-- [ ] Require zero unclassified items and run seeded duplication/rollback tests.
-- [ ] Commit: `feature: add comprehensive held item support`
-
 ### Task O10: Add weather, terrain, grounded rules, and field duration
 
 **Files:**
