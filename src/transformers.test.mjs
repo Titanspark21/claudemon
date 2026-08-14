@@ -87,6 +87,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
     'daycare',
     'dex',
     'expedition',
+    'league',
     'money',
     'party',
     'stats',
@@ -96,6 +97,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
   ])
   expect(save.trainer).toEqual(rawSave.trainer)
   expect(save.badges).toEqual(['pewter', 'cerulean'])
+  expect(save.league).toEqual({ championships: 0, firstWonAt: null })
   expect(save.dex).toEqual({
     seen: [4, 19],
     caught: [4],
@@ -156,6 +158,7 @@ test('Should give a save written before a field existed an empty one instead', (
   expect(save.money).toBe(0)
   expect(save.badges).toEqual([])
   expect(save.expedition).toBeNull()
+  expect(save.league).toEqual({ championships: 0, firstWonAt: null })
   expect(save.dex).toEqual({ seen: [], caught: [], shiny: [], faced: {} })
   expect(save.stats).toEqual({
     battles: 0,
@@ -266,6 +269,7 @@ test('Should map a status to the lead, the counters and the heartbeat', () => {
     balls: 5,
     money: 3000,
     caught: 2,
+    caughtTotal: 809,
     heartbeat: 1234,
     biome: 'forest',
     visitRevision: 7,
@@ -277,6 +281,7 @@ test('Should map a status to the lead, the counters and the heartbeat', () => {
     balls: 5,
     money: 3000,
     caught: 2,
+    caughtTotal: 809,
     heartbeat: 1234,
     biome: 'forest',
     visitRevision: 7,
@@ -297,6 +302,7 @@ test('Should write a status with only the five fields the status line reads', ()
     balls: 1,
     money: 10,
     caught: 1,
+    caughtTotal: 809,
     heartbeat: 99,
     state: 'working',
   })
@@ -305,6 +311,7 @@ test('Should write a status with only the five fields the status line reads', ()
     'balls',
     'biome',
     'caught',
+    'caughtTotal',
     'heartbeat',
     'lead',
     'money',

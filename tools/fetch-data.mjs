@@ -7,6 +7,7 @@ import { BUNDLED_DATA_DIR, bundledDataFile, DATA_DIR } from '../src/paths.mjs'
 import { bold, brightGreen, dim } from '../src/ui/ansi.mjs'
 import { pass as runPass } from './progress.mjs'
 import { buildItemRecords, loadItemCoverage } from './itemData.mjs'
+import { buildProgressionData } from './progressionData.mjs'
 import {
   buildBiomePools,
   buildBiomeReport,
@@ -627,6 +628,7 @@ const main = async () => {
       `Generated biome pools failed validation:\n${biomeValidation.errors.slice(0, 40).join('\n')}`,
     )
 
+  const progressionOutput = buildProgressionData(pokedex)
   const biomeOutput = buildBiomePools(biomeAssignments)
   const biomeReport = buildBiomeReport(
     pokedex,
@@ -671,6 +673,7 @@ const main = async () => {
     ['types.json', typeOutput],
     ['growth.json', growthOutput],
     ['generation-vii-audit.json', audit],
+    ['progression.json', progressionOutput],
     ['biomes.json', biomeOutput],
   ]
 

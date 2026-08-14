@@ -28,12 +28,15 @@ export const loadData = () => {
     types: read('types.json'),
     growth: read('growth.json'),
     biomes: read('biomes.json'),
+    progression: read('progression.json'),
   }
 
   return cache
 }
 
 export const loadPokedex = () => loadData().pokedex
+
+export const progressionData = () => loadData().progression
 
 export const isDataReady = () => {
   try {

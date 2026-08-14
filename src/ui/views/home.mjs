@@ -1,6 +1,7 @@
 import { isWorking } from '../../activity.mjs'
 import { TRAINER_MESSAGES } from '../../constants.mjs'
 import { encounterSpecies } from '../../encounter.mjs'
+import { leagueUnlocked, nationalCompletion } from '../../league.mjs'
 import { monSpriteFile, trainerSpriteFile } from '../../paths.mjs'
 import { displayName, genderOf, isFainted, levelOf } from '../../pokemon.mjs'
 import {
@@ -39,7 +40,6 @@ import {
   HOME_HINTS,
   HOME_SPRITE_RESERVED_ROWS,
   HOME_TEAM_PANEL_TITLE,
-  KANTO_TOTAL,
   MAX_HOME_WIDTH,
   MENU_CELL,
   MON_LEVEL_WIDTH,
@@ -58,11 +58,14 @@ import {
 import { clampSelection, menuColumns } from './helpers.mjs'
 
 export const menuItems = (ctx) => {
-  const base = isWorking(ctx.activity)
-    ? BASE_MENU.map((item) =>
-        item.id === 'heal' ? { ...item, disabled: true } : item,
-      )
-    : BASE_MENU
+  const base = BASE_MENU.map((item) => {
+    if (item.id === 'heal' && isWorking(ctx.activity))
+      return { ...item, disabled: true }
+    if (item.id === 'league' && !leagueUnlocked(ctx.save))
+      return { ...item, disabled: true }
+
+    return item
+  })
 
   if (!ctx.encounter) return base
 
@@ -211,8 +214,9 @@ export const draw = (ctx, size) => {
   const working = ctx.activity.state === 'working'
 
   const title = `${brightYellow('◓')} ${bold(APP_TITLE)}`
+  const completion = nationalCompletion(ctx.save)
   const summary = dim(
-    `${ctx.save.dex.caught.length}/${KANTO_TOTAL} caught · ${totalBalls(ctx.save)} balls · ${money(ctx.save.money)}`,
+    `${completion.caught}/${completion.total} caught · ${totalBalls(ctx.save)} balls · ${money(ctx.save.money)}`,
   )
 
   lines.push(` ${padRight(title, width - TITLE_COLUMN_SPLIT)}${summary}`)

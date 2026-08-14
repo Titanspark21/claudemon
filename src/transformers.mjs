@@ -62,6 +62,13 @@ const mapTrades = (trades) => {
   }
 }
 
+const mapLeague = (league) => {
+  return {
+    championships: league?.championships ?? 0,
+    firstWonAt: league?.firstWonAt ?? null,
+  }
+}
+
 const mapEgg = (egg) => {
   if (!egg) return null
 
@@ -129,6 +136,7 @@ const mapSave = (save) => {
       ? save.achievements.map(mapAchievement)
       : [],
     trades: mapTrades(save.trades),
+    league: mapLeague(save.league),
     expedition: mapExpedition(save.expedition),
   }
 }
@@ -156,6 +164,7 @@ const mapStatus = (status) => {
     balls: status.balls,
     money: status.money,
     caught: status.caught,
+    caughtTotal: status.caughtTotal,
     visitRevision: status.visitRevision ?? 0,
     heartbeat: status.heartbeat,
     biome: status.biome ?? null,

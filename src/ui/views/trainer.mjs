@@ -1,5 +1,10 @@
-import { achievementEntries, earnedCount } from '../../achievements.mjs'
-import { ACHIEVEMENTS, GYMS } from '../../constants.mjs'
+import {
+  achievementDefinitions,
+  achievementEntries,
+  earnedCount,
+} from '../../achievements.mjs'
+import { gyms } from '../../gym.mjs'
+import { nationalCompletion } from '../../league.mjs'
 import { daysOnTheRoad } from '../../state.mjs'
 import { workedHours } from '../../worked.mjs'
 import { bold, brightGreen, brightYellow, dim, gray } from '../ansi.mjs'
@@ -15,7 +20,6 @@ import {
 import {
   ACHIEVEMENT_MARKS,
   COLUMN_DIVIDER,
-  KANTO_TOTAL,
   LIST_HEIGHT_FLOOR,
   TRAINER_ACHIEVEMENTS_TITLE,
   TRAINER_ACHIEVEMENT_WIDTH,
@@ -44,10 +48,12 @@ const recordRow = (label, value) => {
 }
 
 const recordRows = (save, worked) => {
+  const completion = nationalCompletion(save)
+
   return [
     recordRow(
       TRAINER_RECORD_LABELS.caught,
-      `${save.dex.caught.length}/${KANTO_TOTAL}`,
+      `${completion.caught}/${completion.total}`,
     ),
     recordRow(TRAINER_RECORD_LABELS.shiny, `${save.dex.shiny.length}`),
     recordRow(TRAINER_RECORD_LABELS.battles, `${save.stats.battles}`),
@@ -100,7 +106,7 @@ export const draw = (ctx, size) => {
     }),
     '',
     ` ${badgeStrip(ctx.save)}  ${dim(
-      `${ctx.save.badges.length}/${GYMS.length} ${TRAINER_NOTES.badges}`,
+      `${ctx.save.badges.length}/${gyms().length} ${TRAINER_NOTES.badges}`,
     )}`,
   ]
 
@@ -132,10 +138,16 @@ export const draw = (ctx, size) => {
 
 export const onKey = (ctx, key) => {
   if (key.name === 'up' || key.name === 'k') {
-    ctx.trainerSelection = wrap(ctx.trainerSelection - 1, ACHIEVEMENTS.length)
+    ctx.trainerSelection = wrap(
+      ctx.trainerSelection - 1,
+      achievementDefinitions().length,
+    )
     ctx.playSound('cursor')
   } else if (key.name === 'down' || key.name === 'j') {
-    ctx.trainerSelection = wrap(ctx.trainerSelection + 1, ACHIEVEMENTS.length)
+    ctx.trainerSelection = wrap(
+      ctx.trainerSelection + 1,
+      achievementDefinitions().length,
+    )
     ctx.playSound('cursor')
   } else if (key.name === 's') {
     ctx.playSound('select')

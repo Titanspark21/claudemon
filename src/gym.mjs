@@ -1,8 +1,11 @@
-import { GYM_SEED_STRIDE, GYM_STATUSES, GYMS } from './constants.mjs'
+import { GYM_SEED_STRIDE, GYM_STATUSES } from './constants.mjs'
+import { progressionData } from './data.mjs'
 
-export const gymById = (id) => GYMS.find((gym) => gym.id === id)
+export const gyms = () => progressionData().gyms
 
-export const gymIndex = (id) => GYMS.findIndex((gym) => gym.id === id)
+export const gymById = (id) => gyms().find((gym) => gym.id === id)
+
+export const gymIndex = (id) => gyms().findIndex((gym) => gym.id === id)
 
 export const gymRoster = (gym) => [...gym.trainers, gym.leader]
 

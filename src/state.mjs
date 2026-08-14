@@ -13,6 +13,7 @@ import {
 import { updateJsonFile as updateFile } from './fileLock.mjs'
 import { allPokemon, pokemonList } from './helpers.mjs'
 import { createExpedition, normalizeExpedition } from './expedition.mjs'
+import { nationalCompletion } from './league.mjs'
 import { SAVE_FILE } from './paths.mjs'
 import {
   createPokemon,
@@ -71,6 +72,7 @@ export const createSave = ({ trainer, starterId, rng }) => {
     stats: { ...EMPTY_STATS, caught: STARTER_CAUGHT_COUNT },
     achievements: [],
     trades: { received: [] },
+    league: { championships: 0, firstWonAt: null },
     expedition: createExpedition(seedFromRng(rng), workedMs),
   }
 
@@ -141,6 +143,8 @@ const migrate = (save) => {
     recordInDex(save, mon)
     refreshStats(mon)
   }
+
+  save.league ??= { championships: 0, firstWonAt: null }
 
   const worked = readWorked()
 
@@ -226,14 +230,19 @@ const visitRevisionOf = (save) => {
   return save.expedition.visitRevision ?? 0
 }
 
-const statusOf = (save) => ({
-  lead: describeLead(getLead(save)),
-  balls: totalBalls(save),
-  money: save.money,
-  caught: save.dex.caught.length,
-  biome: biomeOf(save),
-  visitRevision: visitRevisionOf(save),
-})
+const statusOf = (save) => {
+  const completion = nationalCompletion(save)
+
+  return {
+    lead: describeLead(getLead(save)),
+    balls: totalBalls(save),
+    money: save.money,
+    caught: completion.caught,
+    caughtTotal: completion.total,
+    biome: biomeOf(save),
+    visitRevision: visitRevisionOf(save),
+  }
+}
 
 export const publishStatus = (save) => writeStatus(statusOf(save))
 

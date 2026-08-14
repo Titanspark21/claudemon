@@ -1,5 +1,8 @@
 import { expect, test, vi } from 'vitest'
-import { recordAchievements } from '../../achievements.mjs'
+import {
+  achievementDefinitions,
+  recordAchievements,
+} from '../../achievements.mjs'
 import { HOUR_MS } from '../../constants.mjs'
 import { createPokemon } from '../../pokemon.mjs'
 import { makeRng } from '../../rng.mjs'
@@ -55,7 +58,7 @@ test('Should show the record the card is built from, all of it, on one screen', 
 
   expect(text).toContain('ASH')
   expect(text, 'the trainer started a week ago').toMatch(/\d+ days on the road/)
-  expect(text).toContain('Caught   3/151')
+  expect(text).toContain('Caught   3/809')
   expect(text).toContain('Battles  14')
   expect(text).toContain('Lost     3')
   expect(text).toContain('Ran      2')
@@ -77,7 +80,9 @@ test('Should count the earned achievements and show the rest with how far along 
 
   const text = textOf(aCtx(save, { totalMs: 0 }, 0))
 
-  expect(text).toContain(`${TRAINER_ACHIEVEMENTS_TITLE}  2/15`)
+  expect(text).toContain(
+    `${TRAINER_ACHIEVEMENTS_TITLE}  2/${achievementDefinitions().length}`,
+  )
   expect(text).toContain('● First catch')
   expect(text, 'a locked one carries its progress').toMatch(
     /○ Dex at 25\s+3\/25/,
@@ -111,7 +116,9 @@ test('Should wrap the cursor round the ends of the achievement list', () => {
 
   onKey(ctx, { name: 'up' })
 
-  expect(ctx.trainerSelection, 'up from the top lands on the last').toBe(14)
+  expect(ctx.trainerSelection, 'up from the top lands on the last').toBe(
+    achievementDefinitions().length - 1,
+  )
 
   onKey(ctx, { name: 'down' })
 

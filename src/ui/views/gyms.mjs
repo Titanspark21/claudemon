@@ -1,5 +1,4 @@
-import { GYMS } from '../../constants.mjs'
-import { gymLevelRange } from '../../gym.mjs'
+import { gymLevelRange, gyms } from '../../gym.mjs'
 import { trainerSpriteFile } from '../../paths.mjs'
 import { countOfKind } from '../../shop.mjs'
 import { hasBadge } from '../../state.mjs'
@@ -63,20 +62,21 @@ export const draw = (ctx, size) => {
   const lines = []
   const overlays = []
 
-  const selected = GYMS[ctx.gymSelection]
+  const gymList = gyms()
+  const selected = gymList[ctx.gymSelection]
   const detailLeft = GYMS_LIST_WIDTH + GYM_DETAIL_GAP
 
   lines.push(
     ` ${brightYellow('◓')} ${bold(GYMS_TITLE)}   ${badgeStrip(ctx.save)}  ${dim(
-      `${ctx.save.badges.length}/${GYMS.length} ${GYM_MESSAGES.badges}`,
+      `${ctx.save.badges.length}/${gymList.length} ${GYM_MESSAGES.badges}`,
     )}`,
   )
   lines.push('')
 
-  const entries = GYMS.map((gym) => gymRow(gym, hasBadge(ctx.save, gym.id)))
+  const entries = gymList.map((gym) => gymRow(gym, hasBadge(ctx.save, gym.id)))
 
   const list = menuList(entries, ctx.gymSelection, {
-    height: Math.max(LIST_HEIGHT_FLOOR, GYMS.length),
+    height: Math.max(LIST_HEIGHT_FLOOR, gymList.length),
     width: GYMS_LIST_WIDTH,
   })
 
@@ -119,14 +119,16 @@ export const draw = (ctx, size) => {
 }
 
 export const onKey = (ctx, key) => {
+  const gymList = gyms()
+
   if (key.name === 'up' || key.name === 'k') {
-    ctx.gymSelection = wrap(ctx.gymSelection - 1, GYMS.length)
+    ctx.gymSelection = wrap(ctx.gymSelection - 1, gymList.length)
     ctx.gymMessage = null
   } else if (key.name === 'down' || key.name === 'j') {
-    ctx.gymSelection = wrap(ctx.gymSelection + 1, GYMS.length)
+    ctx.gymSelection = wrap(ctx.gymSelection + 1, gymList.length)
     ctx.gymMessage = null
   } else if (key.name === 'enter' || key.name === 'space') {
-    ctx.startGymRun(GYMS[ctx.gymSelection].id)
+    ctx.startGymRun(gymList[ctx.gymSelection].id)
   } else if (key.name === 'escape' || key.name === 'q') {
     ctx.gymMessage = null
     ctx.homeSelection = 0

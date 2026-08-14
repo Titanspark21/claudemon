@@ -4,6 +4,7 @@ import {
   BATTLE_ITEM_KINDS,
   BATTLE_MESSAGES,
   GYM_MESSAGES,
+  LEAGUE_MESSAGES,
   HP_DRAIN_STEPS,
   ITEMS,
 } from './constants.mjs'
@@ -452,6 +453,7 @@ const beginPostBattle = (ctx) => {
 
 const blackoutOutcome = (ctx) => {
   if (ctx.gym) return { rest: false, note: GYM_MESSAGES.thrownOut }
+  if (ctx.league) return { rest: false, note: LEAGUE_MESSAGES.thrownOut }
 
   if (isWorking(ctx.activity))
     return { rest: false, note: BATTLE_MESSAGES.noRest }
@@ -548,6 +550,10 @@ const finishBattle = (ctx) => {
 
   if (ctx.gym) {
     ctx.finishGymBattle(outcome)
+    return
+  }
+  if (ctx.league) {
+    ctx.finishLeagueBattle(outcome)
     return
   }
 

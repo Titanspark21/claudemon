@@ -1,11 +1,12 @@
 import { expect, test } from 'vitest'
 import {
+  achievementDefinitions,
   achievementEntries,
   achievementProgress,
   earnedCount,
   recordAchievements,
 } from './achievements.mjs'
-import { ACHIEVEMENTS, HOUR_MS } from './constants.mjs'
+import { HOUR_MS } from './constants.mjs'
 import { createPokemon } from './pokemon.mjs'
 import { makeRng } from './rng.mjs'
 
@@ -62,12 +63,16 @@ test('Should read every metric an achievement is measured against off the save',
 
   expect(achievementProgress(save, { totalMs: HOUR_MS * 30 })).toEqual({
     caught: 2,
+    kantoCaught: 2,
+    nationalCaught: 2,
+    formCaught: 0,
     shiny: 1,
     badges: 2,
     wins: 21,
     streak: 9,
     level: 52,
     hours: 30,
+    championships: 0,
   })
 })
 
@@ -133,7 +138,7 @@ test('Should describe every achievement with how far along it is and whether it 
 
   const entries = achievementEntries(save, { totalMs: 0 })
 
-  expect(entries).toHaveLength(ACHIEVEMENTS.length)
+  expect(entries).toHaveLength(achievementDefinitions().length)
   expect(earnedCount(entries)).toBe(1)
   expect(entryOf(save, { totalMs: 0 }, 'first-catch').earnedAt).toBe(
     '2026-08-08T10:00:00.000Z',
@@ -150,12 +155,38 @@ test('Should describe every achievement with how far along it is and whether it 
 
 test('Should give every achievement a unique id and a metric the progress actually reports', () => {
   const progress = achievementProgress(aSave({}), { totalMs: 0 })
-  const ids = ACHIEVEMENTS.map((achievement) => achievement.id)
+  const definitions = achievementDefinitions()
+  const ids = definitions.map((achievement) => achievement.id)
 
   expect(new Set(ids).size, 'no id is used twice').toBe(ids.length)
 
-  for (const achievement of ACHIEVEMENTS) {
+  for (const achievement of definitions) {
     expect(progress[achievement.metric], achievement.id).toBeTypeOf('number')
     expect(achievement.goal, achievement.id).toBeGreaterThan(0)
   }
+})
+
+test('Should preserve an earned Kanto completion while National progress keeps growing', () => {
+  const save = aSave({
+    caught: Array.from({ length: 152 }, (_, index) => index + 1),
+  })
+  save.achievements.push({
+    id: 'dex-151',
+    earnedAt: '2026-07-01T00:00:00.000Z',
+  })
+
+  recordAchievements(save, { totalMs: 0 }, Date.parse('2026-08-10T00:00:00Z'))
+
+  expect(entryOf(save, { totalMs: 0 }, 'dex-151')).toMatchObject({
+    value: 151,
+    earnedAt: '2026-07-01T00:00:00.000Z',
+  })
+  expect(entryOf(save, { totalMs: 0 }, 'dex-national')).toMatchObject({
+    value: 152,
+    goal: 809,
+    earnedAt: null,
+  })
+  expect(entryOf(save, { totalMs: 0 }, 'forms-complete').id).toBe(
+    'forms-complete',
+  )
 })

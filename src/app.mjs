@@ -14,6 +14,7 @@ import {
   FRAMES_PER_STEP,
   GYM_MESSAGES,
   HOME_NOTICES,
+  LEAGUE_MESSAGES,
   TRADE_MESSAGES,
   TRAINER_MESSAGES,
 } from './constants.mjs'
@@ -59,10 +60,18 @@ import {
   isGymCleared,
   rollbackGymRun,
 } from './gym.mjs'
+import {
+  advanceLeague,
+  currentLeagueOpponent,
+  leagueBattleSeed,
+  leagueUnlocked,
+  rollbackLeagueRun,
+  startLeague,
+} from './league.mjs'
 import { canSpare } from './helpers.mjs'
 import { giveHeldItem, applyItem, takeHeldItem } from './itemUse.mjs'
 import { describeStep } from './progression.mjs'
-import { createPokemon, displayName } from './pokemon.mjs'
+import { createPokemon, displayName, makeMoveSlot } from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { CARD_FILE } from './paths.mjs'
 import { copyToClipboard } from './clipboard.mjs'
@@ -103,6 +112,7 @@ import * as dexView from './ui/views/dex.mjs'
 import * as gymView from './ui/views/gym.mjs'
 import * as gymsView from './ui/views/gyms.mjs'
 import * as homeView from './ui/views/home.mjs'
+import * as leagueView from './ui/views/league.mjs'
 import * as optionsView from './ui/views/options.mjs'
 import * as shopView from './ui/views/shop.mjs'
 import * as starterView from './ui/views/starter.mjs'
@@ -126,6 +136,7 @@ const VIEWS = {
   update: updateView,
   gyms: gymsView,
   gym: gymView,
+  league: leagueView,
   trade: tradeView,
   trainer: trainerView,
 }
@@ -219,6 +230,10 @@ export const createApp = ({
     gymMessage: null,
     gymLeaving: false,
 
+    league: null,
+    leagueMessage: null,
+    leagueLeaving: false,
+
     optionsSelection: 0,
     optionsMessage: null,
     notice: null,
@@ -306,7 +321,7 @@ export const createApp = ({
   }
 
   ctx.persist = () => {
-    if (ctx.gym) return
+    if (ctx.gym || ctx.league) return
     if (!ctx.save) return
 
     ctx.syncExpedition()
@@ -347,7 +362,7 @@ export const createApp = ({
   }
 
   ctx.pump = () => {
-    if (ctx.gym) return false
+    if (ctx.gym || ctx.league) return false
 
     const travel = ctx.syncExpedition()
 
@@ -527,6 +542,13 @@ export const createApp = ({
         ctx.gymMessage = null
         ctx.setMode('gyms')
         break
+      case 'league':
+        ctx.leagueMessage = null
+        ctx.leagueLeaving = false
+        ctx.teamSelection = 0
+        ctx.closeBag()
+        ctx.setMode('league')
+        break
       case 'shop':
         ctx.shopSelection = 0
         ctx.shopMessage = null
@@ -685,7 +707,7 @@ export const createApp = ({
   }
 
   ctx.tickDaycare = () => {
-    if (ctx.gym) return false
+    if (ctx.gym || ctx.league) return false
     if (!ctx.save) return false
 
     const { slots, egg } = ctx.save.daycare
@@ -994,6 +1016,95 @@ export const createApp = ({
     ctx.gymLeaving = false
   }
 
+  ctx.startLeagueRun = () => {
+    if (!leagueUnlocked(ctx.save)) {
+      ctx.leagueMessage = LEAGUE_MESSAGES.locked
+      return
+    }
+    if (!activePokemon(ctx.save)) {
+      ctx.leagueMessage = LEAGUE_MESSAGES.wipedOut
+      return
+    }
+
+    ctx.league = startLeague(ctx.save, randomSeed())
+    ctx.leagueMessage = null
+    ctx.leagueLeaving = false
+    ctx.teamSelection = 0
+    ctx.closeBag()
+    ctx.setMode('league')
+  }
+
+  ctx.startLeagueBattle = () => {
+    const lead = activePokemon(ctx.save)
+
+    if (!lead) {
+      ctx.leagueMessage = LEAGUE_MESSAGES.downInside
+      return
+    }
+
+    const { state, intro } = trainerBattle(
+      ctx.save,
+      currentLeagueOpponent(ctx.league),
+      leagueBattleSeed(ctx.league),
+      lead,
+    )
+
+    ctx.battle = createBattleFlow(state)
+    ctx.leagueMessage = null
+    ctx.leagueLeaving = false
+    ctx.save.stats.battles++
+    queueMessages(ctx, intro)
+    ctx.playMusic('battle')
+    ctx.setMode('battle')
+  }
+
+  ctx.finishLeagueBattle = (outcome) => {
+    if (outcome !== 'win') {
+      ctx.leaveLeague(LEAGUE_MESSAGES.defeated)
+      return
+    }
+
+    advanceLeague(ctx.league, outcome)
+
+    if (!ctx.league.completed) {
+      ctx.setMode('league')
+      return
+    }
+
+    ctx.save.league ??= { championships: 0, firstWonAt: null }
+    ctx.save.league.championships++
+    ctx.save.league.firstWonAt ??= new Date().toISOString()
+    ctx.league = null
+    ctx.leagueLeaving = false
+    ctx.leagueMessage = LEAGUE_MESSAGES.champion
+    ctx.closeBag()
+    ctx.persist()
+    ctx.setMode('league')
+  }
+
+  ctx.leaveLeague = (message) => {
+    ctx.save = rollbackLeagueRun(ctx.league)
+    ctx.league = null
+    ctx.leagueLeaving = false
+    ctx.leagueMessage = message
+    ctx.closeBag()
+    ctx.persist()
+    ctx.setMode('league')
+  }
+
+  ctx.confirmLeaveLeague = () => {
+    if (ctx.leagueLeaving) {
+      ctx.leaveLeague(LEAGUE_MESSAGES.forfeited)
+      return
+    }
+
+    ctx.leagueLeaving = true
+  }
+
+  ctx.cancelLeaveLeague = () => {
+    ctx.leagueLeaving = false
+  }
+
   ctx.advanceMessage = () => advanceMessage(ctx)
 
   ctx.tickBattle = () => tickBattle(ctx)
@@ -1161,6 +1272,8 @@ const trainerBattle = (save, opponent, seed, lead) => {
       makeRng((seed + index) >>> 0),
     )
 
+    if (entry.ability) mon.ability = entry.ability
+    if (entry.moves?.length) mon.moves = entry.moves.map(makeMoveSlot)
     if (entry.heldItem && canHoldItem(entry.heldItem))
       mon.heldItem = entry.heldItem
     if (entry.mega) mon.trainerMega = true

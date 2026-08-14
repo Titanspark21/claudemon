@@ -1,6 +1,5 @@
 import { expect, test } from 'vitest'
 
-import { GYMS } from './constants.mjs'
 import { isDataReady, species } from './data.mjs'
 import {
   advanceGymRun,
@@ -11,6 +10,7 @@ import {
   gymIndex,
   gymLevelRange,
   gymRoster,
+  gyms,
   isGymCleared,
   isLeaderNext,
   opponentLevelRange,
@@ -21,6 +21,8 @@ import {
 if (!isDataReady()) {
   throw new Error('dataset missing — run: node tools/fetch-data.mjs')
 }
+
+const GYMS = gyms()
 
 test('Should give every gym a real leader, a roster that ends on them and a type its leader actually uses', () => {
   const ids = new Set()

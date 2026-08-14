@@ -47,9 +47,11 @@ const growth = read('growth.json')
 const identities = read('form-ids.json')
 const audit = read('generation-vii-audit.json')
 const biomeData = read('biomes.json')
+const progression = read('progression.json')
 const mechanicsCoverage = read('mechanics-coverage.json')
 const byId = new Map(pokedex.map((mon) => [mon.id, mon]))
 const generation = new Generations(Dex).get(7)
+const generationOne = new Generations(Dex).get(1)
 const sourceAbilities = new Set(
   [...generation.abilities].map((entry) => entry.id),
 )
@@ -69,6 +71,125 @@ const mechanicsValidation = validateCoverage(
 
 for (const error of mechanicsValidation.errors)
   failures.push(`mechanics coverage ${dim(`(${error})`)}`)
+
+const collectibleFormTotal = identities.records.filter(
+  (record) =>
+    record.formKey !== null && record.collectible && !record.battleOnly,
+).length
+check(
+  'progression metadata uses the generated National Dex total',
+  progression.metadata?.nationalDexTotal === NATIONAL_DEX,
+)
+const generationOneNumbers = new Set(
+  [...generationOne.species]
+    .map((record) => record.num)
+    .filter((number) => number > 0),
+)
+const expectedKantoIds = pokedex
+  .filter(
+    (record) =>
+      record.formKey === null && generationOneNumbers.has(record.dexNumber),
+  )
+  .map((record) => record.id)
+check(
+  'progression metadata derives the Generation I base-species total',
+  progression.metadata?.kantoDexTotal === expectedKantoIds.length,
+)
+check(
+  'progression metadata pins the Generation I species ids',
+  JSON.stringify(progression.metadata?.kantoSpeciesIds) ===
+    JSON.stringify(expectedKantoIds),
+)
+check(
+  'progression metadata uses the generated collectible form total',
+  progression.metadata?.formTotal === collectibleFormTotal,
+  `got ${progression.metadata?.formTotal}, expected ${collectibleFormTotal}`,
+)
+check('progression has exactly eight gyms', progression.gyms?.length === 8)
+check(
+  'progression has four Elite Four and one Champion',
+  progression.league?.eliteFour?.length === 4 &&
+    progression.league?.champion?.class === 'Champion',
+)
+check(
+  'progression gym ids are unique',
+  new Set((progression.gyms ?? []).map((gym) => gym.id)).size ===
+    (progression.gyms ?? []).length,
+)
+
+const progressionTrainers = [
+  ...(progression.gyms ?? []).flatMap((gym) => [...gym.trainers, gym.leader]),
+  ...(progression.league?.eliteFour ?? []),
+  ...(progression.league?.champion ? [progression.league.champion] : []),
+]
+const leagueTrainers = [
+  ...(progression.league?.eliteFour ?? []),
+  ...(progression.league?.champion ? [progression.league.champion] : []),
+]
+let megaUsers = 0
+
+for (const trainer of progressionTrainers) {
+  check(
+    `progression trainer ${trainer.name} has an installed sprite`,
+    existsSync(trainerSpriteFile(trainer.sprite)),
+    trainer.sprite,
+  )
+
+  for (const entry of trainer.team ?? []) {
+    const mon = byId.get(entry.species)
+    const item = entry.heldItem ? items[entry.heldItem] : null
+    const legalMoves = new Set(
+      (mon?.learnset ?? [])
+        .filter((learned) => learned.level <= entry.level)
+        .map((learned) => learned.move),
+    )
+
+    check(
+      `${trainer.name} references a generated species`,
+      Boolean(mon),
+      String(entry.species),
+    )
+    check(
+      `${trainer.name}'s ${mon?.name ?? entry.species} has a legal ability`,
+      mon?.abilities?.some((slot) => slot.ability === entry.ability) === true,
+      String(entry.ability),
+    )
+    check(
+      `${trainer.name}'s ${mon?.name ?? entry.species} only knows legal level-up moves`,
+      (entry.moves ?? []).length > 0 &&
+        (entry.moves ?? []).length <= 4 &&
+        entry.moves.every((move) => moves[move] && legalMoves.has(move)),
+      (entry.moves ?? []).join(', '),
+    )
+    if (entry.heldItem) {
+      check(
+        `${trainer.name}'s held item is approved by the Gen VII item dataset`,
+        item?.held === true && item?.status === 'supported',
+        entry.heldItem,
+      )
+    }
+    if (entry.mega) {
+      megaUsers++
+      check(
+        `${trainer.name}'s Mega user holds a matching Mega Stone`,
+        Boolean(item?.megaStone),
+        entry.heldItem ?? 'none',
+      )
+    }
+  }
+}
+
+for (const trainer of leagueTrainers) {
+  check(
+    `${trainer.name} enters the League with four moves per Pokémon`,
+    trainer.team.every((entry) => entry.moves?.length === 4),
+  )
+}
+check(
+  'progression has exactly one Mega user',
+  megaUsers === 1,
+  String(megaUsers),
+)
 
 try {
   validateSpeciesIdentityManifest(identities)

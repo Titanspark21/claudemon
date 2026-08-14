@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { achievementEntries, earnedCount } from '../achievements.mjs'
-import { GYMS } from '../constants.mjs'
+import { gyms } from '../gym.mjs'
+import { nationalCompletion } from '../league.mjs'
 import { species } from '../data.mjs'
 import { HOME, monSpriteFile } from '../paths.mjs'
 import { decodePng, encodePng } from '../png.mjs'
@@ -44,7 +45,6 @@ import {
   WALKER,
   WALKER_PALETTE,
 } from './constants.mjs'
-import { KANTO_TOTAL } from './views/constants.mjs'
 
 const loadSpriteImage = (mon) => {
   try {
@@ -156,7 +156,8 @@ const drawHeader = (canvas, save, now) => {
   )
 
   const right = CARD_WIDTH - CARD_MARGIN
-  const caught = `${save.dex.caught.length}/${KANTO_TOTAL}`
+  const completion = nationalCompletion(save)
+  const caught = `${completion.caught}/${completion.total}`
 
   drawRightText(
     canvas,
@@ -291,8 +292,10 @@ const drawTeam = (canvas, party) => {
 }
 
 const drawBadges = (canvas, save, y) => {
-  for (let index = 0; index < GYMS.length; index++) {
-    const gym = GYMS[index]
+  const gymList = gyms()
+
+  for (let index = 0; index < gymList.length; index++) {
+    const gym = gymList[index]
     const centreX = CARD_MARGIN + CARD_BADGE_RADIUS + index * CARD_BADGE_GAP
 
     if (!save.badges.includes(gym.id)) {
@@ -332,7 +335,7 @@ const drawFooter = (canvas, save, worked) => {
   drawBadges(canvas, save, badgeY)
   drawText(
     canvas,
-    `${save.badges.length}/${GYMS.length} ${CARD_LABELS.badges}`,
+    `${save.badges.length}/${gyms().length} ${CARD_LABELS.badges}`,
     CARD_MARGIN,
     badgeY + CARD_BADGE_RADIUS + 16,
     CARD_PALETTE.dim,

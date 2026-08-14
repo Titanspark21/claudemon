@@ -16,7 +16,6 @@ import { money } from '../src/ui/widgets.mjs'
 import {
   CALL_TO_ACTION,
   ENCOUNTER_MARK,
-  KANTO_TOTAL,
   LEAD_MARK,
   MIN_TRUNCATE_WIDTH,
   PROBE_RULE_WIDTH,
@@ -93,8 +92,13 @@ const leadRow = (status) => {
 
   if (typeof status.balls === 'number') parts.push(`${status.balls} balls`)
   if (typeof status.money === 'number') parts.push(money(status.money))
-  if (typeof status.caught === 'number')
-    parts.push(`${status.caught}/${KANTO_TOTAL} caught`)
+  if (typeof status.caught === 'number') {
+    const caught =
+      typeof status.caughtTotal === 'number'
+        ? `${status.caught}/${status.caughtTotal}`
+        : String(status.caught)
+    parts.push(`${caught} caught`)
+  }
 
   return dim(`${LEAD_MARK} ${parts.join(`  ${SEPARATOR_MARK}  `)}`)
 }

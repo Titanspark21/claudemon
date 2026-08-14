@@ -1,5 +1,4 @@
 export const APP_TITLE = 'claudemon'
-export const KANTO_TOTAL = 151
 export const COLUMN_DIVIDER = '│'
 export const LIST_WIDTH = 30
 export const LIST_HEIGHT_FLOOR = 6
@@ -34,6 +33,7 @@ export const BASE_MENU = [
   { id: 'team', label: 'TEAM' },
   { id: 'daycare', label: 'DAY CARE' },
   { id: 'gyms', label: 'GYM' },
+  { id: 'league', label: 'LEAGUE' },
   { id: 'shop', label: 'SHOP' },
   { id: 'heal', label: 'HEAL' },
   { id: 'trainer', label: 'TRAINER' },
@@ -296,6 +296,18 @@ export const GYM_PROMPTS = {
 export const GYMS_HINTS = ' ↑ ↓ browse · [enter] challenge the gym · [esc] back'
 export const GYM_HINTS =
   ' ↑ ↓ pick one · [enter] next battle · [i] bag · [l] lead · [esc] give up'
+
+export const LEAGUE_TITLE = 'POKÉMON LEAGUE'
+export const LEAGUE_ROSTER_PANEL_TITLE = 'Elite Four · Champion'
+export const LEAGUE_HINTS =
+  ' ↑ ↓ pick one · [enter] next battle · [i] bag · [l] lead · [esc] give up'
+export const LEAGUE_PREVIEW_HINTS = ' [enter] begin · [esc] back'
+export const LEAGUE_SCREEN_MESSAGES = {
+  locked: 'Earn all eight badges before the League will admit you.',
+  ready: 'Five battles. No rest, no shop, no saving between them.',
+  rollback: 'Lose or leave and the entire League run is undone.',
+  confirmLeave: 'Walk out and none of it counted. [esc] again to leave.',
+}
 
 export const MAX_NAME = 12
 export const AVERAGE_IV = 15

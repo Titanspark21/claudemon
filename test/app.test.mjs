@@ -2086,12 +2086,17 @@ test('Should open each screen from the home menu and come back', () => {
     'team',
     'daycare',
     'gyms',
+    'league',
     'shop',
     'heal',
     'trainer',
     'options',
     'quit',
   ])
+  expect(
+    homeView.menuItems(app).find((item) => item.id === 'league').disabled,
+    'the League is visible but locked before all eight badges',
+  ).toBe(true)
 
   for (const mode of [
     'dex',

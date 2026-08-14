@@ -2,8 +2,6 @@ export const POKEAPI_URL = 'https://pokeapi.co/api/v2'
 
 export const CONCURRENCY = 8
 
-export const KANTO = 151
-
 export const NATIONAL_DEX = 809
 
 export const VERSION_GROUP = 'ultra-sun-ultra-moon'
@@ -29,6 +27,7 @@ export const OUTPUTS = [
   'types.json',
   'growth.json',
   'generation-vii-audit.json',
+  'progression.json',
   'biomes.json',
   'biome-report.md',
 ]

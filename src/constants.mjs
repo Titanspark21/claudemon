@@ -516,8 +516,7 @@ export const ACHIEVEMENTS = [
     id: 'dex-151',
     label: 'Kanto complete',
     hint: 'Catch all one hundred and fifty-one.',
-    metric: 'caught',
-    goal: 151,
+    metric: 'kantoCaught',
   },
 ]
 
@@ -1190,7 +1189,7 @@ export const BAG_MESSAGES = {
   noRoomForMove: 'There was no room for it, so it kept the four it knows.',
 }
 
-export const BAG_MODES = new Set(['team', 'gym'])
+export const BAG_MODES = new Set(['team', 'gym', 'league'])
 
 export const GYM_MESSAGES = {
   wipedOut: 'Your whole team has fainted. Heal before you challenge a gym.',
@@ -1201,6 +1200,17 @@ export const GYM_MESSAGES = {
   forfeited: 'You walked out. Nothing in there counted.',
   earned: 'is yours!',
   stillYours: 'is still yours.',
+}
+
+export const LEAGUE_MESSAGES = {
+  locked: 'Earn all eight badges before challenging the Pokémon League.',
+  wipedOut: 'Your whole team has fainted. Heal before challenging the League.',
+  downInside:
+    'Your team is down. Use a Revive, or walk out — there is no rest in the League.',
+  thrownOut: 'The Pokémon League showed you the door.',
+  defeated: 'The League run ended in defeat.',
+  forfeited: 'You walked out. Nothing in the League run counted.',
+  champion: 'You defeated the Elite Four and became Champion!',
 }
 
 export const BATTLE_MESSAGES = {
