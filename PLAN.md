@@ -490,43 +490,6 @@ encounterWeight(record, assignment, context) -> number
 - [ ] Require every biome to remain within the `SPEC.md` breadth targets.
 - [ ] Commit: `feature: tie encounters to broad biomes`
 
-### Task O15: Update evolution, daycare, breeding, and move learning
-
-**Files:**
-
-- Modify: `src/pokemon.mjs`
-- Modify: `src/progression.mjs`
-- Modify: `src/daycare.mjs`
-- Modify: `src/learnset.mjs`
-- Modify: `src/itemUse.mjs`
-- Modify: `src/ui/views/dex.mjs`
-- Test: `src/daycare.test.mjs`
-- Test: `src/learnset.test.mjs`
-- Test: `src/itemUse.test.mjs`
-
-**Interfaces:**
-
-```js
-pendingEvolution(mon, context) -> EvolutionRule | null
-applyEvolution(save, mon, rule) -> EvolutionResult
-eggSpeciesForPair(first, second, context) -> speciesId | null
-```
-
-- [ ] Add failing tests for level, item, trade substitute, friendship
-      substitute, day/night, held-item, gender, location/biome, Link Cable,
-      normal-versus-Alolan choice, regional Everstone inheritance, branched
-      evolution, baby/incense rule, Ditto, legendary/no-egg, nature, ability
-      slot, and held-item preservation.
-- [ ] Run focused tests and confirm unsupported rule types fail explicitly.
-- [ ] Evaluate normalized evolution rules from data rather than hardcoding only
-      level and stones.
-- [ ] Keep evolution-family and regional-form identity correct in breeding and
-      prevent battle-only forms from entering daycare.
-- [ ] Use Gen-VII level-up learnsets and preserve the four-move choice flow.
-- [ ] Run every daycare/progression/item/evolution test plus generated chain
-      validation for all included records.
-- [ ] Commit: `feature: support Generation VII growth and breeding`
-
 ### Task O16: Generalize progression, gyms, achievements, and add the League
 
 **Files:**
