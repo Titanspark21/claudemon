@@ -406,46 +406,6 @@ src/battleEvents.test.mjs src/battleFlow.test.mjs src/damage.test.mjs`.
       battle coverage.
 - [ ] Commit: `feature: support Generation VII move families`
 
-### Task O8: Implement all applicable Generation VII abilities
-
-**Files:**
-
-- Create: `src/abilities.mjs`
-- Create: `src/abilities.test.mjs`
-- Create: `src/abilityEffects.mjs`
-- Create: `src/abilityEffects.test.mjs`
-- Modify: `data/abilities.json`
-- Modify: `src/effects.mjs`
-- Modify: `src/pokemon.mjs`
-- Modify: `data/mechanics-coverage.json`
-
-**Interfaces:**
-
-```js
-abilityHandlers(abilityKey) -> EffectHandler[]
-abilityIsActive(battle, side) -> boolean
-revealAbility(events, side, abilityKey, cause) -> void
-```
-
-- [ ] Generate table-driven failing cases grouped by archetype: switch-in
-      stat/field, immunity, status immunity, power/damage/STAB modifier, speed and
-      priority, contact reaction, end-turn recovery/damage, threshold activation,
-      faint reaction, item interaction, move-property override, and form trigger.
-- [ ] Add focused one-off fixtures for every ability not covered by an
-      archetype and explicitly test each approved exclusion classification.
-- [ ] Run `npm test -- src/abilities.test.mjs src/abilityEffects.test.mjs` and
-      confirm missing handlers fail.
-- [ ] Implement shared archetypes first, mapping equivalent abilities to the
-      same handler factory.
-- [ ] Implement every remaining singles-relevant ability that fits the
-      existing phases or a modest handler; defer only transformations/copy/replay
-      or multi-Pokémon state that crosses an excluded subsystem, with exact reason.
-- [ ] Run `npm run mechanics:coverage` and require zero unclassified abilities
-      and no supported ability without tests.
-- [ ] Run interaction tests with weather, terrain, held items, switching,
-      fainting, and Mega ability replacement.
-- [ ] Commit: `feature: implement applicable Generation VII abilities`
-
 ### Task O9: Implement item inventory, equipping, acquisition, and effects
 
 **Files:**
