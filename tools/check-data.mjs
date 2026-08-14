@@ -17,6 +17,7 @@ import {
   SPRITE_SIDES,
   STAT_KEYS,
 } from './constants.mjs'
+import { BIOME_IDS, BIOME_NAMES } from './biomeOverrides.mjs'
 import { validateSpeciesIdentityManifest } from './speciesIdentity.mjs'
 
 const failures = []
@@ -45,6 +46,7 @@ const types = read('types.json')
 const growth = read('growth.json')
 const identities = read('form-ids.json')
 const audit = read('generation-vii-audit.json')
+const biomeData = read('biomes.json')
 const byId = new Map(pokedex.map((mon) => [mon.id, mon]))
 const generation = new Generations(Dex).get(7)
 const sourceAbilities = new Set(
@@ -72,6 +74,116 @@ check(
 
 for (let id = 1; id <= NATIONAL_DEX; id++)
   check(`#${id} is present`, byId.has(id))
+
+check(
+  'biome dataset contains the nine canonical ecosystems',
+  biomeData.biomes?.map((biome) => biome.id).join(',') === BIOME_IDS.join(','),
+)
+
+for (const biome of biomeData.biomes ?? []) {
+  check(
+    `biome ${biome.id} has its canonical name`,
+    biome.name === BIOME_NAMES[biome.id],
+  )
+  const expected = audit.biomes?.expectedPoolSize ?? 0
+  const delta =
+    expected === 0 ? 0 : Math.abs(biome.ordinary.length - expected) / expected
+  check(
+    `biome ${biome.id} ordinary pool is within 15% of target`,
+    delta <= 0.15,
+  )
+}
+
+const biomeMemberships = new Map()
+for (const biome of biomeData.biomes ?? []) {
+  for (const entry of [...(biome.ordinary ?? []), ...(biome.special ?? [])])
+    biomeMemberships.set(entry.id, (biomeMemberships.get(entry.id) ?? 0) + 1)
+
+  for (const entry of biome.ordinary ?? []) {
+    const record = byId.get(entry.id)
+    check(
+      `${entry.sourceKey} ordinary biome record is collectible`,
+      record?.collectible === true,
+    )
+    check(
+      `${entry.sourceKey} ordinary biome record is not battle-only`,
+      record?.battleOnly === false,
+    )
+    check(
+      `${entry.sourceKey} ordinary biome record is not special`,
+      !record?.legendary && !record?.mythical,
+    )
+    check(
+      `${entry.sourceKey} ordinary biome record has ordinary rarity weighting`,
+      entry.rarity !== 'special',
+    )
+    check(
+      `${entry.sourceKey} ordinary biome membership has evidence`,
+      entry.override === true || (entry.evidence?.length ?? 0) > 0,
+    )
+  }
+
+  for (const entry of biome.special ?? []) {
+    const record = byId.get(entry.id)
+    check(
+      `${entry.sourceKey} special biome record is collectible`,
+      record?.collectible === true,
+    )
+    check(
+      `${entry.sourceKey} special biome record is not battle-only`,
+      record?.battleOnly === false,
+    )
+    check(
+      `${entry.sourceKey} special biome record is special`,
+      Boolean(record?.legendary || record?.mythical),
+    )
+    check(
+      `${entry.sourceKey} special biome record uses special rarity weighting`,
+      entry.rarity === 'special',
+    )
+    check(
+      `${entry.sourceKey} special biome membership has evidence`,
+      entry.override === true || (entry.evidence?.length ?? 0) > 0,
+    )
+  }
+}
+
+for (const record of pokedex.filter(
+  (entry) => entry.collectible && !entry.battleOnly,
+)) {
+  const count = biomeMemberships.get(record.id) ?? 0
+  check(
+    `${record.sourceKey} has one to three biome memberships`,
+    count >= 1 && count <= 3,
+    String(count),
+  )
+}
+
+const biomeReportText = existsSync(bundledDataFile('biome-report.md'))
+  ? readFileSync(bundledDataFile('biome-report.md'), 'utf8')
+  : ''
+for (const heading of [
+  '## Pools',
+  '## Membership overlap',
+  '## Unassigned records',
+  '## Family coherence',
+  '### Split edges',
+  '## Evidence sources',
+  '## Rarity bands',
+  '## Manual overrides',
+  '## Anomalies',
+  '## Validation',
+])
+  check(`biome report includes ${heading}`, biomeReportText.includes(heading))
+
+check(
+  'biome report has no validation errors',
+  biomeReportText.includes('Zero validation errors.'),
+)
+check(
+  'biome report has no anomalies',
+  biomeReportText.includes('## Anomalies\n\n- none'),
+)
 
 for (const identity of identities.records) {
   const record = byId.get(identity.id)

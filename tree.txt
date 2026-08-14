@@ -21,6 +21,8 @@ assets/battle.wav
 assets/victory.wav
 bin/claudemon
 commands/claudemon-setup.md
+data/biome-report.md
+data/biomes.json
 data/form-ids.json
 data/generation-vii-audit.json
 data/growth.json
@@ -197,6 +199,9 @@ test/setup.mjs
 test/sound.test.mjs
 test/status.test.mjs
 test/update.test.mjs
+tools/biomeOverrides.mjs
+tools/biomes.mjs
+tools/biomes.test.mjs
 tools/check-data.mjs
 tools/constants.mjs
 tools/fetch-data.mjs

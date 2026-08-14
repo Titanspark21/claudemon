@@ -65,6 +65,15 @@ export const transformResponsePokemon = (entry) => {
   }
 }
 
+export const transformResponseEncounterLocations = (entries) => {
+  return (entries ?? []).map((entry) => ({
+    locationArea: entry.location_area?.name ?? null,
+    versions: (entry.version_details ?? [])
+      .map((detail) => detail.version?.name)
+      .filter(Boolean),
+  }))
+}
+
 export const transformResponseSpecies = (entry) => {
   if (!entry) return null
 

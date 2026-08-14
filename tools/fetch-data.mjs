@@ -7,12 +7,19 @@ import { BUNDLED_DATA_DIR, bundledDataFile, DATA_DIR } from '../src/paths.mjs'
 import { bold, brightGreen, dim } from '../src/ui/ansi.mjs'
 import { pass as runPass } from './progress.mjs'
 import {
+  buildBiomePools,
+  buildBiomeReport,
+  generateBiomeAssignments,
+  validateBiomePools,
+} from './biomes.mjs'
+import {
   buildEvolutionRules,
   buildSpeciesRecord,
   transformRequestWriteGrowth,
   transformRequestWriteMoves,
   transformRequestWritePokedex,
   transformRequestWriteTypes,
+  transformResponseEncounterLocations,
   transformResponseEvolutionChain,
   transformResponseGrowthRate,
   transformResponsePokemon,
@@ -39,6 +46,38 @@ const force = process.argv.includes('--force') || !useCache
 const identityManifest = JSON.parse(
   readFileSync(bundledDataFile('form-ids.json'), 'utf8'),
 )
+const GEN_VII_VERSIONS = new Set([
+  'red',
+  'blue',
+  'yellow',
+  'gold',
+  'silver',
+  'crystal',
+  'ruby',
+  'sapphire',
+  'emerald',
+  'firered',
+  'leafgreen',
+  'diamond',
+  'pearl',
+  'platinum',
+  'heartgold',
+  'soulsilver',
+  'black',
+  'white',
+  'black-2',
+  'white-2',
+  'x',
+  'y',
+  'omega-ruby',
+  'alpha-sapphire',
+  'sun',
+  'moon',
+  'ultra-sun',
+  'ultra-moon',
+  'lets-go-pikachu',
+  'lets-go-eevee',
+])
 
 let requests = 0
 let cacheHits = 0
@@ -47,7 +86,7 @@ let nextSlot = 0
 let cooldownUntil = 0
 
 const datasetPresent = () => {
-  if (!existsSync(bundledDataFile('pokedex.json'))) return false
+  if (OUTPUTS.some((name) => !existsSync(bundledDataFile(name)))) return false
 
   try {
     return (
@@ -415,7 +454,7 @@ const main = async () => {
       'form-ids.json does not contain 809 National Dex identities',
     )
 
-  const [pokemon, species] = await Promise.all([
+  const [pokemon, species, encounters] = await Promise.all([
     pass(
       'pokemon metadata',
       baseIds.map((id) => `${POKEAPI_URL}/pokemon/${id}`),
@@ -426,10 +465,30 @@ const main = async () => {
       baseIds.map((id) => `${POKEAPI_URL}/pokemon-species/${id}`),
       (url) => getJson(url, transformResponseSpecies),
     ),
+    pass(
+      'encounter evidence',
+      baseIds.map((id) => `${POKEAPI_URL}/pokemon/${id}/encounters`),
+      (url) => getJson(url, transformResponseEncounterLocations),
+    ),
   ])
 
   const pokemonById = new Map(pokemon.map((entry) => [entry.id, entry]))
   const speciesById = new Map(baseIds.map((id, index) => [id, species[index]]))
+  const locationsByDex = new Map(
+    baseIds.map((id, index) => [
+      id,
+      [
+        ...new Set(
+          encounters[index]
+            .filter((entry) =>
+              entry.versions.some((version) => GEN_VII_VERSIONS.has(version)),
+            )
+            .map((entry) => entry.locationArea)
+            .filter(Boolean),
+        ),
+      ],
+    ]),
+  )
   const chainUrls = [
     ...new Set(
       species.map((entry) => entry.evolution_chain?.url).filter(Boolean),
@@ -547,6 +606,21 @@ const main = async () => {
       `Generated dataset failed validation:\n${validation.errors.slice(0, 40).join('\n')}`,
     )
 
+  const biomeAssignments = generateBiomeAssignments(pokedex, locationsByDex)
+  const biomeValidation = validateBiomePools(pokedex, biomeAssignments)
+
+  if (!biomeValidation.valid)
+    throw new Error(
+      `Generated biome pools failed validation:\n${biomeValidation.errors.slice(0, 40).join('\n')}`,
+    )
+
+  const biomeOutput = buildBiomePools(biomeAssignments)
+  const biomeReport = buildBiomeReport(
+    pokedex,
+    biomeAssignments,
+    biomeValidation,
+  )
+
   const evidence = pokeApiEdges(chains)
   const unconfirmed = rules.filter((rule) => {
     const from = identities.find((identity) => identity.id === rule.from)
@@ -565,6 +639,7 @@ const main = async () => {
       items: sourceItems.size,
       growthCurves: Object.keys(growthOutput).length,
     },
+    biomes: biomeValidation.counts,
     pokeApi: {
       speciesRecords: species.length,
       pokemonRecords: pokemon.length,
@@ -582,6 +657,7 @@ const main = async () => {
     ['types.json', typeOutput],
     ['growth.json', growthOutput],
     ['generation-vii-audit.json', audit],
+    ['biomes.json', biomeOutput],
   ]
 
   console.log()
@@ -597,6 +673,11 @@ const main = async () => {
       `  ${brightGreen('✔')} ${name.padEnd(LABEL_WIDTH)} ${dim(`${kb} KB`)}`,
     )
   }
+
+  writeFileSync(bundledDataFile('biome-report.md'), biomeReport)
+  console.log(
+    `  ${brightGreen('✔')} ${'biome-report.md'.padEnd(LABEL_WIDTH)} ${dim(`${(Buffer.byteLength(biomeReport) / 1024).toFixed(0)} KB`)}`,
+  )
 
   console.log(
     `\n  ${requests} requests, ${cacheHits} served from cache` +

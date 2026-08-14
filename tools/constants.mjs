@@ -28,6 +28,8 @@ export const OUTPUTS = [
   'types.json',
   'growth.json',
   'generation-vii-audit.json',
+  'biomes.json',
+  'biome-report.md',
 ]
 
 export const MIN_REQUEST_INTERVAL_MS = 150
