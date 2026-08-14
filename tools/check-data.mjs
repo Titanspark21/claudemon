@@ -19,6 +19,7 @@ import {
 } from './constants.mjs'
 import { BIOME_IDS, BIOME_NAMES } from './biomeOverrides.mjs'
 import { validateSpeciesIdentityManifest } from './speciesIdentity.mjs'
+import { validateCoverage } from './mechanicsCoverage.mjs'
 
 const failures = []
 const checks = { run: 0 }
@@ -47,12 +48,25 @@ const growth = read('growth.json')
 const identities = read('form-ids.json')
 const audit = read('generation-vii-audit.json')
 const biomeData = read('biomes.json')
+const mechanicsCoverage = read('mechanics-coverage.json')
 const byId = new Map(pokedex.map((mon) => [mon.id, mon]))
 const generation = new Generations(Dex).get(7)
 const sourceAbilities = new Set(
   [...generation.abilities].map((entry) => entry.id),
 )
 const sourceItems = new Set([...generation.items].map((entry) => entry.id))
+const mechanicsValidation = validateCoverage(
+  {
+    moves,
+    abilities: sourceAbilities,
+    items: sourceItems,
+    species: pokedex,
+  },
+  mechanicsCoverage,
+)
+
+for (const error of mechanicsValidation.errors)
+  failures.push(`mechanics coverage ${dim(`(${error})`)}`)
 
 try {
   validateSpeciesIdentityManifest(identities)

@@ -1,0 +1,6124 @@
+{
+  "generation": 7,
+  "abilities": {
+    "stench": {
+      "status": "supported",
+      "handler": "ability:stench",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "drizzle": {
+      "status": "supported",
+      "handler": "ability:drizzle",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "speedboost": {
+      "status": "supported",
+      "handler": "ability:speedboost",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "battlearmor": {
+      "status": "supported",
+      "handler": "ability:battlearmor",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sturdy": {
+      "status": "supported",
+      "handler": "ability:sturdy",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "damp": {
+      "status": "supported",
+      "handler": "ability:damp",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "limber": {
+      "status": "supported",
+      "handler": "ability:limber",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sandveil": {
+      "status": "supported",
+      "handler": "ability:sandveil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "static": {
+      "status": "supported",
+      "handler": "ability:static",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "voltabsorb": {
+      "status": "supported",
+      "handler": "ability:voltabsorb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "waterabsorb": {
+      "status": "supported",
+      "handler": "ability:waterabsorb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "oblivious": {
+      "status": "supported",
+      "handler": "ability:oblivious",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "cloudnine": {
+      "status": "supported",
+      "handler": "ability:cloudnine",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "compoundeyes": {
+      "status": "supported",
+      "handler": "ability:compoundeyes",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "insomnia": {
+      "status": "supported",
+      "handler": "ability:insomnia",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "colorchange": {
+      "status": "supported",
+      "handler": "ability:colorchange",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "immunity": {
+      "status": "supported",
+      "handler": "ability:immunity",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "flashfire": {
+      "status": "supported",
+      "handler": "ability:flashfire",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shielddust": {
+      "status": "supported",
+      "handler": "ability:shielddust",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "owntempo": {
+      "status": "supported",
+      "handler": "ability:owntempo",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "suctioncups": {
+      "status": "supported",
+      "handler": "ability:suctioncups",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "intimidate": {
+      "status": "supported",
+      "handler": "ability:intimidate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shadowtag": {
+      "status": "supported",
+      "handler": "ability:shadowtag",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "roughskin": {
+      "status": "supported",
+      "handler": "ability:roughskin",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "wonderguard": {
+      "status": "supported",
+      "handler": "ability:wonderguard",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "levitate": {
+      "status": "supported",
+      "handler": "ability:levitate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "effectspore": {
+      "status": "supported",
+      "handler": "ability:effectspore",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "synchronize": {
+      "status": "supported",
+      "handler": "ability:synchronize",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "clearbody": {
+      "status": "supported",
+      "handler": "ability:clearbody",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "naturalcure": {
+      "status": "supported",
+      "handler": "ability:naturalcure",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lightningrod": {
+      "status": "supported",
+      "handler": "ability:lightningrod",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "serenegrace": {
+      "status": "supported",
+      "handler": "ability:serenegrace",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "swiftswim": {
+      "status": "supported",
+      "handler": "ability:swiftswim",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "chlorophyll": {
+      "status": "supported",
+      "handler": "ability:chlorophyll",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "illuminate": {
+      "status": "supported",
+      "handler": "ability:illuminate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "trace": {
+      "status": "supported",
+      "handler": "ability:trace",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "hugepower": {
+      "status": "supported",
+      "handler": "ability:hugepower",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "poisonpoint": {
+      "status": "supported",
+      "handler": "ability:poisonpoint",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "innerfocus": {
+      "status": "supported",
+      "handler": "ability:innerfocus",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "magmaarmor": {
+      "status": "supported",
+      "handler": "ability:magmaarmor",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "waterveil": {
+      "status": "supported",
+      "handler": "ability:waterveil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "magnetpull": {
+      "status": "supported",
+      "handler": "ability:magnetpull",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "soundproof": {
+      "status": "supported",
+      "handler": "ability:soundproof",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "raindish": {
+      "status": "supported",
+      "handler": "ability:raindish",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sandstream": {
+      "status": "supported",
+      "handler": "ability:sandstream",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pressure": {
+      "status": "supported",
+      "handler": "ability:pressure",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "thickfat": {
+      "status": "supported",
+      "handler": "ability:thickfat",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "earlybird": {
+      "status": "supported",
+      "handler": "ability:earlybird",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "flamebody": {
+      "status": "supported",
+      "handler": "ability:flamebody",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "runaway": {
+      "status": "supported",
+      "handler": "ability:runaway",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "keeneye": {
+      "status": "supported",
+      "handler": "ability:keeneye",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "hypercutter": {
+      "status": "supported",
+      "handler": "ability:hypercutter",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pickup": {
+      "status": "supported",
+      "handler": "ability:pickup",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "truant": {
+      "status": "supported",
+      "handler": "ability:truant",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "hustle": {
+      "status": "supported",
+      "handler": "ability:hustle",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "cutecharm": {
+      "status": "supported",
+      "handler": "ability:cutecharm",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "plus": {
+      "status": "no-effect-in-singles",
+      "reason": "This ability only changes ally or ally-directed behavior, and Claudemon battles are singles.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "minus": {
+      "status": "no-effect-in-singles",
+      "reason": "This ability only changes ally or ally-directed behavior, and Claudemon battles are singles.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "forecast": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "stickyhold": {
+      "status": "supported",
+      "handler": "ability:stickyhold",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shedskin": {
+      "status": "supported",
+      "handler": "ability:shedskin",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "guts": {
+      "status": "supported",
+      "handler": "ability:guts",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "marvelscale": {
+      "status": "supported",
+      "handler": "ability:marvelscale",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "liquidooze": {
+      "status": "supported",
+      "handler": "ability:liquidooze",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "overgrow": {
+      "status": "supported",
+      "handler": "ability:overgrow",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "blaze": {
+      "status": "supported",
+      "handler": "ability:blaze",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "torrent": {
+      "status": "supported",
+      "handler": "ability:torrent",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "swarm": {
+      "status": "supported",
+      "handler": "ability:swarm",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rockhead": {
+      "status": "supported",
+      "handler": "ability:rockhead",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "drought": {
+      "status": "supported",
+      "handler": "ability:drought",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "arenatrap": {
+      "status": "supported",
+      "handler": "ability:arenatrap",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "vitalspirit": {
+      "status": "supported",
+      "handler": "ability:vitalspirit",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "whitesmoke": {
+      "status": "supported",
+      "handler": "ability:whitesmoke",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "purepower": {
+      "status": "supported",
+      "handler": "ability:purepower",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shellarmor": {
+      "status": "supported",
+      "handler": "ability:shellarmor",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "airlock": {
+      "status": "supported",
+      "handler": "ability:airlock",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "tangledfeet": {
+      "status": "supported",
+      "handler": "ability:tangledfeet",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "motordrive": {
+      "status": "supported",
+      "handler": "ability:motordrive",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rivalry": {
+      "status": "supported",
+      "handler": "ability:rivalry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "steadfast": {
+      "status": "supported",
+      "handler": "ability:steadfast",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "snowcloak": {
+      "status": "supported",
+      "handler": "ability:snowcloak",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "gluttony": {
+      "status": "supported",
+      "handler": "ability:gluttony",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "angerpoint": {
+      "status": "supported",
+      "handler": "ability:angerpoint",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "unburden": {
+      "status": "supported",
+      "handler": "ability:unburden",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "heatproof": {
+      "status": "supported",
+      "handler": "ability:heatproof",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "simple": {
+      "status": "supported",
+      "handler": "ability:simple",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dryskin": {
+      "status": "supported",
+      "handler": "ability:dryskin",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "download": {
+      "status": "supported",
+      "handler": "ability:download",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ironfist": {
+      "status": "supported",
+      "handler": "ability:ironfist",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "poisonheal": {
+      "status": "supported",
+      "handler": "ability:poisonheal",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "adaptability": {
+      "status": "supported",
+      "handler": "ability:adaptability",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "skilllink": {
+      "status": "supported",
+      "handler": "ability:skilllink",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "hydration": {
+      "status": "supported",
+      "handler": "ability:hydration",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "solarpower": {
+      "status": "supported",
+      "handler": "ability:solarpower",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "quickfeet": {
+      "status": "supported",
+      "handler": "ability:quickfeet",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "normalize": {
+      "status": "supported",
+      "handler": "ability:normalize",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sniper": {
+      "status": "supported",
+      "handler": "ability:sniper",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "magicguard": {
+      "status": "supported",
+      "handler": "ability:magicguard",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "noguard": {
+      "status": "supported",
+      "handler": "ability:noguard",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "stall": {
+      "status": "supported",
+      "handler": "ability:stall",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "technician": {
+      "status": "supported",
+      "handler": "ability:technician",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "leafguard": {
+      "status": "supported",
+      "handler": "ability:leafguard",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "klutz": {
+      "status": "supported",
+      "handler": "ability:klutz",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "moldbreaker": {
+      "status": "supported",
+      "handler": "ability:moldbreaker",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "superluck": {
+      "status": "supported",
+      "handler": "ability:superluck",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "aftermath": {
+      "status": "supported",
+      "handler": "ability:aftermath",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "anticipation": {
+      "status": "supported",
+      "handler": "ability:anticipation",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "forewarn": {
+      "status": "supported",
+      "handler": "ability:forewarn",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "unaware": {
+      "status": "supported",
+      "handler": "ability:unaware",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "tintedlens": {
+      "status": "supported",
+      "handler": "ability:tintedlens",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "filter": {
+      "status": "supported",
+      "handler": "ability:filter",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "slowstart": {
+      "status": "supported",
+      "handler": "ability:slowstart",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "scrappy": {
+      "status": "supported",
+      "handler": "ability:scrappy",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "stormdrain": {
+      "status": "supported",
+      "handler": "ability:stormdrain",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "icebody": {
+      "status": "supported",
+      "handler": "ability:icebody",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "solidrock": {
+      "status": "supported",
+      "handler": "ability:solidrock",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "snowwarning": {
+      "status": "supported",
+      "handler": "ability:snowwarning",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "honeygather": {
+      "status": "supported",
+      "handler": "ability:honeygather",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "frisk": {
+      "status": "supported",
+      "handler": "ability:frisk",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "reckless": {
+      "status": "supported",
+      "handler": "ability:reckless",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "multitype": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "flowergift": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "baddreams": {
+      "status": "supported",
+      "handler": "ability:baddreams",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pickpocket": {
+      "status": "supported",
+      "handler": "ability:pickpocket",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sheerforce": {
+      "status": "supported",
+      "handler": "ability:sheerforce",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "contrary": {
+      "status": "supported",
+      "handler": "ability:contrary",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "unnerve": {
+      "status": "supported",
+      "handler": "ability:unnerve",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "defiant": {
+      "status": "supported",
+      "handler": "ability:defiant",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "defeatist": {
+      "status": "supported",
+      "handler": "ability:defeatist",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "cursedbody": {
+      "status": "supported",
+      "handler": "ability:cursedbody",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "healer": {
+      "status": "no-effect-in-singles",
+      "reason": "This ability only changes ally or ally-directed behavior, and Claudemon battles are singles.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "friendguard": {
+      "status": "no-effect-in-singles",
+      "reason": "This ability only changes ally or ally-directed behavior, and Claudemon battles are singles.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "weakarmor": {
+      "status": "supported",
+      "handler": "ability:weakarmor",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "heavymetal": {
+      "status": "supported",
+      "handler": "ability:heavymetal",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lightmetal": {
+      "status": "supported",
+      "handler": "ability:lightmetal",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "multiscale": {
+      "status": "supported",
+      "handler": "ability:multiscale",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "toxicboost": {
+      "status": "supported",
+      "handler": "ability:toxicboost",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "flareboost": {
+      "status": "supported",
+      "handler": "ability:flareboost",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "harvest": {
+      "status": "supported",
+      "handler": "ability:harvest",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "telepathy": {
+      "status": "no-effect-in-singles",
+      "reason": "This ability only changes ally or ally-directed behavior, and Claudemon battles are singles.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "moody": {
+      "status": "supported",
+      "handler": "ability:moody",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "overcoat": {
+      "status": "supported",
+      "handler": "ability:overcoat",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "poisontouch": {
+      "status": "supported",
+      "handler": "ability:poisontouch",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "regenerator": {
+      "status": "supported",
+      "handler": "ability:regenerator",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "bigpecks": {
+      "status": "supported",
+      "handler": "ability:bigpecks",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sandrush": {
+      "status": "supported",
+      "handler": "ability:sandrush",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "wonderskin": {
+      "status": "supported",
+      "handler": "ability:wonderskin",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "analytic": {
+      "status": "supported",
+      "handler": "ability:analytic",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "illusion": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "imposter": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "infiltrator": {
+      "status": "supported",
+      "handler": "ability:infiltrator",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mummy": {
+      "status": "supported",
+      "handler": "ability:mummy",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "moxie": {
+      "status": "supported",
+      "handler": "ability:moxie",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "justified": {
+      "status": "supported",
+      "handler": "ability:justified",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rattled": {
+      "status": "supported",
+      "handler": "ability:rattled",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "magicbounce": {
+      "status": "supported",
+      "handler": "ability:magicbounce",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sapsipper": {
+      "status": "supported",
+      "handler": "ability:sapsipper",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "prankster": {
+      "status": "supported",
+      "handler": "ability:prankster",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sandforce": {
+      "status": "supported",
+      "handler": "ability:sandforce",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ironbarbs": {
+      "status": "supported",
+      "handler": "ability:ironbarbs",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "zenmode": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "victorystar": {
+      "status": "supported",
+      "handler": "ability:victorystar",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "turboblaze": {
+      "status": "supported",
+      "handler": "ability:turboblaze",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "teravolt": {
+      "status": "supported",
+      "handler": "ability:teravolt",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "aromaveil": {
+      "status": "supported",
+      "handler": "ability:aromaveil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "flowerveil": {
+      "status": "no-effect-in-singles",
+      "reason": "This ability only changes ally or ally-directed behavior, and Claudemon battles are singles.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "cheekpouch": {
+      "status": "supported",
+      "handler": "ability:cheekpouch",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "protean": {
+      "status": "supported",
+      "handler": "ability:protean",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "furcoat": {
+      "status": "supported",
+      "handler": "ability:furcoat",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "magician": {
+      "status": "supported",
+      "handler": "ability:magician",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "bulletproof": {
+      "status": "supported",
+      "handler": "ability:bulletproof",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "competitive": {
+      "status": "supported",
+      "handler": "ability:competitive",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "strongjaw": {
+      "status": "supported",
+      "handler": "ability:strongjaw",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "refrigerate": {
+      "status": "supported",
+      "handler": "ability:refrigerate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sweetveil": {
+      "status": "supported",
+      "handler": "ability:sweetveil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "stancechange": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "galewings": {
+      "status": "supported",
+      "handler": "ability:galewings",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "megalauncher": {
+      "status": "supported",
+      "handler": "ability:megalauncher",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "grasspelt": {
+      "status": "supported",
+      "handler": "ability:grasspelt",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "symbiosis": {
+      "status": "no-effect-in-singles",
+      "reason": "This ability only changes ally or ally-directed behavior, and Claudemon battles are singles.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "toughclaws": {
+      "status": "supported",
+      "handler": "ability:toughclaws",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pixilate": {
+      "status": "supported",
+      "handler": "ability:pixilate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "gooey": {
+      "status": "supported",
+      "handler": "ability:gooey",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "aerilate": {
+      "status": "supported",
+      "handler": "ability:aerilate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "parentalbond": {
+      "status": "supported",
+      "handler": "ability:parentalbond",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "darkaura": {
+      "status": "supported",
+      "handler": "ability:darkaura",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "fairyaura": {
+      "status": "supported",
+      "handler": "ability:fairyaura",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "aurabreak": {
+      "status": "supported",
+      "handler": "ability:aurabreak",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "primordialsea": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires the special primal weather rules beyond the four ordinary weather states in the current field model.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "desolateland": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires the special primal weather rules beyond the four ordinary weather states in the current field model.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "deltastream": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires the special primal weather rules beyond the four ordinary weather states in the current field model.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "stamina": {
+      "status": "supported",
+      "handler": "ability:stamina",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "wimpout": {
+      "status": "supported",
+      "handler": "ability:wimpout",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "emergencyexit": {
+      "status": "supported",
+      "handler": "ability:emergencyexit",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "watercompaction": {
+      "status": "supported",
+      "handler": "ability:watercompaction",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "merciless": {
+      "status": "supported",
+      "handler": "ability:merciless",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shieldsdown": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "stakeout": {
+      "status": "supported",
+      "handler": "ability:stakeout",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "waterbubble": {
+      "status": "supported",
+      "handler": "ability:waterbubble",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "steelworker": {
+      "status": "supported",
+      "handler": "ability:steelworker",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "berserk": {
+      "status": "supported",
+      "handler": "ability:berserk",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "slushrush": {
+      "status": "supported",
+      "handler": "ability:slushrush",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "longreach": {
+      "status": "supported",
+      "handler": "ability:longreach",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "liquidvoice": {
+      "status": "supported",
+      "handler": "ability:liquidvoice",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "triage": {
+      "status": "supported",
+      "handler": "ability:triage",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "galvanize": {
+      "status": "supported",
+      "handler": "ability:galvanize",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "surgesurfer": {
+      "status": "supported",
+      "handler": "ability:surgesurfer",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "schooling": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "disguise": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "battlebond": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "powerconstruct": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "corrosion": {
+      "status": "supported",
+      "handler": "ability:corrosion",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "comatose": {
+      "status": "supported",
+      "handler": "ability:comatose",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "queenlymajesty": {
+      "status": "supported",
+      "handler": "ability:queenlymajesty",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "innardsout": {
+      "status": "supported",
+      "handler": "ability:innardsout",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dancer": {
+      "status": "supported",
+      "handler": "ability:dancer",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "battery": {
+      "status": "no-effect-in-singles",
+      "reason": "This ability only changes ally or ally-directed behavior, and Claudemon battles are singles.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "fluffy": {
+      "status": "supported",
+      "handler": "ability:fluffy",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dazzling": {
+      "status": "supported",
+      "handler": "ability:dazzling",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "soulheart": {
+      "status": "supported",
+      "handler": "ability:soulheart",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "tanglinghair": {
+      "status": "supported",
+      "handler": "ability:tanglinghair",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "receiver": {
+      "status": "no-effect-in-singles",
+      "reason": "This ability only changes ally or ally-directed behavior, and Claudemon battles are singles.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "powerofalchemy": {
+      "status": "no-effect-in-singles",
+      "reason": "This ability only changes ally or ally-directed behavior, and Claudemon battles are singles.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "beastboost": {
+      "status": "supported",
+      "handler": "ability:beastboost",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rkssystem": {
+      "status": "deferred-complex-one-off",
+      "reason": "This ability requires battle-time form or ability replacement state owned by the transformation/copy subsystem.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "electricsurge": {
+      "status": "supported",
+      "handler": "ability:electricsurge",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "psychicsurge": {
+      "status": "supported",
+      "handler": "ability:psychicsurge",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mistysurge": {
+      "status": "supported",
+      "handler": "ability:mistysurge",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "grassysurge": {
+      "status": "supported",
+      "handler": "ability:grassysurge",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "fullmetalbody": {
+      "status": "supported",
+      "handler": "ability:fullmetalbody",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shadowshield": {
+      "status": "supported",
+      "handler": "ability:shadowshield",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "prismarmor": {
+      "status": "supported",
+      "handler": "ability:prismarmor",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "neuroforce": {
+      "status": "supported",
+      "handler": "ability:neuroforce",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    }
+  },
+  "items": {
+    "masterball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ultraball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "greatball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pokeball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "netball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "diveball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "nestball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "repeatball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "timerball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "luxuryball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "premierball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "duskball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "healball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "quickball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "berryjuice": {
+      "status": "supported",
+      "handler": "item:berryjuice",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sunstone": {
+      "status": "supported",
+      "handler": "item:sunstone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "moonstone": {
+      "status": "supported",
+      "handler": "item:moonstone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "firestone": {
+      "status": "supported",
+      "handler": "item:firestone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "thunderstone": {
+      "status": "supported",
+      "handler": "item:thunderstone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "waterstone": {
+      "status": "supported",
+      "handler": "item:waterstone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "leafstone": {
+      "status": "supported",
+      "handler": "item:leafstone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rootfossil": {
+      "status": "supported",
+      "handler": "item:rootfossil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "clawfossil": {
+      "status": "supported",
+      "handler": "item:clawfossil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "helixfossil": {
+      "status": "supported",
+      "handler": "item:helixfossil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "domefossil": {
+      "status": "supported",
+      "handler": "item:domefossil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "armorfossil": {
+      "status": "supported",
+      "handler": "item:armorfossil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "skullfossil": {
+      "status": "supported",
+      "handler": "item:skullfossil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rarebone": {
+      "status": "supported",
+      "handler": "item:rarebone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shinystone": {
+      "status": "supported",
+      "handler": "item:shinystone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "duskstone": {
+      "status": "supported",
+      "handler": "item:duskstone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dawnstone": {
+      "status": "supported",
+      "handler": "item:dawnstone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ovalstone": {
+      "status": "supported",
+      "handler": "item:ovalstone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "griseousorb": {
+      "status": "supported",
+      "handler": "item:griseousorb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dousedrive": {
+      "status": "supported",
+      "handler": "item:drive",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shockdrive": {
+      "status": "supported",
+      "handler": "item:drive",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "burndrive": {
+      "status": "supported",
+      "handler": "item:drive",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "chilldrive": {
+      "status": "supported",
+      "handler": "item:drive",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "adamantorb": {
+      "status": "supported",
+      "handler": "item:adamantorb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lustrousorb": {
+      "status": "supported",
+      "handler": "item:lustrousorb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "cheriberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "chestoberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pechaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rawstberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "aspearberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "leppaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "oranberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "persimberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lumberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sitrusberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "figyberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "wikiberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "magoberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "aguavberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "iapapaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "blukberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pinapberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pomegberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "kelpsyberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "qualotberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "hondewberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "grepaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "tamatoberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "occaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "passhoberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "wacanberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rindoberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "yacheberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "chopleberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "kebiaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shucaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "cobaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "payapaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "tangaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "chartiberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "kasibberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "habanberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "colburberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "babiriberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "chilanberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "liechiberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ganlonberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "salacberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "petayaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "apicotberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lansatberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "starfberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "enigmaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "micleberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "custapberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "jabocaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rowapberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "brightpowder": {
+      "status": "supported",
+      "handler": "item:brightpowder",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "whiteherb": {
+      "status": "supported",
+      "handler": "item:whiteherb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "quickclaw": {
+      "status": "supported",
+      "handler": "item:quickclaw",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mentalherb": {
+      "status": "supported",
+      "handler": "item:mentalherb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "choiceband": {
+      "status": "supported",
+      "handler": "item:choice",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "kingsrock": {
+      "status": "supported",
+      "handler": "item:kingsrock",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "silverpowder": {
+      "status": "supported",
+      "handler": "item:silverpowder",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "souldew": {
+      "status": "supported",
+      "handler": "item:souldew",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "deepseatooth": {
+      "status": "supported",
+      "handler": "item:deepseatooth",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "deepseascale": {
+      "status": "supported",
+      "handler": "item:deepseascale",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "focusband": {
+      "status": "supported",
+      "handler": "item:focusband",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "scopelens": {
+      "status": "supported",
+      "handler": "item:scopelens",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "metalcoat": {
+      "status": "supported",
+      "handler": "item:metalcoat",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "leftovers": {
+      "status": "supported",
+      "handler": "item:leftovers",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dragonscale": {
+      "status": "supported",
+      "handler": "item:dragonscale",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lightball": {
+      "status": "supported",
+      "handler": "item:lightball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "softsand": {
+      "status": "supported",
+      "handler": "item:softsand",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "hardstone": {
+      "status": "supported",
+      "handler": "item:hardstone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "miracleseed": {
+      "status": "supported",
+      "handler": "item:miracleseed",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "blackglasses": {
+      "status": "supported",
+      "handler": "item:blackglasses",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "blackbelt": {
+      "status": "supported",
+      "handler": "item:blackbelt",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "magnet": {
+      "status": "supported",
+      "handler": "item:magnet",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mysticwater": {
+      "status": "supported",
+      "handler": "item:mysticwater",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sharpbeak": {
+      "status": "supported",
+      "handler": "item:sharpbeak",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "poisonbarb": {
+      "status": "supported",
+      "handler": "item:poisonbarb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "nevermeltice": {
+      "status": "supported",
+      "handler": "item:nevermeltice",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "spelltag": {
+      "status": "supported",
+      "handler": "item:spelltag",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "twistedspoon": {
+      "status": "supported",
+      "handler": "item:twistedspoon",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "charcoal": {
+      "status": "supported",
+      "handler": "item:charcoal",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dragonfang": {
+      "status": "supported",
+      "handler": "item:dragonfang",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "silkscarf": {
+      "status": "supported",
+      "handler": "item:silkscarf",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "upgrade": {
+      "status": "supported",
+      "handler": "item:upgrade",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shellbell": {
+      "status": "supported",
+      "handler": "item:shellbell",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "seaincense": {
+      "status": "supported",
+      "handler": "item:seaincense",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "laxincense": {
+      "status": "supported",
+      "handler": "item:laxincense",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "luckypunch": {
+      "status": "supported",
+      "handler": "item:luckypunch",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "metalpowder": {
+      "status": "supported",
+      "handler": "item:metalpowder",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "thickclub": {
+      "status": "supported",
+      "handler": "item:thickclub",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "stick": {
+      "status": "supported",
+      "handler": "item:stick",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "widelens": {
+      "status": "supported",
+      "handler": "item:widelens",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "muscleband": {
+      "status": "supported",
+      "handler": "item:muscleband",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "wiseglasses": {
+      "status": "supported",
+      "handler": "item:wiseglasses",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "expertbelt": {
+      "status": "supported",
+      "handler": "item:expertbelt",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lightclay": {
+      "status": "supported",
+      "handler": "item:lightclay",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lifeorb": {
+      "status": "supported",
+      "handler": "item:lifeorb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "powerherb": {
+      "status": "supported",
+      "handler": "item:powerherb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "toxicorb": {
+      "status": "supported",
+      "handler": "item:toxicorb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "flameorb": {
+      "status": "supported",
+      "handler": "item:flameorb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "quickpowder": {
+      "status": "supported",
+      "handler": "item:quickpowder",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "focussash": {
+      "status": "supported",
+      "handler": "item:focussash",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "zoomlens": {
+      "status": "supported",
+      "handler": "item:zoomlens",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "metronome": {
+      "status": "supported",
+      "handler": "item:metronome",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ironball": {
+      "status": "supported",
+      "handler": "item:ironball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "laggingtail": {
+      "status": "supported",
+      "handler": "item:laggingtail",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "destinyknot": {
+      "status": "supported",
+      "handler": "item:destinyknot",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "blacksludge": {
+      "status": "supported",
+      "handler": "item:blacksludge",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "icyrock": {
+      "status": "supported",
+      "handler": "item:icyrock",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "smoothrock": {
+      "status": "supported",
+      "handler": "item:smoothrock",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "heatrock": {
+      "status": "supported",
+      "handler": "item:heatrock",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "damprock": {
+      "status": "supported",
+      "handler": "item:damprock",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "gripclaw": {
+      "status": "supported",
+      "handler": "item:gripclaw",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "choicescarf": {
+      "status": "supported",
+      "handler": "item:choice",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "stickybarb": {
+      "status": "supported",
+      "handler": "item:stickybarb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "powerbracer": {
+      "status": "supported",
+      "handler": "item:powerbracer",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "powerbelt": {
+      "status": "supported",
+      "handler": "item:powerbelt",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "powerlens": {
+      "status": "supported",
+      "handler": "item:powerlens",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "powerband": {
+      "status": "supported",
+      "handler": "item:powerband",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "poweranklet": {
+      "status": "supported",
+      "handler": "item:poweranklet",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "powerweight": {
+      "status": "supported",
+      "handler": "item:powerweight",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "shedshell": {
+      "status": "supported",
+      "handler": "item:shedshell",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "bigroot": {
+      "status": "supported",
+      "handler": "item:bigroot",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "choicespecs": {
+      "status": "supported",
+      "handler": "item:choice",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "flameplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "splashplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "zapplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "meadowplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "icicleplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "fistplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "toxicplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "earthplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "skyplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mindplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "insectplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "stoneplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "spookyplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dracoplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dreadplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ironplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "oddincense": {
+      "status": "supported",
+      "handler": "item:oddincense",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rockincense": {
+      "status": "supported",
+      "handler": "item:rockincense",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "fullincense": {
+      "status": "supported",
+      "handler": "item:fullincense",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "waveincense": {
+      "status": "supported",
+      "handler": "item:waveincense",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "roseincense": {
+      "status": "supported",
+      "handler": "item:roseincense",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "protector": {
+      "status": "supported",
+      "handler": "item:protector",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "electirizer": {
+      "status": "supported",
+      "handler": "item:electirizer",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "magmarizer": {
+      "status": "supported",
+      "handler": "item:magmarizer",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dubiousdisc": {
+      "status": "supported",
+      "handler": "item:dubiousdisc",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "reapercloth": {
+      "status": "supported",
+      "handler": "item:reapercloth",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "razorclaw": {
+      "status": "supported",
+      "handler": "item:razorclaw",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "razorfang": {
+      "status": "supported",
+      "handler": "item:razorfang",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "fastball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "levelball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lureball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "heavyball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "loveball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "friendball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "moonball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "redorb": {
+      "status": "supported",
+      "handler": "item:primal-orb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "blueorb": {
+      "status": "supported",
+      "handler": "item:primal-orb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "prismscale": {
+      "status": "supported",
+      "handler": "item:prismscale",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "eviolite": {
+      "status": "supported",
+      "handler": "item:eviolite",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "floatstone": {
+      "status": "supported",
+      "handler": "item:floatstone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rockyhelmet": {
+      "status": "supported",
+      "handler": "item:rockyhelmet",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "airballoon": {
+      "status": "supported",
+      "handler": "item:airballoon",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "redcard": {
+      "status": "supported",
+      "handler": "item:redcard",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ringtarget": {
+      "status": "supported",
+      "handler": "item:ringtarget",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "bindingband": {
+      "status": "supported",
+      "handler": "item:bindingband",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "absorbbulb": {
+      "status": "supported",
+      "handler": "item:absorbbulb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "cellbattery": {
+      "status": "supported",
+      "handler": "item:cellbattery",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ejectbutton": {
+      "status": "supported",
+      "handler": "item:ejectbutton",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "normalgem": {
+      "status": "supported",
+      "handler": "item:normalgem",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "prettyfeather": {
+      "status": "supported",
+      "handler": "item:prettyfeather",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "coverfossil": {
+      "status": "supported",
+      "handler": "item:coverfossil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "plumefossil": {
+      "status": "supported",
+      "handler": "item:plumefossil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "bignugget": {
+      "status": "supported",
+      "handler": "item:bignugget",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "weaknesspolicy": {
+      "status": "supported",
+      "handler": "item:weaknesspolicy",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "assaultvest": {
+      "status": "supported",
+      "handler": "item:assaultvest",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pixieplate": {
+      "status": "supported",
+      "handler": "item:type-plate",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "whippeddream": {
+      "status": "supported",
+      "handler": "item:whippeddream",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sachet": {
+      "status": "supported",
+      "handler": "item:sachet",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "luminousmoss": {
+      "status": "supported",
+      "handler": "item:luminousmoss",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "snowball": {
+      "status": "supported",
+      "handler": "item:snowball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "safetygoggles": {
+      "status": "supported",
+      "handler": "item:safetygoggles",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "gengarite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "gardevoirite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ampharosite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "venusaurite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "charizarditex": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "blastoisinite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mewtwonitex": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mewtwonitey": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "blazikenite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "medichamite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "houndoominite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "aggronite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "banettite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "tyranitarite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "scizorite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pinsirite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "aerodactylite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lucarionite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "abomasite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "kangaskhanite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "gyaradosite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "absolite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "charizarditey": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "alakazite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "heracronite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mawilite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "manectite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "garchompite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "latiasite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "latiosite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "roseliberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "keeberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "marangaberry": {
+      "status": "supported",
+      "handler": "item:berry",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "jawfossil": {
+      "status": "supported",
+      "handler": "item:jawfossil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sailfossil": {
+      "status": "supported",
+      "handler": "item:sailfossil",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "swampertite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sceptilite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sablenite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "altarianite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "galladite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "audinite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "metagrossite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "sharpedonite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "slowbronite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "steelixite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pidgeotite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "glalitite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "diancite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "cameruptite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lopunnite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "salamencite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "beedrillite": {
+      "status": "supported",
+      "handler": "item:mega-stone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "normaliumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "firiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "wateriumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "electriumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "grassiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "iciumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "fightiniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "poisoniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "groundiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "flyiniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "psychiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "buginiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rockiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ghostiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dragoniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "darkiniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "steeliumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "fairiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pikaniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "bottlecap": {
+      "status": "supported",
+      "handler": "item:bottlecap",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "goldbottlecap": {
+      "status": "supported",
+      "handler": "item:goldbottlecap",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "decidiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "inciniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "primariumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "tapuniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "marshadiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "aloraichiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "snorliumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "eeviumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mewniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "pikashuniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "adrenalineorb": {
+      "status": "supported",
+      "handler": "item:adrenalineorb",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "icestone": {
+      "status": "supported",
+      "handler": "item:icestone",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "beastball": {
+      "status": "supported",
+      "handler": "item:capture-ball",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "terrainextender": {
+      "status": "supported",
+      "handler": "item:terrainextender",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "protectivepads": {
+      "status": "supported",
+      "handler": "item:protectivepads",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "electricseed": {
+      "status": "supported",
+      "handler": "item:electricseed",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "psychicseed": {
+      "status": "supported",
+      "handler": "item:psychicseed",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mistyseed": {
+      "status": "supported",
+      "handler": "item:mistyseed",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "grassyseed": {
+      "status": "supported",
+      "handler": "item:grassyseed",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "fightingmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "flyingmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "poisonmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "groundmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "rockmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "bugmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ghostmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "steelmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "firememory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "watermemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "grassmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "electricmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "psychicmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "icememory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "dragonmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "darkmemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "fairymemory": {
+      "status": "supported",
+      "handler": "item:memory",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "solganiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lunaliumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "ultranecroziumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "mimikiumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "lycaniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    },
+    "kommoniumz": {
+      "status": "blocked-by-excluded-system",
+      "reason": "Z-Moves are an explicit Claudemon non-goal, so Z-Crystals have no supported activation system.",
+      "source": "@pkmn/data 0.10.11 · Generation VII"
+    }
+  },
+  "moves": {
+    "absorb": {
+      "status": "supported",
+      "handler": "move:drain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "accelerock": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "acid": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "acid-armor": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "acid-spray": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "acrobatics": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "acupressure": {
+      "status": "supported",
+      "handler": "move:acupressure",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "aerial-ace": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "aeroblast": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "after-you": {
+      "status": "supported",
+      "handler": "move:afteryou",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "agility": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "air-cutter": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "air-slash": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ally-switch": {
+      "status": "no-effect-in-singles",
+      "reason": "This move requires or redirects an ally target and has no meaningful effect in a singles battle.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "amnesia": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "anchor-shot": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ancient-power": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "aqua-jet": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "aqua-ring": {
+      "status": "supported",
+      "handler": "move:aquaring",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "aqua-tail": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "arm-thrust": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "aromatherapy": {
+      "status": "supported",
+      "handler": "move:aromatherapy",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "aromatic-mist": {
+      "status": "no-effect-in-singles",
+      "reason": "This move requires or redirects an ally target and has no meaningful effect in a singles battle.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "assist": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "assurance": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "astonish": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "attack-order": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "attract": {
+      "status": "supported",
+      "handler": "move:attract",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "aura-sphere": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "aurora-beam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "autotomize": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "avalanche": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "baby-doll-eyes": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "baneful-bunker": {
+      "status": "supported",
+      "handler": "move:banefulbunker",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "barrage": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "barrier": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "baton-pass": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "beak-blast": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "beat-up": {
+      "status": "supported",
+      "handler": "move:beatup",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "belch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "belly-drum": {
+      "status": "supported",
+      "handler": "move:bellydrum",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bestow": {
+      "status": "supported",
+      "handler": "move:bestow",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bide": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bind": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bite": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "blaze-kick": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "blizzard": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "block": {
+      "status": "supported",
+      "handler": "move:block",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "blue-flare": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "body-slam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bolt-strike": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bone-club": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bone-rush": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bonemerang": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "boomburst": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bounce": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "brave-bird": {
+      "status": "supported",
+      "handler": "move:recoil",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "brick-break": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "brine": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "brutal-swing": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bubble": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bubble-beam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bug-bite": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bug-buzz": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bulk-up": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bulldoze": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bullet-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "bullet-seed": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "burn-up": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "calm-mind": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "camouflage": {
+      "status": "supported",
+      "handler": "move:camouflage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "captivate": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "charge": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "charge-beam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "charm": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "chatter": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "chip-away": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "circle-throw": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "clamp": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "clanging-scales": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "clear-smog": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "close-combat": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "coil": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "comet-punch": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "confide": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "confuse-ray": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "confusion": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "constrict": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "conversion": {
+      "status": "supported",
+      "handler": "move:conversion",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "conversion-2": {
+      "status": "supported",
+      "handler": "move:conversion2",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "copycat": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "cosmic-power": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "cotton-guard": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "cotton-spore": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "counter": {
+      "status": "supported",
+      "handler": "move:counter",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "covet": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "crabhammer": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "crafty-shield": {
+      "status": "supported",
+      "handler": "move:craftyshield",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "cross-chop": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "cross-poison": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "crunch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "crush-claw": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "crush-grip": {
+      "status": "supported",
+      "handler": "move:crushgrip",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "curse": {
+      "status": "supported",
+      "handler": "move:curse",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "cut": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dark-pulse": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dark-void": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "darkest-lariat": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dazzling-gleam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "defend-order": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "defense-curl": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "defog": {
+      "status": "supported",
+      "handler": "move:defog",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "destiny-bond": {
+      "status": "supported",
+      "handler": "move:destinybond",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "detect": {
+      "status": "supported",
+      "handler": "move:detect",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "diamond-storm": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dig": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "disable": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "disarming-voice": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "discharge": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dive": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dizzy-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "doom-desire": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "double-edge": {
+      "status": "supported",
+      "handler": "move:recoil",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "double-hit": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "double-kick": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "double-slap": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "double-team": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dragon-breath": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dragon-claw": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dragon-dance": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dragon-hammer": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dragon-pulse": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dragon-rage": {
+      "status": "supported",
+      "handler": "move:dragonrage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dragon-rush": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dragon-tail": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "drain-punch": {
+      "status": "supported",
+      "handler": "move:drain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "draining-kiss": {
+      "status": "supported",
+      "handler": "move:drain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dream-eater": {
+      "status": "supported",
+      "handler": "move:drain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "drill-peck": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "drill-run": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dual-chop": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "dynamic-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "earth-power": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "earthquake": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "echoed-voice": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "eerie-impulse": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "egg-bomb": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "electric-terrain": {
+      "status": "supported",
+      "handler": "move:electricterrain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "electrify": {
+      "status": "supported",
+      "handler": "move:electrify",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "electro-ball": {
+      "status": "supported",
+      "handler": "move:electroball",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "electroweb": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "embargo": {
+      "status": "supported",
+      "handler": "move:embargo",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ember": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "encore": {
+      "status": "supported",
+      "handler": "move:encore",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "endeavor": {
+      "status": "supported",
+      "handler": "move:endeavor",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "endure": {
+      "status": "supported",
+      "handler": "move:endure",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "energy-ball": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "entrainment": {
+      "status": "supported",
+      "handler": "move:entrainment",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "eruption": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "explosion": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "extrasensory": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "extreme-speed": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "facade": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fairy-lock": {
+      "status": "supported",
+      "handler": "move:fairylock",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fairy-wind": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fake-out": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fake-tears": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "false-swipe": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "feather-dance": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "feint": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "feint-attack": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fell-stinger": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fiery-dance": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "final-gambit": {
+      "status": "supported",
+      "handler": "move:finalgambit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fire-blast": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fire-fang": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fire-lash": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fire-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fire-spin": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "first-impression": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fissure": {
+      "status": "supported",
+      "handler": "move:fissure",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flail": {
+      "status": "supported",
+      "handler": "move:flail",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flame-burst": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flame-charge": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flame-wheel": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flamethrower": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flare-blitz": {
+      "status": "supported",
+      "handler": "move:recoil",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flash": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flash-cannon": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flatter": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fleur-cannon": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fling": {
+      "status": "supported",
+      "handler": "move:fling",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "floral-healing": {
+      "status": "supported",
+      "handler": "move:floralhealing",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flower-shield": {
+      "status": "supported",
+      "handler": "move:flowershield",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fly": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "flying-press": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "focus-blast": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "focus-energy": {
+      "status": "supported",
+      "handler": "move:focusenergy",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "focus-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "follow-me": {
+      "status": "no-effect-in-singles",
+      "reason": "This move requires or redirects an ally target and has no meaningful effect in a singles battle.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "force-palm": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "foresight": {
+      "status": "supported",
+      "handler": "move:foresight",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "forests-curse": {
+      "status": "supported",
+      "handler": "move:forestscurse",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "foul-play": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "freeze-dry": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "freeze-shock": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "frost-breath": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "frustration": {
+      "status": "supported",
+      "handler": "move:frustration",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fury-attack": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fury-cutter": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fury-swipes": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fusion-bolt": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "fusion-flare": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "future-sight": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "gastro-acid": {
+      "status": "supported",
+      "handler": "move:gastroacid",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "gear-grind": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "gear-up": {
+      "status": "supported",
+      "handler": "move:gearup",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "geomancy": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "giga-drain": {
+      "status": "supported",
+      "handler": "move:drain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "giga-impact": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "glaciate": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "glare": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "grass-knot": {
+      "status": "supported",
+      "handler": "move:grassknot",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "grass-whistle": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "grassy-terrain": {
+      "status": "supported",
+      "handler": "move:grassyterrain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "gravity": {
+      "status": "supported",
+      "handler": "move:gravity",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "growl": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "growth": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "grudge": {
+      "status": "supported",
+      "handler": "move:grudge",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "guard-split": {
+      "status": "supported",
+      "handler": "move:guardsplit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "guard-swap": {
+      "status": "supported",
+      "handler": "move:guardswap",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "guillotine": {
+      "status": "supported",
+      "handler": "move:guillotine",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "gunk-shot": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "gust": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "gyro-ball": {
+      "status": "supported",
+      "handler": "move:gyroball",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hail": {
+      "status": "supported",
+      "handler": "move:hail",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hammer-arm": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "harden": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "haze": {
+      "status": "supported",
+      "handler": "move:haze",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "head-charge": {
+      "status": "supported",
+      "handler": "move:recoil",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "head-smash": {
+      "status": "supported",
+      "handler": "move:recoil",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "headbutt": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "heal-bell": {
+      "status": "supported",
+      "handler": "move:healbell",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "heal-block": {
+      "status": "supported",
+      "handler": "move:healblock",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "heal-order": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "heal-pulse": {
+      "status": "supported",
+      "handler": "move:healpulse",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "healing-wish": {
+      "status": "supported",
+      "handler": "move:healingwish",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "heart-stamp": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "heart-swap": {
+      "status": "supported",
+      "handler": "move:heartswap",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "heat-crash": {
+      "status": "supported",
+      "handler": "move:heatcrash",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "heat-wave": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "heavy-slam": {
+      "status": "supported",
+      "handler": "move:heavyslam",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "helping-hand": {
+      "status": "no-effect-in-singles",
+      "reason": "This move requires or redirects an ally target and has no meaningful effect in a singles battle.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hex": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hidden-power": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "high-horsepower": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "high-jump-kick": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hone-claws": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "horn-attack": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "horn-drill": {
+      "status": "supported",
+      "handler": "move:horndrill",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "horn-leech": {
+      "status": "supported",
+      "handler": "move:drain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "howl": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hurricane": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hydro-pump": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hyper-beam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hyper-fang": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hyper-voice": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hyperspace-fury": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hyperspace-hole": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "hypnosis": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ice-ball": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ice-beam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ice-burn": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ice-fang": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ice-hammer": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ice-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ice-shard": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "icicle-crash": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "icicle-spear": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "icy-wind": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "imprison": {
+      "status": "supported",
+      "handler": "move:imprison",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "incinerate": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "inferno": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "infestation": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ingrain": {
+      "status": "supported",
+      "handler": "move:ingrain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "instruct": {
+      "status": "supported",
+      "handler": "move:instruct",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ion-deluge": {
+      "status": "supported",
+      "handler": "move:iondeluge",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "iron-defense": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "iron-head": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "iron-tail": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "judgment": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "jump-kick": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "karate-chop": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "kinesis": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "kings-shield": {
+      "status": "supported",
+      "handler": "move:kingsshield",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "knock-off": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "lands-wrath": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "laser-focus": {
+      "status": "supported",
+      "handler": "move:laserfocus",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "last-resort": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "lava-plume": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "leaf-blade": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "leaf-storm": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "leaf-tornado": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "leafage": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "leech-life": {
+      "status": "supported",
+      "handler": "move:drain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "leech-seed": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "leer": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "lick": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "light-screen": {
+      "status": "supported",
+      "handler": "move:lightscreen",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "liquidation": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "lock-on": {
+      "status": "supported",
+      "handler": "move:lockon",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "lovely-kiss": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "low-kick": {
+      "status": "supported",
+      "handler": "move:lowkick",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "low-sweep": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "lucky-chant": {
+      "status": "supported",
+      "handler": "move:luckychant",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "lunar-dance": {
+      "status": "supported",
+      "handler": "move:lunardance",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "lunge": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "luster-purge": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mach-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "magic-coat": {
+      "status": "supported",
+      "handler": "move:magiccoat",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "magic-room": {
+      "status": "supported",
+      "handler": "move:magicroom",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "magical-leaf": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "magma-storm": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "magnet-bomb": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "magnet-rise": {
+      "status": "supported",
+      "handler": "move:magnetrise",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "magnetic-flux": {
+      "status": "supported",
+      "handler": "move:magneticflux",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "magnitude": {
+      "status": "supported",
+      "handler": "move:magnitude",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mat-block": {
+      "status": "supported",
+      "handler": "move:matblock",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "me-first": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mean-look": {
+      "status": "supported",
+      "handler": "move:meanlook",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "meditate": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mega-drain": {
+      "status": "supported",
+      "handler": "move:drain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mega-kick": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mega-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "megahorn": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "memento": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "metal-burst": {
+      "status": "supported",
+      "handler": "move:metalburst",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "metal-claw": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "metal-sound": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "meteor-mash": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "metronome": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "milk-drink": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mimic": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mind-blown": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mind-reader": {
+      "status": "supported",
+      "handler": "move:mindreader",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "minimize": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "miracle-eye": {
+      "status": "supported",
+      "handler": "move:miracleeye",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mirror-coat": {
+      "status": "supported",
+      "handler": "move:mirrorcoat",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mirror-move": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mirror-shot": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mist": {
+      "status": "supported",
+      "handler": "move:mist",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mist-ball": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "misty-terrain": {
+      "status": "supported",
+      "handler": "move:mistyterrain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "moonblast": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "moongeist-beam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "moonlight": {
+      "status": "supported",
+      "handler": "move:moonlight",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "morning-sun": {
+      "status": "supported",
+      "handler": "move:morningsun",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mud-bomb": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mud-shot": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mud-slap": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mud-sport": {
+      "status": "supported",
+      "handler": "move:mudsport",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "muddy-water": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "multi-attack": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "mystical-fire": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "nasty-plot": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "natural-gift": {
+      "status": "supported",
+      "handler": "move:naturalgift",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "nature-power": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "natures-madness": {
+      "status": "supported",
+      "handler": "move:naturesmadness",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "needle-arm": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "night-daze": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "night-shade": {
+      "status": "supported",
+      "handler": "move:nightshade",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "night-slash": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "nightmare": {
+      "status": "supported",
+      "handler": "move:nightmare",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "noble-roar": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "nuzzle": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "oblivion-wing": {
+      "status": "supported",
+      "handler": "move:drain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "octazooka": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "odor-sleuth": {
+      "status": "supported",
+      "handler": "move:odorsleuth",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "ominous-wind": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "origin-pulse": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "outrage": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "overheat": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "pain-split": {
+      "status": "supported",
+      "handler": "move:painsplit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "parabolic-charge": {
+      "status": "supported",
+      "handler": "move:drain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "parting-shot": {
+      "status": "supported",
+      "handler": "move:partingshot",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "pay-day": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "payback": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "peck": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "perish-song": {
+      "status": "supported",
+      "handler": "move:perishsong",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "petal-blizzard": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "petal-dance": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "phantom-force": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "photon-geyser": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "pin-missile": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "plasma-fists": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "play-nice": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "play-rough": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "pluck": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "poison-fang": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "poison-gas": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "poison-jab": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "poison-powder": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "poison-sting": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "poison-tail": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "pollen-puff": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "pound": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "powder": {
+      "status": "supported",
+      "handler": "move:powder",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "powder-snow": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "power-gem": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "power-split": {
+      "status": "supported",
+      "handler": "move:powersplit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "power-swap": {
+      "status": "supported",
+      "handler": "move:powerswap",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "power-trick": {
+      "status": "supported",
+      "handler": "move:powertrick",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "power-trip": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "power-up-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "power-whip": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "precipice-blades": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "present": {
+      "status": "supported",
+      "handler": "move:present",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "prismatic-laser": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "protect": {
+      "status": "supported",
+      "handler": "move:protect",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psybeam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psych-up": {
+      "status": "supported",
+      "handler": "move:psychup",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psychic": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psychic-fangs": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psychic-terrain": {
+      "status": "supported",
+      "handler": "move:psychicterrain",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psycho-boost": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psycho-cut": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psycho-shift": {
+      "status": "supported",
+      "handler": "move:psychoshift",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psyshock": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psystrike": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "psywave": {
+      "status": "supported",
+      "handler": "move:psywave",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "punishment": {
+      "status": "supported",
+      "handler": "move:punishment",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "purify": {
+      "status": "supported",
+      "handler": "move:purify",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "pursuit": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "quash": {
+      "status": "supported",
+      "handler": "move:quash",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "quick-attack": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "quick-guard": {
+      "status": "supported",
+      "handler": "move:quickguard",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "quiver-dance": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rage": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rage-powder": {
+      "status": "no-effect-in-singles",
+      "reason": "This move requires or redirects an ally target and has no meaningful effect in a singles battle.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rain-dance": {
+      "status": "supported",
+      "handler": "move:raindance",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rapid-spin": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "razor-leaf": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "razor-shell": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "razor-wind": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "recover": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "recycle": {
+      "status": "supported",
+      "handler": "move:recycle",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "reflect": {
+      "status": "supported",
+      "handler": "move:reflect",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "reflect-type": {
+      "status": "supported",
+      "handler": "move:reflecttype",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "refresh": {
+      "status": "supported",
+      "handler": "move:refresh",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rest": {
+      "status": "supported",
+      "handler": "move:rest",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "retaliate": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "return": {
+      "status": "supported",
+      "handler": "move:return",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "revelation-dance": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "revenge": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "reversal": {
+      "status": "supported",
+      "handler": "move:reversal",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "roar": {
+      "status": "supported",
+      "handler": "move:roar",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "roar-of-time": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rock-blast": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rock-climb": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rock-polish": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rock-slide": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rock-smash": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rock-throw": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rock-tomb": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rock-wrecker": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "role-play": {
+      "status": "supported",
+      "handler": "move:roleplay",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rolling-kick": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rollout": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "roost": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "rototiller": {
+      "status": "supported",
+      "handler": "move:rototiller",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "round": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sacred-fire": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sacred-sword": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "safeguard": {
+      "status": "supported",
+      "handler": "move:safeguard",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sand-attack": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sand-tomb": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sandstorm": {
+      "status": "supported",
+      "handler": "move:sandstorm",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "scald": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "scary-face": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "scratch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "screech": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "searing-shot": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "secret-power": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "seed-bomb": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "seed-flare": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "seismic-toss": {
+      "status": "supported",
+      "handler": "move:seismictoss",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "self-destruct": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shadow-ball": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shadow-bone": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shadow-claw": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shadow-force": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shadow-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shadow-sneak": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sharpen": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sheer-cold": {
+      "status": "supported",
+      "handler": "move:sheercold",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shell-smash": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shell-trap": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shift-gear": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shock-wave": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "shore-up": {
+      "status": "supported",
+      "handler": "move:shoreup",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "signal-beam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "silver-wind": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "simple-beam": {
+      "status": "supported",
+      "handler": "move:simplebeam",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sing": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sketch": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "skill-swap": {
+      "status": "supported",
+      "handler": "move:skillswap",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "skull-bash": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sky-attack": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sky-drop": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sky-uppercut": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "slack-off": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "slam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "slash": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sleep-powder": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sleep-talk": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sludge": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sludge-bomb": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sludge-wave": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "smack-down": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "smelling-salts": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "smog": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "smokescreen": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "snarl": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "snatch": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "snore": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "soak": {
+      "status": "supported",
+      "handler": "move:soak",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "soft-boiled": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "solar-beam": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "solar-blade": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sonic-boom": {
+      "status": "supported",
+      "handler": "move:sonicboom",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spacial-rend": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spark": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sparkling-aria": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spectral-thief": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "speed-swap": {
+      "status": "supported",
+      "handler": "move:speedswap",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spider-web": {
+      "status": "supported",
+      "handler": "move:spiderweb",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spike-cannon": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spikes": {
+      "status": "supported",
+      "handler": "move:spikes",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spiky-shield": {
+      "status": "supported",
+      "handler": "move:spikyshield",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spirit-shackle": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spit-up": {
+      "status": "supported",
+      "handler": "move:spitup",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spite": {
+      "status": "supported",
+      "handler": "move:spite",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "splash": {
+      "status": "supported",
+      "handler": "move:no-op",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spore": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "spotlight": {
+      "status": "no-effect-in-singles",
+      "reason": "This move requires or redirects an ally target and has no meaningful effect in a singles battle.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "stealth-rock": {
+      "status": "supported",
+      "handler": "move:stealthrock",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "steam-eruption": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "steamroller": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "steel-wing": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sticky-web": {
+      "status": "supported",
+      "handler": "move:stickyweb",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "stockpile": {
+      "status": "supported",
+      "handler": "move:stockpile",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "stomp": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "stomping-tantrum": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "stone-edge": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "stored-power": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "storm-throw": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "strength": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "strength-sap": {
+      "status": "supported",
+      "handler": "move:strengthsap",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "string-shot": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "struggle-bug": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "stun-spore": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "submission": {
+      "status": "supported",
+      "handler": "move:recoil",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "substitute": {
+      "status": "supported",
+      "handler": "move:substitute",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sucker-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sunny-day": {
+      "status": "supported",
+      "handler": "move:sunnyday",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sunsteel-strike": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "super-fang": {
+      "status": "supported",
+      "handler": "move:superfang",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "superpower": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "supersonic": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "swagger": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "swallow": {
+      "status": "supported",
+      "handler": "move:swallow",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sweet-kiss": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "sweet-scent": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "swift": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "switcheroo": {
+      "status": "supported",
+      "handler": "move:switcheroo",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "swords-dance": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "synchronoise": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "synthesis": {
+      "status": "supported",
+      "handler": "move:synthesis",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "tackle": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "tail-glow": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "tail-slap": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "tail-whip": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "tailwind": {
+      "status": "supported",
+      "handler": "move:tailwind",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "take-down": {
+      "status": "supported",
+      "handler": "move:recoil",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "taunt": {
+      "status": "supported",
+      "handler": "move:taunt",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "tearful-look": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "techno-blast": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "teeter-dance": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "telekinesis": {
+      "status": "supported",
+      "handler": "move:telekinesis",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "teleport": {
+      "status": "supported",
+      "handler": "move:teleport",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "thief": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "thrash": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "throat-chop": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "thunder": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "thunder-fang": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "thunder-punch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "thunder-shock": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "thunder-wave": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "thunderbolt": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "tickle": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "topsy-turvy": {
+      "status": "supported",
+      "handler": "move:topsyturvy",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "torment": {
+      "status": "supported",
+      "handler": "move:torment",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "toxic": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "toxic-spikes": {
+      "status": "supported",
+      "handler": "move:toxicspikes",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "toxic-thread": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "transform": {
+      "status": "deferred-complex-one-off",
+      "reason": "This move copies, replays, delays, or transfers battle state across actions and needs dedicated move-history or transformation state.",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "tri-attack": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "trick": {
+      "status": "supported",
+      "handler": "move:trick",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "trick-or-treat": {
+      "status": "supported",
+      "handler": "move:trickortreat",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "trick-room": {
+      "status": "supported",
+      "handler": "move:trickroom",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "triple-kick": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "trop-kick": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "trump-card": {
+      "status": "supported",
+      "handler": "move:trumpcard",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "twineedle": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "twister": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "u-turn": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "uproar": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "vacuum-wave": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "venom-drench": {
+      "status": "supported",
+      "handler": "move:venomdrench",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "venoshock": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "vine-whip": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "vise-grip": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "vital-throw": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "volt-switch": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "wake-up-slap": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "water-gun": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "water-pulse": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "water-shuriken": {
+      "status": "supported",
+      "handler": "move:multi-hit",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "water-sport": {
+      "status": "supported",
+      "handler": "move:watersport",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "water-spout": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "waterfall": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "weather-ball": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "whirlpool": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "whirlwind": {
+      "status": "supported",
+      "handler": "move:whirlwind",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "wide-guard": {
+      "status": "supported",
+      "handler": "move:wideguard",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "wild-charge": {
+      "status": "supported",
+      "handler": "move:recoil",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "will-o-wisp": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "wing-attack": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "wish": {
+      "status": "supported",
+      "handler": "move:wish",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "withdraw": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "wonder-room": {
+      "status": "supported",
+      "handler": "move:wonderroom",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "wood-hammer": {
+      "status": "supported",
+      "handler": "move:recoil",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "work-up": {
+      "status": "supported",
+      "handler": "move:status-family",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "worry-seed": {
+      "status": "supported",
+      "handler": "move:worryseed",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "wrap": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "wring-out": {
+      "status": "supported",
+      "handler": "move:wringout",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "x-scissor": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "yawn": {
+      "status": "supported",
+      "handler": "move:yawn",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "zap-cannon": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "zen-headbutt": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    },
+    "zing-zap": {
+      "status": "supported",
+      "handler": "move:damage",
+      "source": "data/moves.json · Generation VII import"
+    }
+  }
+}

@@ -26,6 +26,7 @@ data/biomes.json
 data/form-ids.json
 data/generation-vii-audit.json
 data/growth.json
+data/mechanics-coverage.json
 data/moves.json
 data/pokedex.json
 data/sources.json
@@ -211,6 +212,8 @@ tools/fetch-data.mjs
 tools/fetch-sprites.mjs
 tools/generate-species-identities.mjs
 tools/install.mjs
+tools/mechanicsCoverage.mjs
+tools/mechanicsCoverage.test.mjs
 tools/pool.mjs
 tools/pool.test.mjs
 tools/preview.mjs

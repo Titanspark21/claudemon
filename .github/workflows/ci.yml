@@ -128,6 +128,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+
+      - run: npm ci
 
       - uses: actions/cache/restore@v4
         with:
@@ -135,5 +138,7 @@ jobs:
           key: sprites-${{ hashFiles('tools/fetch-sprites.mjs') }}
 
       - run: node tools/fetch-sprites.mjs
+
+      - run: npm run mechanics:coverage
 
       - run: node tools/check-data.mjs
