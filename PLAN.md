@@ -182,40 +182,6 @@ monDetail(mon, options) -> string[]
       minimum size and a wide terminal and capture both layouts.
 - [ ] Commit: `visual: show Pokemon identity and IV details`
 
-### Task V3: Draw biome travel and fork decisions on the home screen
-
-**Files:**
-
-- Create: `src/ui/views/biome.mjs`
-- Create: `src/ui/views/biome.test.mjs`
-- Modify: `src/ui/views/home.mjs`
-- Modify: `src/ui/views/constants.mjs`
-- Modify: `src/ui/grass.mjs`
-- Modify: `src/app.mjs`
-
-**Interfaces:**
-
-```js
-drawBiomeStatus(expedition, size) -> string[]
-drawFork(expedition, selection, size) -> string[]
-onBiomeKey(ctx, key) -> void
-```
-
-- [ ] Add failing rendering tests for all nine biome names, normal progress,
-      optional fork with Stay selected, mandatory departure without Stay,
-      automatic-choice warning, and narrow layout.
-- [ ] Run `npm test -- src/ui/views/biome.test.mjs` and confirm failures.
-- [ ] Add a small persistent biome label/progress row without displacing the
-      encounter countdown or party panel.
-- [ ] Add an unobtrusive optional-fork panel with Stay and two destinations,
-      plus a distinct mandatory-departure panel containing only two
-      destinations and explaining that inactivity selects a path automatically.
-- [ ] Give each biome a distinct but restrained grass/background palette or
-      glyph treatment; preserve monochrome readability.
-- [ ] Launch the app with fixture states for every biome and capture the normal
-      and fork layouts at small and large sizes.
-- [ ] Commit: `visual: show biome expeditions and travel forks`
-
 ### Task V4: Surface field effects, activations, held items, and Mega state
 
 **Files:**
