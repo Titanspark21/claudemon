@@ -406,42 +406,6 @@ src/battleEvents.test.mjs src/battleFlow.test.mjs src/damage.test.mjs`.
       battle coverage.
 - [ ] Commit: `feature: support Generation VII move families`
 
-### Task O10: Add weather, terrain, grounded rules, and field duration
-
-**Files:**
-
-- Create: `src/weather.mjs`
-- Create: `src/weather.test.mjs`
-- Create: `src/terrain.mjs`
-- Create: `src/terrain.test.mjs`
-- Modify: `src/battleField.mjs`
-- Modify: `src/effects.mjs`
-- Modify: `src/typechart.mjs`
-
-**Interfaces:**
-
-```js
-startWeather(battle, weather, source, turns) -> events
-startTerrain(battle, terrain, source, turns) -> events
-isGrounded(battle, side) -> boolean
-fieldHandlers(field) -> EffectHandler[]
-```
-
-- [x] Add failing tests for all four weather states, all four terrains,
-      replacement, five/eight-turn duration, expiry, damage changes, sand/hail
-      damage, Rock Special Defense, Grassy healing, status prevention, priority
-      blocking, grounded Flying/Levitate/Air Balloon cases, and deterministic
-      ordering with abilities/items.
-- [x] Run `npm test -- src/weather.test.mjs src/terrain.test.mjs`.
-- [x] Implement field conditions only through effect phases and keep duration
-      decrement in one end-turn owner.
-- [x] Make grounded checks a shared helper consumed by terrain, Ground moves,
-      abilities, and items.
-- [ ] Add cross-tests for weather setter abilities, duration rocks, terrain
-      setter abilities, seeds, and field replacement on switch-in.
-- [ ] Run focused tests and full battle coverage.
-- [ ] Commit: `feature: add weather and terrain battles`
-
 ### Task O11: Add collectible forms and battle transformations
 
 **Files:**
