@@ -24,6 +24,7 @@ export const loadData = () => {
     moves: read('moves.json'),
     types: read('types.json'),
     growth: read('growth.json'),
+    biomes: read('biomes.json'),
   }
 
   return cache

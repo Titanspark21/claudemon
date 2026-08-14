@@ -85,7 +85,7 @@ export const WALK_HINTS = {
 export const DEX_TITLE = 'POKÉDEX'
 export const DEX_LIST_WIDTH = 28
 export const DEX_DETAIL_GAP = 4
-export const DEX_ROWS_RESERVED = 6
+export const DEX_ROWS_RESERVED = 7
 export const DEX_SPRITE_RESERVED_ROWS = 18
 export const BASE_STAT_MAX = 160
 export const DEX_PAGE_STEP = 10
@@ -108,6 +108,7 @@ export const DEX_MESSAGES = {
   notCaught: 'Seen, but not yet caught.',
   fillItIn: 'Catch one to fill in its entry.',
   noData: 'No data.',
+  noMatches: 'No Pokédex entries match these filters.',
   shinyCaught: 'A shiny one is in your collection',
 }
 
@@ -119,7 +120,10 @@ export const EVOLUTION_WORDING = {
 
 export const DEX_SORT = { number: 'number', name: 'name' }
 export const DEX_SORT_LABELS = { number: '#', name: 'A–Z' }
-export const DEX_HINTS = ' ↑ ↓ browse · PgUp/PgDn jump · [s] sort · [esc] back'
+export const DEX_HINTS =
+  ' ↑ ↓ browse · PgUp/PgDn jump · [/] search · [s] sort · [?] filters · [esc] back'
+export const DEX_FILTER_HELP =
+  ' g generation · t type · b biome · c caught/seen/unseen · y shiny · f form · x clear'
 
 export const TEAM_TITLE = 'TEAM'
 export const BAG_TITLE = 'BAG'

@@ -89,6 +89,8 @@ src/data.mjs
 src/dataIdentity.test.mjs
 src/daycare.mjs
 src/daycare.test.mjs
+src/dexFilter.mjs
+src/dexFilter.test.mjs
 src/effects.mjs
 src/effects.test.mjs
 src/encounter.mjs

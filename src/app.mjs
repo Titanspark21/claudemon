@@ -19,6 +19,7 @@ import {
   TRAINER_MESSAGES,
 } from './constants.mjs'
 import { species } from './data.mjs'
+import { DEFAULT_DEX_FILTER } from './dexFilter.mjs'
 import { createBattle } from './battle.mjs'
 import {
   eggFromPair,
@@ -169,6 +170,9 @@ export const createApp = ({
     homeSelection: 0,
     dexSelection: 0,
     dexSort: 'number',
+    dexFilter: { ...DEFAULT_DEX_FILTER },
+    dexSearchActive: false,
+    dexFilterHelp: false,
     teamSelection: 0,
     teamSort: 'order',
     boxSelection: 0,

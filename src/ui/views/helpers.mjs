@@ -179,12 +179,25 @@ export const nextDexSort = (sort) => {
   return DEX_SORT.name
 }
 
-export const dexSelectionAfterSort = (pokedex, selection, sort, nextSort) => {
-  const current = sortedDex(pokedex, sort)[
-    clampSelection(selection, pokedex.length)
-  ]
+export const dexSelectionAfterChange = (before, after, selection) => {
+  if (after.length === 0) return 0
 
-  return sortedDex(pokedex, nextSort).findIndex((mon) => mon.id === current.id)
+  const current = before[clampSelection(selection, before.length)]
+  const preserved = current
+    ? after.findIndex((entry) => entry.id === current.id)
+    : -1
+
+  if (preserved >= 0) return preserved
+
+  return clampSelection(selection, after.length)
+}
+
+export const dexSelectionAfterSort = (pokedex, selection, sort, nextSort) => {
+  return dexSelectionAfterChange(
+    sortedDex(pokedex, sort),
+    sortedDex(pokedex, nextSort),
+    selection,
+  )
 }
 
 export const updateHeading = (run) => {

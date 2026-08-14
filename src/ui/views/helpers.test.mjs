@@ -16,6 +16,7 @@ import {
   columnRows,
   currentIndex,
   dexMark,
+  dexSelectionAfterChange,
   dexSelectionAfterSort,
   evolutionWording,
   nextDexSort,
@@ -222,6 +223,14 @@ test('Should keep the cursor on the same species when the pokedex order flips', 
   expect(
     dexSelectionAfterSort(pokedex, 0, DEX_SORT.name, DEX_SORT.number),
   ).toBe(2)
+})
+
+test('Should keep the same dex identity across filtering, or the nearest row if it disappears', () => {
+  const before = [{ id: 1 }, { id: 4 }, { id: 25 }, { id: 669 }]
+
+  expect(dexSelectionAfterChange(before, [{ id: 25 }, { id: 669 }], 2)).toBe(0)
+  expect(dexSelectionAfterChange(before, [{ id: 1 }, { id: 669 }], 2)).toBe(1)
+  expect(dexSelectionAfterChange(before, [], 2)).toBe(0)
 })
 
 test('Should head the update screen with the version it is moving to', () => {
