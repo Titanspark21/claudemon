@@ -147,41 +147,6 @@ stablePokemonRoll(mon, namespace) -> unsignedInteger
 
 ### 2026-08-13 — Generation VII expansion
 
-### Task V1: Redesign Pokémon detail for nature, ability, held item, and IVs
-
-**Files:**
-
-- Modify: `src/ui/detail.mjs`
-- Modify: `src/ui/views/team.mjs`
-- Modify: `src/ui/views/box.mjs`
-- Modify: `src/ui/views/daycare.mjs`
-- Modify: `src/ui/views/constants.mjs`
-- Test: `src/ui/detail.test.mjs`
-- Test: `src/ui/views/helpers.test.mjs`
-
-**Interfaces:**
-
-```js
-ivPercentage(ivs) -> number
-natureLabel(nature) -> string
-abilityLabel(mon) -> string
-heldItemLabel(mon) -> string
-monDetail(mon, options) -> string[]
-```
-
-- [ ] Add failing snapshot-style text assertions for 80-column, minimum-width,
-      neutral nature, modified nature, hidden ability, held item, no held item,
-      perfect IVs, and zero IVs.
-- [ ] Run `npm test -- src/ui/detail.test.mjs` and confirm the new labels are
-      absent.
-- [ ] Add a compact Identity block showing form, nature with `+/-` stats,
-      ability, and held item, followed by six numeric IVs and total percentage.
-- [ ] Ensure narrow layouts page or stack content without truncating move names
-      into the IV block; information must not rely only on color.
-- [ ] Run focused UI tests, then launch `node bin/claudemon` at the documented
-      minimum size and a wide terminal and capture both layouts.
-- [ ] Commit: `visual: show Pokemon identity and IV details`
-
 ### Task V4: Surface field effects, activations, held items, and Mega state
 
 **Files:**
