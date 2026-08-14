@@ -12,6 +12,7 @@ import {
 } from './constants.mjs'
 import { updateJsonFile as updateFile } from './fileLock.mjs'
 import { allPokemon, pokemonList } from './helpers.mjs'
+import { createExpedition, normalizeExpedition } from './expedition.mjs'
 import { SAVE_FILE } from './paths.mjs'
 import {
   createPokemon,
@@ -22,7 +23,8 @@ import {
   refreshStats,
   rollShiny,
 } from './pokemon.mjs'
-import { writeStatus } from './status.mjs'
+import { writeStatus, writeStatusSnapshot } from './status.mjs'
+import { randomSeed, seedFromRng } from './rng.mjs'
 import { countOfKind } from './shop.mjs'
 import { advanceStreak } from './streak.mjs'
 import {
@@ -50,6 +52,7 @@ export const recordPlayday = (save, now = Date.now()) => {
 
 export const createSave = ({ trainer, starterId, rng }) => {
   const starter = createPokemon(starterId, STARTER_LEVEL, rng, rollShiny(rng))
+  const workedMs = readWorked().totalMs
   const save = {
     version: SAVE_VERSION,
     trainer: { name: trainer, startedAt: new Date().toISOString() },
@@ -68,6 +71,7 @@ export const createSave = ({ trainer, starterId, rng }) => {
     stats: { ...EMPTY_STATS, caught: STARTER_CAUGHT_COUNT },
     achievements: [],
     trades: { received: [] },
+    expedition: createExpedition(seedFromRng(rng), workedMs),
   }
 
   recordPlayday(save)
@@ -137,7 +141,14 @@ const migrate = (save) => {
     refreshStats(mon)
   }
 
-  recordAchievements(save, readWorked())
+  const worked = readWorked()
+
+  save.expedition = normalizeExpedition(
+    save.expedition,
+    worked.totalMs,
+    randomSeed(),
+  )
+  recordAchievements(save, worked)
 
   save.version = SAVE_VERSION
 
@@ -203,7 +214,7 @@ const describeLead = (lead) => {
 }
 
 const biomeOf = (save) => {
-  if (!save.expedition) return null
+  if (!save.expedition || save.expedition.pendingDeparture) return null
 
   return save.expedition.biome ?? null
 }
@@ -214,15 +225,19 @@ const visitRevisionOf = (save) => {
   return save.expedition.visitRevision ?? 0
 }
 
-export const publishStatus = (save) => {
-  writeStatus({
-    lead: describeLead(getLead(save)),
-    balls: totalBalls(save),
-    money: save.money,
-    caught: save.dex.caught.length,
-    biome: biomeOf(save),
-    visitRevision: visitRevisionOf(save),
-  })
+const statusOf = (save) => ({
+  lead: describeLead(getLead(save)),
+  balls: totalBalls(save),
+  money: save.money,
+  caught: save.dex.caught.length,
+  biome: biomeOf(save),
+  visitRevision: visitRevisionOf(save),
+})
+
+export const publishStatus = (save) => writeStatus(statusOf(save))
+
+export const publishStatusSnapshot = (save, heartbeat = 0) => {
+  return writeStatusSnapshot(statusOf(save), heartbeat)
 }
 
 const chooseSave = (current, incoming) => {
@@ -236,7 +251,7 @@ const chooseSave = (current, incoming) => {
   return incoming
 }
 
-export const saveGame = (save) => {
+export const saveGame = (save, { publish = true } = {}) => {
   const saved = updateFile({
     path: SAVE_FILE,
     incoming: save,
@@ -250,9 +265,11 @@ export const saveGame = (save) => {
 
   if (saved !== save) migrate(saved)
 
-  try {
-    publishStatus(saved)
-  } catch {}
+  if (publish) {
+    try {
+      publishStatus(saved)
+    } catch {}
+  }
 
   return saved
 }

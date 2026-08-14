@@ -11,6 +11,7 @@ const sandbox = mkdtempSync(join(tmpdir(), 'claudemon-activity-'))
 process.env.CLAUDEMON_HOME = sandbox
 
 const { STALE_MS } = await import('../src/constants.mjs')
+const { createExpedition } = await import('../src/expedition.mjs')
 const {
   beginTurn,
   endSession,
@@ -104,6 +105,43 @@ const workedIn = (home) => {
   } catch {
     return null
   }
+}
+
+const saveIn = (home) => {
+  try {
+    return JSON.parse(readFileSync(join(home, 'save.json'), 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+const writeTravelSave = (home, expedition) => {
+  writeFileSync(
+    join(home, 'save.json'),
+    JSON.stringify({
+      version: 1,
+      trainer: { name: 'Red', startedAt: '2026-01-01T00:00:00.000Z' },
+      party: [],
+      box: [],
+      daycare: { slots: [], egg: null },
+      bag: {},
+      money: 0,
+      badges: [],
+      dex: { seen: [], caught: [], shiny: [], faced: {} },
+      stats: {
+        battles: 0,
+        wins: 0,
+        losses: 0,
+        caught: 0,
+        runs: 0,
+        streak: 0,
+        lastPlayedAt: null,
+      },
+      achievements: [],
+      trades: { received: [] },
+      expedition,
+    }),
+  )
 }
 
 test('Should buy the turn a walk rather than take one the instant a prompt is submitted', () => {
@@ -848,6 +886,91 @@ test('Should count a second busy tab rather than hide it', () => {
   )
 
   expect(row).toMatch(/\+2/)
+})
+
+test('Should auto-leave an expired biome before a closed companion can roll another encounter', () => {
+  const home = freshHome()
+  const expedition = createExpedition(0x12345678, 0)
+
+  writeConfig(home, { encounterChance: 1, trainerChance: 0 })
+  writeTravelSave(home, expedition)
+  runHook(home, 'on-prompt.mjs', {
+    session_id: 'travel-closed',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
+    prompt: 'x'.repeat(120),
+  })
+  writeFileSync(
+    join(home, 'worked.json'),
+    JSON.stringify({
+      totalMs: expedition.forcedTargetMs,
+      updatedAt: new Date().toISOString(),
+      intervals: [],
+    }),
+  )
+
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'travel-closed',
+    cwd: '/tmp',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Bash',
+  })
+
+  const saved = saveIn(home)
+  const status = JSON.parse(readFileSync(join(home, 'status.json'), 'utf8'))
+
+  expect(saved.expedition.visitRevision).toBeGreaterThan(0)
+  expect(saved.expedition.pendingDeparture).toBeNull()
+  expect(status.biome).toBe(saved.expedition.biome)
+  expect(status.visitRevision).toBe(saved.expedition.visitRevision)
+})
+
+test('Should suppress encounters in an expired biome while a live companion holds the departure choice', () => {
+  const home = freshHome()
+  const expedition = createExpedition(0x87654321, 0)
+
+  writeConfig(home, { encounterChance: 1, trainerChance: 0 })
+  writeTravelSave(home, expedition)
+  writeFileSync(
+    join(home, 'status.json'),
+    JSON.stringify({
+      lead: null,
+      balls: 0,
+      money: 0,
+      caught: 0,
+      heartbeat: Date.now(),
+      biome: 'meadow',
+      visitRevision: 0,
+    }),
+  )
+  runHook(home, 'on-prompt.mjs', {
+    session_id: 'travel-live',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
+    prompt: 'x'.repeat(120),
+  })
+  writeFileSync(
+    join(home, 'worked.json'),
+    JSON.stringify({
+      totalMs: expedition.forcedTargetMs,
+      updatedAt: new Date().toISOString(),
+      intervals: [],
+    }),
+  )
+
+  runHook(home, 'on-activity.mjs', {
+    session_id: 'travel-live',
+    cwd: '/tmp',
+    hook_event_name: 'PreToolUse',
+    tool_name: 'Bash',
+  })
+
+  const saved = saveIn(home)
+  const status = JSON.parse(readFileSync(join(home, 'status.json'), 'utf8'))
+
+  expect(saved.expedition.pendingDeparture).not.toBeNull()
+  expect(queueIn(home)).toHaveLength(0)
+  expect(status.biome).toBeNull()
 })
 
 const cleanUpSandbox = () => rmSync(sandbox, { recursive: true, force: true })

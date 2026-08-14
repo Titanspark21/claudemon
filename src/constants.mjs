@@ -468,8 +468,29 @@ export const DEFAULT_CONFIG = {
   probeRows: null,
 }
 
-export const HOUR_MS = 60 * 60_000
-export const DAY_MS = 24 * 60 * 60_000
+export const MINUTE_MS = 60_000
+export const HOUR_MS = 60 * MINUTE_MS
+export const DAY_MS = 24 * HOUR_MS
+
+export const BIOME_IDS = [
+  'meadow',
+  'forest',
+  'wetlands',
+  'coast',
+  'highlands',
+  'badlands',
+  'frostlands',
+  'city-powerworks',
+  'mystic-ruins',
+]
+export const STARTING_BIOME = 'meadow'
+export const EXPEDITION_VERSION = 1
+export const EXPEDITION_VISIT_MIN_MS = 30 * MINUTE_MS
+export const EXPEDITION_VISIT_MODE_MS = 40 * MINUTE_MS
+export const EXPEDITION_VISIT_MAX_MS = 65 * MINUTE_MS
+export const EXPEDITION_OPTIONAL_RATE = 0.4
+export const EXPEDITION_OPTIONAL_MIN_MS = 15 * MINUTE_MS
+export const EXPEDITION_OPTIONAL_MAX_MS = 30 * MINUTE_MS
 
 export const EMPTY_WORKED = { totalMs: 0, updatedAt: null, intervals: [] }
 
