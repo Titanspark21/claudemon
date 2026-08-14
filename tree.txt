@@ -161,6 +161,7 @@ src/ui/keys.mjs
 src/ui/keys.test.mjs
 src/ui/screen.mjs
 src/ui/sprite.mjs
+src/ui/sprite.test.mjs
 src/ui/text.mjs
 src/ui/text.test.mjs
 src/ui/views/bag.mjs
@@ -228,6 +229,8 @@ tools/sourceManifest.mjs
 tools/sourceManifest.test.mjs
 tools/speciesIdentity.mjs
 tools/speciesIdentity.test.mjs
+tools/spriteManifest.mjs
+tools/spriteManifest.test.mjs
 tools/transformers.mjs
 tools/transformers.test.mjs
 tree.txt

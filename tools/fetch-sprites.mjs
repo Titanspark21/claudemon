@@ -1,13 +1,20 @@
-import { mkdirSync, writeFileSync, existsSync, statSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { join } from 'node:path'
 import { GYMS, TRAINER_CLASSES } from '../src/constants.mjs'
 import { gymRoster } from '../src/gym.mjs'
 import {
   SPRITES_DIR,
   TRAINER_SPRITES_DIR,
+  bundledDataFile,
   eggSpriteFile,
-  shinySpriteFile,
-  spriteFile,
+  spriteAssetFile,
   trainerSpriteFile,
 } from '../src/paths.mjs'
 import { pool } from './pool.mjs'
@@ -15,52 +22,37 @@ import { progress } from './progress.mjs'
 import {
   CONCURRENCY,
   EGG_SPRITE_NAME,
-  KANTO,
   SPRITE_BASE_URL,
   SPRITE_MAX_ATTEMPTS,
   SPRITE_RETRY_BACKOFF_MS,
   TRAINER_SPRITE_BASE_URL,
 } from './constants.mjs'
+import { buildSpriteManifest, isPng } from './spriteManifest.mjs'
 
-const SIDES = [
-  { name: 'front', path: '' },
-  { name: 'back', path: 'back/' },
-]
+const spriteDestination = (asset) => spriteAssetFile(asset)
 
-const VARIANTS = [
-  { shiny: false, path: '', label: '' },
-  { shiny: true, path: 'shiny/', label: 'shiny/' },
-]
+const pokemonJobs = (records, requested) => {
+  const manifest = buildSpriteManifest(records)
+  const selected =
+    requested.length === 0
+      ? manifest.assets
+      : manifest.assets.filter((asset) => requested.includes(asset.id))
 
-const spriteDestination = (side, shiny, id) => {
-  if (shiny) return shinySpriteFile(side, id, 'png')
-
-  return spriteFile(side, id, 'png')
+  return selected.map((asset) => ({
+    label: `${asset.sourceKey}/${asset.side}${asset.shiny ? '/shiny' : ''}`,
+    candidates: asset.candidates,
+    destination: spriteDestination(asset),
+    fallback: asset.fallback,
+    required: false,
+  }))
 }
 
-const spriteJob = (side, variant, id) => {
-  return {
-    label: `${side.name}/${variant.label}${id}.png`,
-    url: `${SPRITE_BASE_URL}/${side.path}${variant.path}${id}.png`,
-    destination: spriteDestination(side.name, variant.shiny, id),
-  }
-}
-
-const pokemonJobs = (ids) => {
-  return ids.flatMap((id) =>
-    SIDES.flatMap((side) =>
-      VARIANTS.map((variant) => spriteJob(side, variant, id)),
-    ),
-  )
-}
-
-const eggJob = () => {
-  return {
-    label: 'front/egg.png',
-    url: `${SPRITE_BASE_URL}/${EGG_SPRITE_NAME}`,
-    destination: eggSpriteFile(),
-  }
-}
+const eggJob = () => ({
+  label: 'front/egg.png',
+  candidates: [`${SPRITE_BASE_URL}/${EGG_SPRITE_NAME}`],
+  destination: eggSpriteFile(),
+  required: true,
+})
 
 const trainerSpriteNames = () => {
   const fromClasses = TRAINER_CLASSES.flatMap((entry) => entry.sprites)
@@ -74,29 +66,37 @@ const trainerSpriteNames = () => {
 const trainerJobs = () => {
   return trainerSpriteNames().map((name) => ({
     label: `trainers/${name}.png`,
-    url: `${TRAINER_SPRITE_BASE_URL}/${name}.png`,
+    candidates: [`${TRAINER_SPRITE_BASE_URL}/${name}.png`],
     destination: trainerSpriteFile(name),
+    required: true,
   }))
 }
 
-const download = async (url, destination) => {
-  if (existsSync(destination) && statSync(destination).size > 0) return 'cached'
+const validCachedPng = (destination) => {
+  if (!existsSync(destination) || statSync(destination).size === 0) return false
 
+  try {
+    return isPng(readFileSync(destination))
+  } catch {
+    return false
+  }
+}
+
+const fetchPng = async (url) => {
   for (let attempt = 1; attempt <= SPRITE_MAX_ATTEMPTS; attempt++) {
     try {
       const response = await fetch(url)
 
-      if (!response.ok) {
-        if (response.status === 404) return 'missing'
+      if (response.status === 404) return { status: 'missing' }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
-        throw new Error(`HTTP ${response.status}`)
-      }
+      const bytes = Buffer.from(await response.arrayBuffer())
+      if (!isPng(bytes)) throw new Error('response is not a PNG')
 
-      writeFileSync(destination, Buffer.from(await response.arrayBuffer()))
-
-      return 'fetched'
+      return { status: 'fetched', bytes }
     } catch (error) {
-      if (attempt === SPRITE_MAX_ATTEMPTS) throw error
+      if (attempt === SPRITE_MAX_ATTEMPTS)
+        return { status: 'failed', error: error.message }
 
       await new Promise((resolve) =>
         setTimeout(resolve, SPRITE_RETRY_BACKOFF_MS * attempt),
@@ -104,34 +104,63 @@ const download = async (url, destination) => {
     }
   }
 
-  throw new Error(`${url}: gave up after ${SPRITE_MAX_ATTEMPTS} attempts`)
+  return { status: 'failed', error: 'retry loop ended unexpectedly' }
+}
+
+const download = async (job) => {
+  if (validCachedPng(job.destination)) return { status: 'cached' }
+  if (existsSync(job.destination)) unlinkSync(job.destination)
+
+  const failures = []
+
+  for (const url of job.candidates) {
+    const result = await fetchPng(url)
+
+    if (result.status === 'fetched') {
+      writeFileSync(job.destination, result.bytes)
+      return { status: 'fetched' }
+    }
+
+    if (result.status === 'failed') failures.push(`${url}: ${result.error}`)
+  }
+
+  if (failures.length > 0)
+    return { status: 'unresolved', detail: failures.join('; ') }
+
+  if (job.required)
+    return { status: 'unresolved', detail: 'required sprite is not available' }
+
+  return { status: 'unavailable', detail: `approved fallback: ${job.fallback}` }
 }
 
 const main = async () => {
   const requested = process.argv.slice(2).map(Number).filter(Number.isInteger)
-  const ids =
-    requested.length > 0
-      ? requested
-      : Array.from({ length: KANTO }, (_, i) => i + 1)
+  const identities = JSON.parse(
+    readFileSync(bundledDataFile('form-ids.json'), 'utf8'),
+  ).records
 
-  for (const side of SIDES)
-    mkdirSync(join(SPRITES_DIR, side.name, 'shiny'), { recursive: true })
+  for (const side of ['front', 'back'])
+    mkdirSync(join(SPRITES_DIR, side, 'shiny'), { recursive: true })
 
   mkdirSync(TRAINER_SPRITES_DIR, { recursive: true })
 
-  const jobs = [...pokemonJobs(ids), eggJob(), ...trainerJobs()]
-
-  const counts = { fetched: 0, cached: 0, missing: 0 }
+  const jobs = [
+    ...pokemonJobs(identities, requested),
+    eggJob(),
+    ...trainerJobs(),
+  ]
+  const counts = { fetched: 0, cached: 0, unavailable: 0, unresolved: 0 }
+  const unresolved = []
   let done = 0
 
   await pool(
     jobs,
     async (job) => {
-      try {
-        counts[await download(job.url, job.destination)]++
-      } catch (error) {
-        process.stderr.write(`\n  ${job.label} failed: ${error.message}\n`)
-      }
+      const result = await download(job)
+      counts[result.status]++
+
+      if (result.status === 'unresolved')
+        unresolved.push(`${job.label}: ${result.detail}`)
 
       progress('sprites', ++done, jobs.length)
     },
@@ -139,9 +168,15 @@ const main = async () => {
   )
 
   console.log(
-    `  ${counts.fetched} downloaded, ${counts.cached} already present, ${counts.missing} not available`,
+    `  ${counts.fetched} downloaded, ${counts.cached} already present, ${counts.unavailable} using approved fallback, ${counts.unresolved} unresolved`,
   )
   console.log(`  into ${SPRITES_DIR}`)
+
+  if (unresolved.length > 0) {
+    process.stderr.write('\nUnresolved sprite assets:\n')
+    for (const failure of unresolved) process.stderr.write(`  - ${failure}\n`)
+    process.exitCode = 1
+  }
 }
 
 await main()

@@ -3,8 +3,7 @@ import { Generations } from '@pkmn/data'
 import { Dex, toID } from '@pkmn/dex'
 import {
   bundledDataFile,
-  shinySpriteFile,
-  spriteFile,
+  spriteAssetFile,
   trainerSpriteFile,
 } from '../src/paths.mjs'
 import { TRAINER_CLASSES } from '../src/constants.mjs'
@@ -12,14 +11,13 @@ import { bold, brightGreen, brightRed, dim } from '../src/ui/ansi.mjs'
 import {
   DAMAGE_CLASSES,
   FAILURE_LIST_LIMIT,
-  KANTO,
   NATIONAL_DEX,
-  SPRITE_SIDES,
   STAT_KEYS,
 } from './constants.mjs'
 import { BIOME_IDS, BIOME_NAMES } from './biomeOverrides.mjs'
 import { validateSpeciesIdentityManifest } from './speciesIdentity.mjs'
 import { validateCoverage } from './mechanicsCoverage.mjs'
+import { buildSpriteManifest, isPng } from './spriteManifest.mjs'
 
 const failures = []
 const checks = { run: 0 }
@@ -384,19 +382,30 @@ for (const mon of pokedex) {
   } else {
     check(`${label} with no pre-evolution is stage 0`, mon.stage === 0)
   }
+}
 
-  if (mon.id <= KANTO) {
-    for (const side of SPRITE_SIDES) {
-      check(
-        `${label} ${side} sprite is on disk`,
-        existsSync(spriteFile(side, mon.id, 'png')),
-      )
-      check(
-        `${label} shiny ${side} sprite is on disk`,
-        existsSync(shinySpriteFile(side, mon.id, 'png')),
-      )
-    }
-  }
+const spriteManifest = buildSpriteManifest(identities.records)
+check(
+  `sprite manifest covers all ${identities.records.length} included species/forms`,
+  spriteManifest.assets.length === identities.records.length * 4,
+)
+
+for (const asset of spriteManifest.assets) {
+  const path = spriteAssetFile(asset)
+  const present = existsSync(path)
+  const label = `${asset.sourceKey} ${asset.shiny ? 'shiny ' : ''}${asset.side}`
+
+  check(
+    `${label} has at least one exact source candidate`,
+    asset.candidates.length > 0,
+  )
+  check(
+    `${label} has an approved fallback`,
+    ['ordinary', 'unavailable-sprite'].includes(asset.fallback),
+    asset.fallback,
+  )
+
+  if (present) check(`${label} file is a PNG`, isPng(readFileSync(path)), path)
 }
 
 for (const entry of TRAINER_CLASSES) {

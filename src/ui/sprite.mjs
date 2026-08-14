@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
+import { basename, dirname, join } from 'node:path'
 import { decodePng } from '../png.mjs'
 import { bg, COLOR_ENABLED, fg, RESET } from './ansi.mjs'
 import {
@@ -300,14 +301,28 @@ export const renderSprite = (pngPath, { cols = DEFAULT_SPRITE_COLS }) => {
   return rendered
 }
 
-export const loadSprite = (pngPath, { cols }) => {
-  if (!existsSync(pngPath)) return null
+const ordinaryFallback = (pngPath) => {
+  const folder = dirname(pngPath)
 
-  try {
-    return renderSprite(pngPath, { cols })
-  } catch {
-    return null
+  if (basename(folder) !== 'shiny') return null
+
+  return join(dirname(folder), basename(pngPath))
+}
+
+export const loadSprite = (pngPath, { cols }) => {
+  const candidates = [pngPath, ordinaryFallback(pngPath)].filter(Boolean)
+
+  for (const candidate of candidates) {
+    if (!existsSync(candidate)) continue
+
+    try {
+      return renderSprite(candidate, { cols })
+    } catch {
+      // A corrupt optional shiny must not hide the usable ordinary sprite.
+    }
   }
+
+  return null
 }
 
 export const placeSprite = (lines, sprite, indent) => {

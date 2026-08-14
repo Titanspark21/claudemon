@@ -12,13 +12,7 @@ import {
 import { homedir } from 'node:os'
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  HOME,
-  SPRITES_DIR,
-  shinySpriteFile,
-  trainerSpriteFile,
-} from '../src/paths.mjs'
-import { TRAINER_CLASSES } from '../src/constants.mjs'
+import { HOME } from '../src/paths.mjs'
 import { loadConfig, saveConfig } from '../src/config.mjs'
 import { isDataReady } from '../src/data.mjs'
 import { LAUNCHERS, writeLauncher } from '../src/shim.mjs'
@@ -228,27 +222,7 @@ const installPlugin = () => {
   return true
 }
 
-const spritesOnDisk = () => {
-  const front = join(SPRITES_DIR, 'front')
-
-  return (
-    existsSync(join(front, '1.png')) &&
-    existsSync(join(front, '151.png')) &&
-    existsSync(shinySpriteFile('front', 1, 'png')) &&
-    existsSync(shinySpriteFile('front', 151, 'png')) &&
-    TRAINER_CLASSES.every((entry) =>
-      entry.sprites.every((name) => existsSync(trainerSpriteFile(name))),
-    )
-  )
-}
-
 const fetchSprites = () => {
-  if (spritesOnDisk()) {
-    step('sprites already downloaded')
-
-    return true
-  }
-
   const fetched = run(
     process.execPath,
     [join(projectRoot, 'tools', 'fetch-sprites.mjs')],
@@ -265,7 +239,7 @@ const fetchSprites = () => {
     return false
   }
 
-  step('downloaded the sprites')
+  step('verified and downloaded sprite coverage')
 
   return true
 }

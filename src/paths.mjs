@@ -81,6 +81,17 @@ export const shinySpriteFile = (side, id, ext) => {
   return join(SPRITES_DIR, side, 'shiny', `${id}.${ext}`)
 }
 
+export const spriteAssetFile = ({ side, storageKey, id, shiny = false }) => {
+  const key = storageKey ?? id
+
+  if (key === undefined || key === null)
+    throw new Error('sprite asset has no storage key')
+
+  return shiny
+    ? shinySpriteFile(side, key, 'png')
+    : spriteFile(side, key, 'png')
+}
+
 export const eggSpriteFile = () => spriteFile('front', 'egg', 'png')
 
 export const monSpriteFile = (side, id, shiny) => {
