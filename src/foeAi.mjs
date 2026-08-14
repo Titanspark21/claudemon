@@ -1,6 +1,8 @@
 import { effectiveSpeed, moveSlotOf } from './battleActor.mjs'
+import { other } from './battleEvents.mjs'
 import { FOE_AI_SCORES } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
+import { runEffectPhase } from './effects.mjs'
 import { chance } from './rng.mjs'
 import { effectiveness } from './typechart.mjs'
 import { isMoveDisabled } from './volatile.mjs'
@@ -35,17 +37,44 @@ export const pickFoeMove = (battle) => {
   return bestIndex
 }
 
+const actionPriority = (battle, side, slot) => {
+  if (!slot) return 0
+
+  const move = { ...moveData(slot.move), key: slot.move }
+
+  return runEffectPhase(battle, 'modifyPriority', {
+    attacker: side,
+    defender: other(side),
+    move,
+    value: move.priority ?? 0,
+    events: [],
+  }).value
+}
+
+const actionSpeed = (battle, side) => {
+  const actor = battle[side]
+
+  return runEffectPhase(battle, 'modifySpeed', {
+    side,
+    attacker: side,
+    defender: other(side),
+    value: effectiveSpeed(actor),
+    paralysisApplied: actor.mon.status === 'paralysis',
+    events: [],
+  }).value
+}
+
 export const decideOrder = (battle, playerMoveIndex, foeMoveIndex) => {
   const playerSlot = moveSlotOf(battle.player, playerMoveIndex)
   const foeSlot = moveSlotOf(battle.foe, foeMoveIndex)
 
-  const playerPriority = playerSlot ? moveData(playerSlot.move).priority : 0
-  const foePriority = foeSlot ? moveData(foeSlot.move).priority : 0
+  const playerPriority = actionPriority(battle, 'player', playerSlot)
+  const foePriority = actionPriority(battle, 'foe', foeSlot)
 
   if (playerPriority !== foePriority) return playerPriority > foePriority
 
-  const playerSpeed = effectiveSpeed(battle.player)
-  const foeSpeed = effectiveSpeed(battle.foe)
+  const playerSpeed = actionSpeed(battle, 'player')
+  const foeSpeed = actionSpeed(battle, 'foe')
 
   if (playerSpeed !== foeSpeed) return playerSpeed > foeSpeed
 

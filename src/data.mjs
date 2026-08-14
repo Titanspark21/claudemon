@@ -22,6 +22,7 @@ export const loadData = () => {
       speciesIdentities.records.map((record) => [record.sourceKey, record]),
     ),
     moves: read('moves.json'),
+    abilities: read('abilities.json'),
     types: read('types.json'),
     growth: read('growth.json'),
     biomes: read('biomes.json'),
@@ -90,6 +91,16 @@ export const dexEntryForSpecies = (id) => {
     dexNumber: record.dexNumber,
     formId: record.formKey === null ? null : record.id,
   }
+}
+
+export const hasAbility = (name) => Boolean(loadData().abilities[name])
+
+export const ability = (name) => {
+  const found = loadData().abilities[name]
+
+  if (!found) throw new Error(`no ability named ${name}`)
+
+  return found
 }
 
 export const hasMove = (name) => Boolean(loadData().moves[name])

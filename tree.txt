@@ -21,6 +21,7 @@ assets/battle.wav
 assets/victory.wav
 bin/claudemon
 commands/claudemon-setup.md
+data/abilities.json
 data/biome-report.md
 data/biomes.json
 data/form-ids.json
@@ -66,6 +67,10 @@ scripts/stdin.mjs
 scripts/stdin.test.mjs
 scripts/transformers.mjs
 scripts/transformers.test.mjs
+src/abilities.mjs
+src/abilities.test.mjs
+src/abilityEffects.mjs
+src/abilityEffects.test.mjs
 src/achievements.mjs
 src/achievements.test.mjs
 src/activity.mjs
