@@ -136,7 +136,7 @@ export const evolutionWording = (evolution) => {
   else if (evolution.trigger === 'use-item')
     wording = `${EVOLUTION_WORDING.item} ${evolution.item.replace(/-/g, ' ')}`
   else if (evolution.item)
-    wording = `${EVOLUTION_WORDING.trade} with ${evolution.item.replace(/-/g, ' ')}`
+    wording = `${EVOLUTION_WORDING.trade} + ${evolution.item.replace(/-/g, ' ')}`
 
   if (evolution.substitute) return `${wording} · ${evolution.substitute}`
 

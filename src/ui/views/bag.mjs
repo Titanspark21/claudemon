@@ -1,6 +1,12 @@
+import { LINK_CABLE_KEY } from '../../constants.mjs'
 import { canHoldItem } from '../../heldItems.mjs'
 import { monSpriteFile } from '../../paths.mjs'
-import { displayName, speciesName, stoneEvolution } from '../../pokemon.mjs'
+import {
+  displayName,
+  linkCableEvolution,
+  speciesName,
+  stoneEvolution,
+} from '../../pokemon.mjs'
 import { countOf, itemInfo, itemsInBag, usableOnParty } from '../../shop.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { EVOLVES_MARK } from '../constants.mjs'
@@ -25,6 +31,12 @@ import {
   zipColumns,
 } from './helpers.mjs'
 
+const itemEvolutionTarget = (mon, key) => {
+  if (key === LINK_CABLE_KEY) return linkCableEvolution(mon)
+
+  return stoneEvolution(mon, key)
+}
+
 const heldLabel = (mon) => {
   if (!mon.heldItem) return 'holding nothing'
 
@@ -42,7 +54,7 @@ const bagNote = (ctx, bag, index, mon) => {
       : gray(EMPTY_BAG_MESSAGE)
   }
 
-  const target = stoneEvolution(mon, key)
+  const target = itemEvolutionTarget(mon, key)
 
   if (target) {
     return `${brightYellow(EVOLVES_MARK)} ${displayName(mon).toUpperCase()} ${TEAM_MESSAGES.wouldBecome} ${speciesName(target).toUpperCase()}.`
@@ -65,7 +77,7 @@ const itemRow = (ctx, key, selected) => {
   const info = itemInfo(key)
   const usable = usableOnParty(key) || canHoldItem(key)
   const name = usable ? info.name : gray(info.name)
-  const mark = stoneEvolution(selected, key)
+  const mark = itemEvolutionTarget(selected, key)
     ? brightYellow(EVOLVES_MARK)
     : selected.heldItem === key
       ? brightYellow('◆')

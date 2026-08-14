@@ -34,6 +34,37 @@ const learnMovesAt = (mon, level) => {
   return steps
 }
 
+const timeOfDay = () => {
+  const hour = new Date().getHours()
+
+  return hour >= 6 && hour < 18 ? 'day' : 'night'
+}
+
+const levelEvolutionContext = (save, level) => {
+  return {
+    trigger: 'level-up',
+    level,
+    timeOfDay: timeOfDay(),
+    biome: save.expedition?.biome ?? null,
+    party: save.party,
+  }
+}
+
+export const applyEvolution = (save, mon, rule) => {
+  const from = mon.species
+
+  evolveInto(mon, rule.to)
+  markCaught(save, rule.to)
+
+  return {
+    from,
+    to: rule.to,
+    mon,
+    name: species(rule.to).name,
+    steps: learnMovesAt(mon, levelOf(mon)),
+  }
+}
+
 const gainExp = (save, mon, amount) => {
   const steps = []
   const before = levelOf(mon)
@@ -57,21 +88,19 @@ const gainExp = (save, mon, amount) => {
 
     steps.push(...learnMovesAt(mon, level))
 
-    const target = pendingEvolution(mon, level)
+    const rule = pendingEvolution(mon, levelEvolutionContext(save, level))
 
-    if (target) {
-      const from = mon.species
+    if (rule) {
+      const evolution = applyEvolution(save, mon, rule)
 
-      evolveInto(mon, target)
-      markCaught(save, target)
       steps.push({
         kind: 'evolve',
-        from,
-        to: target,
-        mon,
-        name: species(target).name,
+        from: evolution.from,
+        to: evolution.to,
+        mon: evolution.mon,
+        name: evolution.name,
       })
-      steps.push(...learnMovesAt(mon, level))
+      steps.push(...evolution.steps)
     }
   }
 

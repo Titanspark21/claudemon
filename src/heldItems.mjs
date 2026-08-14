@@ -1,7 +1,8 @@
+import { ITEMS } from './constants.mjs'
 import { hasItem, item, items, species } from './data.mjs'
 import { runEffectPhase } from './effects.mjs'
 import { allPokemon } from './helpers.mjs'
-import { displayName } from './pokemon.mjs'
+import { displayName, isEvolutionHeldItem } from './pokemon.mjs'
 
 const bagCount = (save, key) => save?.bag?.[key] ?? 0
 
@@ -17,7 +18,11 @@ const removeFromBag = (save, key, quantity = 1) => {
   else delete save.bag[key]
 }
 
-const heldName = (key) => (hasItem(key) ? item(key).name : key)
+const heldName = (key) => {
+  if (hasItem(key)) return item(key).name
+
+  return ITEMS[key]?.name ?? key
+}
 
 const otherHolder = (save, mon, key) => {
   return allPokemon(save).find(
@@ -26,7 +31,10 @@ const otherHolder = (save, mon, key) => {
 }
 
 export const canHoldItem = (itemKey) => {
-  return hasItem(itemKey) && item(itemKey).held === true
+  if (ITEMS[itemKey]?.held === true) return true
+  if (!hasItem(itemKey)) return false
+
+  return item(itemKey).held === true || isEvolutionHeldItem(itemKey)
 }
 
 export const equipHeldItem = (save, mon, itemKey) => {
@@ -50,18 +58,18 @@ export const equipHeldItem = (save, mon, itemKey) => {
     return {
       ok: false,
       returnedItem: null,
-      message: `${displayName(mon).toUpperCase()} is already holding ${item(itemKey).name}.`,
+      message: `${displayName(mon).toUpperCase()} is already holding ${heldName(itemKey)}.`,
     }
   }
   if (bagCount(save, itemKey) <= 0) {
     return {
       ok: false,
       returnedItem: null,
-      message: `You have no ${item(itemKey).name}.`,
+      message: `You have no ${heldName(itemKey)}.`,
     }
   }
 
-  const record = item(itemKey)
+  const record = hasItem(itemKey) ? item(itemKey) : ITEMS[itemKey]
 
   if (record.megaStone && otherHolder(save, mon, itemKey)) {
     return {

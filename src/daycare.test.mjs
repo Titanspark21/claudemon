@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { sourceSpeciesIdentity } from './data.mjs'
 import {
   DAYCARE_EXP_PER_STEP,
   DAYCARE_MESSAGES,
@@ -10,6 +11,7 @@ import {
   areCompatible,
   daycareCandidates,
   eggFromPair,
+  eggSpeciesForPair,
   eggIsReady,
   eggProgress,
   hatchEgg,
@@ -69,10 +71,11 @@ test('Should give Ditto an egg with anything that can breed at all, whatever its
   expect(areCompatible(aMon(DITTO), aMon(PIKACHU, 'male'))).toBe(true)
 })
 
-test('Should refuse two Dittos, and refuse a legendary even with a Ditto', () => {
+test('Should refuse two Dittos and every no-egg-group species even with a Ditto', () => {
   expect(areCompatible(aMon(DITTO), aMon(DITTO))).toBe(false)
   expect(areCompatible(aMon(DITTO), aMon(MEWTWO))).toBe(false)
   expect(areCompatible(aMon(MEWTWO), aMon(MEWTWO))).toBe(false)
+  expect(areCompatible(aMon(DITTO), aMon(172))).toBe(false)
 })
 
 test('Should give one evolution line an egg only when the two are opposite genders', () => {
@@ -93,10 +96,15 @@ test('Should pair the two Nidoran lines with each other despite their separate e
   expect(areCompatible(aMon(NIDORAN_F), aMon(NIDORINO))).toBe(true)
 })
 
-test('Should refuse two unrelated lines even when their genders are opposite', () => {
-  expect(areCompatible(aMon(PIKACHU, 'female'), aMon(RATTATA, 'male'))).toBe(
-    false,
-  )
+test('Should use egg groups rather than requiring both parents to share an evolution line', () => {
+  expect(
+    areCompatible(aMon(PIKACHU, 'female'), aMon(RATTATA, 'male')),
+    'two Field-group families can breed',
+  ).toBe(true)
+  expect(
+    areCompatible(aMon(BULBASAUR, 'female'), aMon(RATTATA, 'male')),
+    'Monster/Grass does not overlap Field',
+  ).toBe(false)
   expect(areCompatible(aMon(MAGNEMITE), aMon(PORYGON))).toBe(false)
 })
 
@@ -131,6 +139,30 @@ test('Should lay the egg as the mother base form, and as the other parent when D
     eggFromPair(nidoran, makeRng(1)).species,
     'the mother decides, so the female line wins',
   ).toBe(NIDORAN_F)
+})
+
+test('Should require the matching incense for incense-only baby species', () => {
+  const marill = aMon(183)
+  const ditto = aMon(DITTO)
+
+  expect(eggSpeciesForPair(marill, ditto)).toBe(183)
+
+  marill.heldItem = 'sea-incense'
+
+  expect(eggSpeciesForPair(marill, ditto)).toBe(298)
+  expect(eggSpeciesForPair(aMon(PIKACHU), ditto)).toBe(172)
+})
+
+test('Should keep battle-only forms out of the day care', () => {
+  const mega = aMon(sourceSpeciesIdentity('charizardmegax').id)
+  const save = aSave({ party: [aMon(PIKACHU), aMon(BULBASAUR)], box: [mega] })
+
+  expect(leaveAtDaycare(save, 'box', 0)).toEqual({
+    ok: false,
+    reason: DAYCARE_MESSAGES.battleOnly,
+  })
+  expect(save.box).toEqual([mega])
+  expect(save.daycare.slots).toEqual([])
 })
 
 test('Should keep the one egg it has rather than laying another on top of it', () => {

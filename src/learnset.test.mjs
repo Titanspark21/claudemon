@@ -36,6 +36,12 @@ test('Should give every Pokemon something to attack with', () => {
   }
 })
 
+test('Should use the Generation VII level-up learnset for a Generation VII starter', () => {
+  expect(movesLearnedAt(722, 1)).toEqual(['leafage', 'tackle'])
+  expect(movesLearnedAt(722, 8)).toEqual(['peck'])
+  expect(movesAtLevel(722, 14)).toContain('razor-leaf')
+})
+
 test('Should report only the moves learned exactly at that level', () => {
   expect(movesLearnedAt(4, 7)).toEqual(['ember'])
   expect(movesLearnedAt(4, 8)).toEqual([])

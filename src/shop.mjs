@@ -4,6 +4,7 @@ import {
   displayName,
   evolveInto,
   hpFraction,
+  isEvolutionItem,
   isFainted,
   speciesName,
   stoneEvolution,
@@ -49,7 +50,7 @@ export const itemInfo = (key) => {
 
   return {
     ...record,
-    kind: record.held ? 'held' : 'other',
+    kind: isEvolutionItem(key) ? 'stone' : record.held ? 'held' : 'other',
     price: stock?.price ?? null,
     description: record.description || 'A Pokémon item.',
   }

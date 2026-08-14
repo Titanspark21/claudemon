@@ -227,7 +227,39 @@ export const STAT_NAMES = [
   'speed',
 ]
 
-export const PARTY_ITEM_KINDS = new Set(['heal', 'cure', 'revive', 'stone'])
+export const PARTY_ITEM_KINDS = new Set([
+  'heal',
+  'cure',
+  'revive',
+  'stone',
+  'evolution',
+])
+export const LINK_CABLE_KEY = 'link-cable'
+export const EVOLUTION_TRIGGERS = new Set(['level-up', 'use-item', 'trade'])
+export const EVOLUTION_CONDITION_KEYS = new Set([
+  'friendship',
+  'heldItem',
+  'move',
+  'text',
+])
+export const EVOLUTION_LOCATION_BIOMES = {
+  'at Mount Lanakila': ['frostlands'],
+  'in a special magnetic field': ['city-powerworks'],
+  'near a special magnetic field': ['city-powerworks'],
+  'near a Moss Rock': ['forest'],
+  'near an Ice Rock': ['frostlands'],
+}
+export const INCENSE_BABY_ITEMS = {
+  298: 'sea-incense',
+  360: 'lax-incense',
+  406: 'rose-incense',
+  433: 'pure-incense',
+  438: 'rock-incense',
+  439: 'odd-incense',
+  440: 'luck-incense',
+  446: 'full-incense',
+  458: 'wave-incense',
+}
 
 export const ITEM_MESSAGES = {
   noSuchItem: 'No such item.',
@@ -235,6 +267,7 @@ export const ITEM_MESSAGES = {
   nothingHappened: 'Nothing happened.',
   faintedNoEffect: 'It had no effect on a fainted Pokémon.',
   noEffect: 'It would have no effect.',
+  noLinkCable: 'You have no Link Cable.',
   healthyAgain: 'It became healthy again.',
   revived: 'It was revived!',
 }
@@ -336,6 +369,22 @@ export const ITEMS = {
     kind: 'stone',
     price: 2100,
     description: 'Evolves certain Pokémon.',
+  },
+  everstone: {
+    name: 'Everstone',
+    kind: 'held',
+    held: true,
+    consumed: false,
+    price: 1000,
+    description: 'Allows a regional parent to pass down its regional family.',
+  },
+  'link-cable': {
+    name: 'Link Cable',
+    kind: 'evolution',
+    held: false,
+    consumed: false,
+    price: 3000,
+    description: 'A reusable cable that triggers trade evolutions.',
   },
 }
 
@@ -1128,6 +1177,7 @@ export const BOX_MESSAGES = {
 
 export const DAYCARE_MESSAGES = {
   bothTaken: 'Both slots are taken. Take one back first.',
+  battleOnly: 'Battle-only forms cannot enter the day care.',
   lastOne: LAST_POKEMON_MESSAGE,
   leftHere: 'was left at the day care.',
   cameBack: 'came back from the day care.',

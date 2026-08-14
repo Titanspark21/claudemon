@@ -4,6 +4,7 @@ import { createBattle } from './battle.mjs'
 import { createGymRun, rollbackGymRun } from './gym.mjs'
 import {
   awardProgressionHeldItems,
+  canHoldItem,
   consumeHeldItem,
   equipHeldItem,
   rollWildHeldItem,
@@ -85,6 +86,32 @@ describe('held item inventory lifecycle', () => {
       ok: false,
     })
     expect(save.bag.leftovers).toBe(1)
+  })
+
+  test('allows evolution-held items without turning evolution stones into held items', () => {
+    const pikachu = mon()
+    const save = saveWith(pikachu)
+
+    save.bag.protector = 1
+    save.bag.everstone = 1
+    save.bag['water-stone'] = 1
+
+    expect(canHoldItem('protector')).toBe(true)
+    expect(canHoldItem('everstone')).toBe(true)
+    expect(canHoldItem('water-stone')).toBe(false)
+    expect(equipHeldItem(save, pikachu, 'protector').ok).toBe(true)
+    expect(pikachu.heldItem).toBe('protector')
+    expect(unequipHeldItem(save, pikachu).item).toBe('protector')
+    expect(equipHeldItem(save, pikachu, 'everstone').ok).toBe(true)
+    expect(pikachu.heldItem).toBe('everstone')
+    expect(equipHeldItem(save, pikachu, 'everstone').ok).toBe(false)
+
+    unequipHeldItem(save, pikachu)
+    delete save.bag.everstone
+
+    expect(equipHeldItem(save, pikachu, 'everstone')).toMatchObject({
+      ok: false,
+    })
   })
 
   test('prevents assigning the same unique Mega Stone to two Pokémon', () => {

@@ -6,25 +6,35 @@ import {
   EGG_LEVEL,
   EGG_SHINY_ODDS,
   EGG_STEPS,
+  INCENSE_BABY_ITEMS,
   MAX_LEVEL,
-  PAIRED_EGG_LINES,
 } from './constants.mjs'
 import { species } from './data.mjs'
-import { baseFamilyRoot, regionalEggRoot } from './forms.mjs'
+import { isPersistentSpecies, regionalEggRoot } from './forms.mjs'
 import { canSpare, pokemonList } from './helpers.mjs'
-import { createPokemon, genderOf, levelOf, refreshStats } from './pokemon.mjs'
+import {
+  createPokemon,
+  evolutionItemMatches,
+  genderOf,
+  levelOf,
+  refreshStats,
+} from './pokemon.mjs'
 import { chance } from './rng.mjs'
 import { stow } from './state.mjs'
 
 const isDitto = (mon) => mon.species === DITTO_ID
 
-const canBreedAtAll = (mon) => !species(mon.species).legendary
+const canBreedAtAll = (mon) => {
+  return (
+    isPersistentSpecies(mon.species) &&
+    !species(mon.species).eggGroups.includes('no-eggs')
+  )
+}
 
-const sharesLine = (left, right) => {
-  const line = baseFamilyRoot(left.species)
-  const other = baseFamilyRoot(right.species)
+const sharesEggGroup = (left, right) => {
+  const otherGroups = new Set(species(right.species).eggGroups)
 
-  return line === other || PAIRED_EGG_LINES[line] === other
+  return species(left.species).eggGroups.some((group) => otherGroups.has(group))
 }
 
 const areOppositeGenders = (left, right) => {
@@ -41,7 +51,7 @@ export const areCompatible = (left, right) => {
   if (isDitto(left) && isDitto(right)) return false
   if (isDitto(left) || isDitto(right)) return true
 
-  return sharesLine(left, right) && areOppositeGenders(left, right)
+  return sharesEggGroup(left, right) && areOppositeGenders(left, right)
 }
 
 export const pairIsCompatible = (save) => {
@@ -60,8 +70,17 @@ const motherOf = (left, right) => {
   return right
 }
 
+const eggSpeciesForParent = (parent) => {
+  const root = regionalEggRoot(parent)
+  const incense = INCENSE_BABY_ITEMS[root]
+
+  if (!incense || evolutionItemMatches(parent.heldItem, incense)) return root
+
+  return species(root).evolutions[0].to
+}
+
 export const eggSpeciesForPair = (left, right) => {
-  return regionalEggRoot(motherOf(left, right))
+  return eggSpeciesForParent(motherOf(left, right))
 }
 
 export const eggFromPair = (save, rng) => {
@@ -127,8 +146,14 @@ export const leaveAtDaycare = (save, source, index) => {
     return { ok: false, reason: DAYCARE_MESSAGES.lastOne }
   }
 
-  const [mon] = pokemonList(save, source).splice(index, 1)
+  const candidates = pokemonList(save, source)
+  const mon = candidates[index]
 
+  if (!isPersistentSpecies(mon.species)) {
+    return { ok: false, reason: DAYCARE_MESSAGES.battleOnly }
+  }
+
+  candidates.splice(index, 1)
   save.daycare.slots.push(mon)
 
   return { ok: true, mon }

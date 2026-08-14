@@ -121,9 +121,11 @@ test('Should word an evolution by the trigger that brings it about', () => {
   expect(evolutionWording({ trigger: 'use-item', item: 'moon-stone' })).toBe(
     'with a moon stone',
   )
-  expect(evolutionWording({ trigger: 'trade', item: null })).toBe('by trading')
+  expect(evolutionWording({ trigger: 'trade', item: null })).toBe(
+    'with a Link Cable',
+  )
   expect(evolutionWording({ trigger: 'trade', item: 'metal-coat' })).toBe(
-    'by trading with metal coat',
+    'with a Link Cable + metal coat',
   )
   expect(
     evolutionWording({

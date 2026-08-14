@@ -1,5 +1,18 @@
-import { AILMENT_IMMUNE_TYPES, SHINY_ODDS } from './constants.mjs'
-import { move as moveData, species, speciesIdentity } from './data.mjs'
+import {
+  AILMENT_IMMUNE_TYPES,
+  EVOLUTION_CONDITION_KEYS,
+  EVOLUTION_LOCATION_BIOMES,
+  EVOLUTION_TRIGGERS,
+  LINK_CABLE_KEY,
+  SHINY_ODDS,
+} from './constants.mjs'
+import {
+  loadPokedex,
+  move as moveData,
+  species,
+  speciesForms,
+  speciesIdentity,
+} from './data.mjs'
 import { expForLevel, levelFromExp } from './exp.mjs'
 import { movesAtLevel } from './learnset.mjs'
 import { rollNature } from './natures.mjs'
@@ -153,43 +166,222 @@ export const healFully = (mon) => {
   return mon
 }
 
-export const pendingEvolution = (mon, level = levelOf(mon)) => {
-  for (const evolution of species(mon.species).evolutions) {
-    if (evolution.trigger !== 'level-up') continue
-    if (evolution.level !== null && level >= evolution.level)
-      return evolution.to
-  }
-
-  return null
+const normalizedItemKey = (key) => {
+  return String(key ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
 }
 
-const chooseEvolution = (candidates, formKey = null) => {
-  if (candidates.length === 0) return null
-  if (formKey == null) return candidates[0].to
+export const evolutionItemMatches = (left, right) => {
+  return normalizedItemKey(left) === normalizedItemKey(right)
+}
 
-  const wanted = formKey === 'base' ? null : formKey
-  return (
-    candidates.find(
-      (candidate) => speciesIdentity(candidate.to).formKey === wanted,
-    )?.to ?? null
+export const isEvolutionItem = (key) => {
+  return loadPokedex().some((entry) => {
+    return entry.evolutions.some((rule) => {
+      return rule.trigger === 'use-item' && evolutionItemMatches(rule.item, key)
+    })
+  })
+}
+
+export const isEvolutionHeldItem = (key) => {
+  return loadPokedex().some((entry) => {
+    return entry.evolutions.some((rule) => {
+      const held = rule.conditions.heldItem
+
+      return held != null && evolutionItemMatches(held, key)
+    })
+  })
+}
+
+const textConditionResult = (mon, rule, context) => {
+  const text = rule.conditions.text
+
+  if (!text) return { matches: true, score: 0 }
+  if (text === 'during the day') {
+    return { matches: context.timeOfDay === 'day', score: 1 }
+  }
+  if (text === 'at night') {
+    return { matches: context.timeOfDay === 'night', score: 1 }
+  }
+
+  const biomes = EVOLUTION_LOCATION_BIOMES[text]
+
+  if (biomes) return { matches: biomes.includes(context.biome), score: 1 }
+
+  if (text === 'with an Atk stat > its Def stat') {
+    return { matches: mon.stats.attack > mon.stats.defense, score: 1 }
+  }
+  if (text === 'with an Atk stat < its Def stat') {
+    return { matches: mon.stats.attack < mon.stats.defense, score: 1 }
+  }
+  if (text === 'with an Atk stat equal to its Def stat') {
+    return { matches: mon.stats.attack === mon.stats.defense, score: 1 }
+  }
+  if (text === 'with a Dark-type in the party') {
+    const matches = context.party?.some((candidate) => {
+      return species(candidate.species).types.includes('dark')
+    })
+
+    return { matches: matches === true, score: 1 }
+  }
+  if (text === 'with a Remoraid in party') {
+    const matches = context.party?.some(
+      (candidate) => candidate.species === 223,
+    )
+
+    return { matches: matches === true, score: 1 }
+  }
+  if (text === 'with a Fairy-type move and two levels of Affection') {
+    const matches = mon.moves.some(
+      (slot) => moveData(slot.move).type === 'fairy',
+    )
+
+    return { matches, score: 1 }
+  }
+  if (text === 'during rain' && context.weather) {
+    return { matches: context.weather === 'rain', score: 1 }
+  }
+  if (rule.substitute) return { matches: true, score: 0 }
+
+  throw new Error(`unsupported evolution condition: ${text}`)
+}
+
+const conditionResult = (mon, rule, context) => {
+  for (const key of Object.keys(rule.conditions)) {
+    if (!EVOLUTION_CONDITION_KEYS.has(key)) {
+      throw new Error(`unsupported evolution condition: ${key}`)
+    }
+  }
+
+  let score = 0
+  const held = rule.conditions.heldItem
+
+  if (held && !evolutionItemMatches(mon.heldItem, held)) {
+    return { matches: false, score: 0 }
+  }
+  if (held) score++
+
+  if (
+    rule.conditions.move &&
+    !mon.moves.some((slot) => slot.move === rule.conditions.move)
+  ) {
+    return { matches: false, score: 0 }
+  }
+  if (rule.conditions.move) score++
+
+  if (rule.conditions.friendship) {
+    if (context.friendship === true) score++
+    else if (!rule.substitute) return { matches: false, score: 0 }
+  }
+
+  const text = textConditionResult(mon, rule, context)
+
+  if (!text.matches) return text
+  score += text.score
+
+  const identity = speciesIdentity(rule.to)
+  const formGender =
+    identity.formKey === 'f'
+      ? 'female'
+      : identity.formKey === 'm'
+        ? 'male'
+        : null
+  const hasFemaleForm = speciesForms(identity.baseSpecies).some(
+    (form) => form.formKey === 'f',
   )
+  const targetGender =
+    formGender ??
+    speciesGender(rule.to) ??
+    (identity.formKey === null && hasFemaleForm ? 'male' : null)
+
+  if (targetGender && genderOf(mon) !== targetGender) {
+    return { matches: false, score: 0 }
+  }
+  if (targetGender) score++
+
+  return { matches: true, score }
+}
+
+const triggerMatches = (rule, context) => {
+  if (rule.trigger !== context.trigger) return false
+  if (rule.trigger === 'level-up') {
+    return rule.level === null || context.level >= rule.level
+  }
+  if (rule.trigger === 'use-item') {
+    return evolutionItemMatches(rule.item, context.item)
+  }
+
+  return context.item === LINK_CABLE_KEY
+}
+
+const targetMatchesContext = (rule, context) => {
+  if (context.targetId != null && rule.to !== context.targetId) return false
+  if (context.formKey == null) return true
+
+  const wanted = context.formKey === 'base' ? null : context.formKey
+
+  return speciesIdentity(rule.to).formKey === wanted
+}
+
+const chooseEvolutionRule = (candidates, context) => {
+  if (candidates.length === 0) return null
+  if (candidates.length === 1) return candidates[0].rule
+  if (context.targetId != null || context.formKey != null)
+    return candidates[0].rule
+
+  const hasForm = candidates.some((entry) => {
+    return speciesIdentity(entry.rule.to).formKey !== null
+  })
+  const base = candidates.find((entry) => {
+    return speciesIdentity(entry.rule.to).formKey === null
+  })
+
+  if (hasForm && base) return base.rule
+
+  const highest = Math.max(...candidates.map((entry) => entry.score))
+  const best = candidates.filter((entry) => entry.score === highest)
+
+  return best.length === 1 ? best[0].rule : candidates[0].rule
+}
+
+export const pendingEvolution = (mon, context) => {
+  if (!EVOLUTION_TRIGGERS.has(context.trigger)) {
+    throw new Error(`unsupported evolution trigger: ${context.trigger}`)
+  }
+
+  const candidates = []
+
+  for (const rule of species(mon.species).evolutions) {
+    if (!triggerMatches(rule, context)) continue
+    if (!targetMatchesContext(rule, context)) continue
+
+    const result = conditionResult(mon, rule, context)
+
+    if (result.matches) candidates.push({ rule, score: result.score })
+  }
+
+  return chooseEvolutionRule(candidates, context)
 }
 
 export const stoneEvolution = (mon, item, formKey = null) => {
-  const candidates = species(mon.species).evolutions.filter(
-    (evolution) => evolution.trigger === 'use-item' && evolution.item === item,
-  )
+  const rule = pendingEvolution(mon, {
+    trigger: 'use-item',
+    item,
+    formKey,
+  })
 
-  return chooseEvolution(candidates, formKey)
+  return rule?.to ?? null
 }
 
 export const linkCableEvolution = (mon, formKey = null) => {
-  const candidates = species(mon.species).evolutions.filter((evolution) => {
-    if (evolution.trigger !== 'trade') return false
-    return evolution.item == null || evolution.item === mon.heldItem
+  const rule = pendingEvolution(mon, {
+    trigger: 'trade',
+    item: LINK_CABLE_KEY,
+    formKey,
   })
 
-  return chooseEvolution(candidates, formKey)
+  return rule?.to ?? null
 }
 
 export const canEvolveByStone = (mon) => {

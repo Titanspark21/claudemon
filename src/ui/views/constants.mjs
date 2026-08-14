@@ -141,7 +141,7 @@ export const DEX_MESSAGES = {
 export const EVOLUTION_WORDING = {
   level: 'at level',
   item: 'with a',
-  trade: 'by trading',
+  trade: 'with a Link Cable',
 }
 
 export const DEX_SORT = { number: 'number', name: 'name' }

@@ -126,7 +126,10 @@ test('Should keep the level, the share of health and the gender when a Pokemon e
     gender,
     'the Pokemon needs a gender for this to mean much',
   ).toBeTruthy()
-  expect(pendingEvolution(charmander), 'Charmander evolves at 16').toBe(5)
+  expect(
+    pendingEvolution(charmander, { trigger: 'level-up', level: 16 })?.to,
+    'Charmander evolves at 16',
+  ).toBe(5)
 
   evolveInto(charmander, 5)
 
@@ -141,8 +144,12 @@ test('Should keep the level, the share of health and the gender when a Pokemon e
 })
 
 test('Should leave a Pokemon below its evolution level, or one that needs a stone, unevolved', () => {
-  expect(pendingEvolution(aPokemon(4, 15))).toBe(null)
-  expect(pendingEvolution(aPokemon(25, 50))).toBe(null)
+  expect(
+    pendingEvolution(aPokemon(4, 15), { trigger: 'level-up', level: 15 }),
+  ).toBe(null)
+  expect(
+    pendingEvolution(aPokemon(25, 50), { trigger: 'level-up', level: 50 }),
+  ).toBe(null)
 })
 
 test('Should tell stone evolutions from level-up ones at a glance', () => {
