@@ -172,6 +172,24 @@ test('Should refuse anything that is not a whole trade code', () => {
   expect(decodeTrade(`  ${code}\n`).ok, 'stray whitespace is fine').toBe(true)
 })
 
+test('Should migrate a version-one trade code without rerolling it on decode', () => {
+  const code = codeFor({
+    v: 1,
+    id: 'legacy-code',
+    mon: A_TRADED_MON,
+    from: FROM_MISTY,
+  })
+  const first = decodeTrade(code)
+  const second = decodeTrade(code)
+
+  expect(first).toEqual(second)
+  expect(first.ok).toBe(true)
+  expect(first.trade.v).toBe(TRADE_VERSION)
+  expect(first.trade.mon.nature).toEqual(expect.any(String))
+  expect(first.trade.mon.ability).toEqual(expect.any(String))
+  expect(first.trade.mon.heldItem).toBeNull()
+})
+
 test('Should say so when the code comes from a newer claudemon', () => {
   const read = decodeTrade(
     codeFor({

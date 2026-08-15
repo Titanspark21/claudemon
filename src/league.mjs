@@ -72,9 +72,10 @@ export const formCompletion = (save, dataset = loadData()) => {
       record.formKey !== null && record.collectible && !record.battleOnly,
   )
   const valid = new Set(collectibleForms.map((record) => record.id))
-  const caught = new Set(
-    (save?.dex?.caught ?? []).filter((id) => valid.has(id)),
-  )
+  const caught = new Set([
+    ...(save?.dex?.forms?.caught ?? []).filter((id) => valid.has(id)),
+    ...(save?.dex?.caught ?? []).filter((id) => valid.has(id)),
+  ])
 
   return { caught: caught.size, total: collectibleForms.length }
 }

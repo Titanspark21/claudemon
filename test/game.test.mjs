@@ -16,6 +16,7 @@ const {
   depositPokemon,
   healParty,
   loadSave,
+  markCaught,
   markFaced,
   markSeen,
   partyIsWipedOut,
@@ -52,6 +53,26 @@ test('Should start a new save with a level 5 starter and some supplies', () => {
   expect(save.money).toBeGreaterThan(0)
   expect(totalBalls(save)).toBeGreaterThan(0)
   expect(save.dex.caught, 'the starter counts as caught').toEqual([4])
+})
+
+test('Should keep collectible forms separate from the National Dex', () => {
+  const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
+
+  markSeen(save, 10001)
+  markFaced(save, 10001)
+  markCaught(save, 10001)
+
+  expect(save.dex.seen).toContain(19)
+  expect(save.dex.caught).toContain(19)
+  expect(save.dex.faced[19]).toBe(1)
+  expect(save.dex.forms.seen).toContain(10001)
+  expect(save.dex.forms.caught).toContain(10001)
+  expect(save.dex.forms.faced[10001]).toBe(1)
+  expect(timesFaced(save, 10001)).toBe(1)
+
+  markSeen(save, 20001)
+  expect(save.dex.seen).not.toContain(3)
+  expect(save.dex.forms.seen).not.toContain(20001)
 })
 
 test('Should open the streak on a new save and only move it on a later day', () => {
@@ -147,6 +168,7 @@ test('Should fill in the fields a save is missing rather than failing to load it
     caught: [4],
     shiny: [],
     faced: {},
+    forms: { seen: [], caught: [], shiny: [], faced: {} },
   })
   expect(loaded.stats).toStrictEqual(EMPTY_STATS)
   expect(loaded.money, 'a save from before money starts at nothing').toBe(0)

@@ -28,12 +28,19 @@ const mapPokemon = (mon) => {
   }
 }
 
-const mapDex = (dex) => {
+const mapDexCollection = (dex) => {
   return {
     seen: dex?.seen ?? [],
     caught: dex?.caught ?? [],
     shiny: dex?.shiny ?? [],
     faced: dex?.faced ?? {},
+  }
+}
+
+const mapDex = (dex) => {
+  return {
+    ...mapDexCollection(dex),
+    forms: mapDexCollection(dex?.forms),
   }
 }
 
@@ -228,6 +235,7 @@ export const transformRequestWriteActivity = (entry) => mapActivity(entry)
 
 const mapConfig = (config) => {
   return {
+    version: config.version,
     encounterChance: config.encounterChance,
     trainerChance: config.trainerChance,
     charsPerStep: config.charsPerStep,

@@ -130,6 +130,8 @@ src/learnset.test.mjs
 src/log.mjs
 src/mega.mjs
 src/mega.test.mjs
+src/migrations.mjs
+src/migrations.test.mjs
 src/moveEffects.mjs
 src/moveEffects.test.mjs
 src/natures.mjs

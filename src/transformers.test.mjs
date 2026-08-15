@@ -103,6 +103,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
     caught: [4],
     shiny: [4],
     faced: { 19: 2 },
+    forms: { seen: [], caught: [], shiny: [], faced: {} },
   })
   expect(save.stats).toEqual({
     battles: 3,
@@ -159,7 +160,13 @@ test('Should give a save written before a field existed an empty one instead', (
   expect(save.badges).toEqual([])
   expect(save.expedition).toBeNull()
   expect(save.league).toEqual({ championships: 0, firstWonAt: null })
-  expect(save.dex).toEqual({ seen: [], caught: [], shiny: [], faced: {} })
+  expect(save.dex).toEqual({
+    seen: [],
+    caught: [],
+    shiny: [],
+    faced: {},
+    forms: { seen: [], caught: [], shiny: [], faced: {} },
+  })
   expect(save.stats).toEqual({
     battles: 0,
     wins: 0,
