@@ -173,6 +173,14 @@ export const updatePlan = ({ root = APP_ROOT, cache = PLUGIN_CACHE } = {}) => {
           }),
         },
         {
+          ...UPDATE_STEP_TEXT.generatedArtifacts,
+          plan: () => ({
+            command: process.execPath,
+            args: [join(root, 'tools', 'install.mjs'), '--verify'],
+            timeoutMs: UPDATE_STEP_TIMEOUTS.verify,
+          }),
+        },
+        {
           ...UPDATE_STEP_TEXT.cloneInstall,
           plan: () => ({
             command: process.execPath,
@@ -202,6 +210,14 @@ export const updatePlan = ({ root = APP_ROOT, cache = PLUGIN_CACHE } = {}) => {
           command: 'claude',
           args: ['plugin', 'update', 'claudemon@claudemon'],
           timeoutMs: UPDATE_STEP_TIMEOUTS.plugin,
+        }),
+      },
+      {
+        ...UPDATE_STEP_TEXT.generatedArtifacts,
+        plan: () => ({
+          command: process.execPath,
+          args: [pluginInstallScript(cache), '--verify'],
+          timeoutMs: UPDATE_STEP_TIMEOUTS.verify,
         }),
       },
       {

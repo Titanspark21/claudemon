@@ -14,7 +14,7 @@ import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { HOME } from '../src/paths.mjs'
 import { loadConfig, saveConfig } from '../src/config.mjs'
-import { isDataReady } from '../src/data.mjs'
+import { isDataReady, loadData } from '../src/data.mjs'
 import { LAUNCHERS, writeLauncher } from '../src/shim.mjs'
 import { VERSION } from '../src/version.mjs'
 import {
@@ -24,6 +24,10 @@ import {
   brightRed,
   brightYellow,
 } from '../src/ui/ansi.mjs'
+import {
+  buildSpriteManifest,
+  validateSpriteManifest,
+} from './spriteManifest.mjs'
 import {
   transformRequestWriteSettings,
   transformResponseSettings,
@@ -37,6 +41,7 @@ const binTarget = commandLauncher.path
 const statusLineCommand = `"${statusLineLauncher.path}"`
 
 const uninstalling = process.argv.includes('--uninstall')
+const verifying = process.argv.includes('--verify')
 
 const readSettingsDocument = () => {
   try {
@@ -91,6 +96,20 @@ const exists = (path) => {
     lstatSync(path)
 
     return true
+  } catch {
+    return false
+  }
+}
+
+const generatedArtifactsReady = () => {
+  try {
+    if (!isDataReady()) return false
+
+    const dataset = loadData()
+    const records = dataset.speciesIdentities.records
+    const manifest = buildSpriteManifest(records)
+
+    return validateSpriteManifest(manifest, records)
   } catch {
     return false
   }
@@ -270,9 +289,17 @@ const uninstallStatusLine = () => {
 }
 
 const label = VERSION ? `claudemon ${dim(`v${VERSION}`)}` : 'claudemon'
-console.log(`\n${bold(uninstalling ? 'Removing' : 'Installing')} ${label}\n`)
+const action = uninstalling ? 'Removing' : verifying ? 'Checking' : 'Installing'
+console.log(`\n${bold(action)} ${label}\n`)
 
-if (uninstalling) {
+if (verifying) {
+  const ready = generatedArtifactsReady()
+
+  if (ready) step('generated data and sprite manifest are complete')
+  else fail('generated data or sprite manifest is incomplete')
+
+  if (!ready) process.exitCode = 1
+} else if (uninstalling) {
   removeCommand()
   uninstallStatusLine()
   console.log(`\n  Your save in ${dim(HOME)} was left untouched.`)
@@ -283,12 +310,15 @@ if (uninstalling) {
   installCommand()
   installStatusLine()
 
-  const dataOk = isDataReady()
+  const dataOk = generatedArtifactsReady()
 
-  if (dataOk) step('dataset ready')
-  else fail(`the dataset is missing — run ${bold('node tools/fetch-data.mjs')}`)
+  if (dataOk) step('generated data and sprite manifest ready')
+  else
+    fail(
+      `the generated data is incomplete — run ${bold('node tools/fetch-data.mjs')}`,
+    )
 
-  const spritesOk = fetchSprites()
+  const spritesOk = dataOk ? fetchSprites() : false
   const pluginOk = installPlugin()
   const pathOk = checkPath()
 

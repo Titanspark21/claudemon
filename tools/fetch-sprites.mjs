@@ -27,12 +27,20 @@ import {
   SPRITE_RETRY_BACKOFF_MS,
   TRAINER_SPRITE_BASE_URL,
 } from './constants.mjs'
-import { buildSpriteManifest, isPng } from './spriteManifest.mjs'
+import {
+  buildSpriteManifest,
+  isPng,
+  validateSpriteManifest,
+} from './spriteManifest.mjs'
 
 const spriteDestination = (asset) => spriteAssetFile(asset)
 
 const pokemonJobs = (records, requested) => {
   const manifest = buildSpriteManifest(records)
+
+  if (!validateSpriteManifest(manifest, records))
+    throw new Error('generated sprite manifest is incomplete')
+
   const selected =
     requested.length === 0
       ? manifest.assets

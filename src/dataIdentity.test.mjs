@@ -3,9 +3,13 @@ import {
   baseSpeciesIdentity,
   dexEntryForSpecies,
   displayDexNumber,
+  loadData,
   sourceSpeciesIdentity,
   speciesForms,
   speciesIdentity,
+  tradeDataset,
+  tradeDatasetCompatible,
+  validateGeneratedData,
 } from './data.mjs'
 
 test('Should resolve species identities through explicit relationships', () => {
@@ -35,4 +39,58 @@ test('Should reject unknown identity lookups', () => {
   expect(() => sourceSpeciesIdentity('missing-form')).toThrow(
     'no species identity named',
   )
+})
+
+test('Should validate the checked-in Generation VII dataset and reject incomplete variants', () => {
+  const data = loadData()
+
+  expect(validateGeneratedData(data)).toBe(true)
+  expect(
+    validateGeneratedData({
+      ...data,
+      mechanicsCoverage: { ...data.mechanicsCoverage, generation: 6 },
+    }),
+  ).toBe(false)
+  expect(
+    validateGeneratedData({
+      ...data,
+      speciesIdentities: { ...data.speciesIdentities, version: null },
+    }),
+  ).toBe(false)
+  expect(
+    validateGeneratedData({
+      ...data,
+      progression: {
+        ...data.progression,
+        metadata: { ...data.progression.metadata, nationalDexTotal: 808 },
+      },
+    }),
+  ).toBe(false)
+  expect(
+    validateGeneratedData({
+      ...data,
+      speciesIdentities: { ...data.speciesIdentities, records: [] },
+    }),
+  ).toBe(false)
+  expect(
+    validateGeneratedData({ ...data, pokedex: data.pokedex.slice(1) }),
+  ).toBe(false)
+  expect(validateGeneratedData({ ...data, moves: {} })).toBe(false)
+
+  const missingIdentity = new Map(data.identityById)
+  missingIdentity.delete(1)
+  expect(
+    validateGeneratedData({ ...data, identityById: missingIdentity }),
+  ).toBe(false)
+})
+
+test('Should compare trade dataset descriptors without a network lookup', () => {
+  const descriptor = tradeDataset()
+
+  expect(tradeDatasetCompatible(descriptor)).toBe(true)
+  expect(tradeDatasetCompatible({ legacy: true })).toBe(true)
+  expect(tradeDatasetCompatible(null)).toBe(false)
+  expect(
+    tradeDatasetCompatible({ ...descriptor, fingerprint: 'different' }),
+  ).toBe(false)
 })

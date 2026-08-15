@@ -12,7 +12,7 @@ const { createPokemon } = await import('../pokemon.mjs')
 const { makeRng } = await import('../rng.mjs')
 const { CARD_HEIGHT, CARD_PALETTE, CARD_WIDTH, TYPE_COLORS } =
   await import('./constants.mjs')
-const { drawCard, writeCard } = await import('./card.mjs')
+const { cardMemberDetails, drawCard, writeCard } = await import('./card.mjs')
 
 if (!isDataReady()) {
   throw new Error('dataset missing — run: node tools/fetch-data.mjs')
@@ -76,15 +76,18 @@ const shows = (canvas, [r, g, b]) => {
 test('Should write a card the whole team fits on as a PNG anything can open', () => {
   const save = aSave(
     [
-      aMon(6, 42, 1),
+      aMon(10095, 65, 1),
       aMon(18, 38, 1),
       aMon(3, 40, 1),
       aMon(94, 35, 1),
       aMon(131, 44, 1),
-      aMon(143, 31, 1),
+      aMon(809, 60, 1),
     ],
     ['pewter'],
   )
+  save.trainer.name =
+    'ULTRA RESEARCHER WITH AN IMPOSSIBLY LONG TRAINER NAME THAT MUST STILL FIT'
+  save.dex.caught = Array.from({ length: 809 }, (_, index) => index + 1)
   const path = join(sandbox, 'card.png')
 
   expect(writeCard(save, path), 'it hands back where it wrote').toBe(path)
@@ -157,6 +160,27 @@ test('Should light up an earned achievement on the card and leave an empty recor
     shows(none, CARD_PALETTE.achievement),
     'nothing earned, nothing lit',
   ).toBe(false)
+})
+
+test('Should label nature ability and held item on modern trainer-card members', () => {
+  const mon = aMon(25, 20, 1)
+
+  mon.nature = 'jolly'
+  mon.ability = 'static'
+  mon.heldItem = 'light-ball'
+
+  expect(cardMemberDetails(mon)).toEqual([
+    'L20 · NATURE JOLLY',
+    'ABILITY STATIC',
+    'ITEM LIGHT BALL',
+  ])
+
+  mon.ability = 'mystery-power'
+  mon.heldItem = 'missing-item'
+  expect(cardMemberDetails(mon).slice(1)).toEqual([
+    'ABILITY MYSTERY POWER',
+    'ITEM MISSING ITEM',
+  ])
 })
 
 test('Should turn the health bar red for a Pokemon that is nearly down', () => {

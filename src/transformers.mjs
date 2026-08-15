@@ -369,12 +369,23 @@ const mapTradeOrigin = (from) => {
   }
 }
 
+const mapTradeDataset = (dataset) => {
+  if (dataset?.legacy === true) return { legacy: true }
+
+  return {
+    generation: dataset?.generation,
+    identityVersion: dataset?.identityVersion,
+    fingerprint: dataset?.fingerprint,
+  }
+}
+
 const mapTrade = (trade) => {
   return {
     v: trade.v,
     id: trade.id,
     mon: mapTradeMon(trade.mon),
     from: mapTradeOrigin(trade.from),
+    dataset: mapTradeDataset(trade.dataset),
   }
 }
 

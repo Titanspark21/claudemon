@@ -16,8 +16,9 @@ One at a time, and only for half a minute: a Pokemon that appears while you are 
 wanders off if you leave it there, so a long session never leaves a queue of battles
 waiting for you.
 
-The original 151. Fully local — no account, no backend, nothing about you leaving the
-machine.
+All 809 National Pokédex species through Generation VII, plus persistent regional and
+other collectible forms. Runtime stays local — no account, no backend, and no trade
+server.
 
 <table>
 <tr>
@@ -83,9 +84,13 @@ waiting. Send a longish prompt in the Claude tab and watch the status line.
 > In macOS Terminal the sprites come out striped and stretched, and no setting fixes
 > it. Use any of the other terminals above.
 
-The 151 Pokemon ship with the plugin, so the only thing the install downloads is the
-sprites, which takes a few seconds. After that the only thing that ever goes out is
-the version check below, and nothing goes out at all with it switched off.
+The generated game data ships with the plugin: the checked-in `data/` directory is
+about 2.7 MiB and currently describes 968 stable species/form identities. Sprites are
+not redistributed; setup validates a generated manifest covering 3,872 Pokémon
+front/back/shiny variants and downloads what is available, plus trainer and egg
+sprites. The final sprite-cache size therefore varies. After setup, ordinary play
+needs no network. The optional version check below is the only runtime request, and
+`UPDATE OFF` opens no socket.
 
 ### Updating
 
@@ -198,14 +203,14 @@ battle message. That is the whole scheme — it is the same everywhere.
 |---|---|
 | Home | Whatever is in the grass and how long is left to face it, your team, and the menu |
 | Battle | FIGHT / BAG / POKÉMON / RUN, with move types, power and PP. The bag asks which of your team an item is for, so a Revive reaches somebody already down. A ◓ by the foe's name means it is already in your Pokédex |
-| Pokédex | All 151, with how many of each you have faced, and base stats and evolution requirements for the ones you caught. A ✧ marks the ones you caught shiny, and their entry is drawn in those colours. `s` toggles sort between number and A–Z |
-| Team | Details, moves, experience, `enter` to change your lead, and `d` to send one to the box. `s` sorts by party order or level. `i` opens the bag on whoever the cursor is on: a potion between fights, and the evolution stones, which are used nowhere else. A ✦ on the team list marks a mon that evolves by stone; `→N` is the level it evolves at. In the bag, a ✦ still marks an item that would evolve the selected mon |
+| Pokédex | All 809 National entries plus separately tracked collectible forms, with search/filter controls for generation, type, biome and collection state. Nature, ability, held item, IVs, stats, moves, evolution and form identity are shown on caught Pokémon |
+| Team | Details, nature, ability, held item, IVs, moves and experience; `enter` changes your lead and `d` sends one to the box. `s` sorts by party order or level. `i` opens the bag for using or equipping items. Evolution and form choices stay attached to the Pokémon's persistent identity |
 | Box | Everything you caught with a full team, reached with `b` from the team screen. `s` sorts by catch order or level. `enter` takes one back into the team |
 | Day care | Two slots, from the home menu or `c` on the team screen. `enter` on an empty one picks from your team and your box; `enter` on a filled one takes it back. Whoever waits there keeps gaining EXP, and a compatible pair leaves an egg |
 | Gym | The eight Kanto gyms, each one type, listed easiest first with the level range its trainers bring and the badge you have or have not won. `enter` walks in |
 | Gym run | The gauntlet: two trainers and then the leader, back to back. Between fights you can move the cursor over your team, `l` to change your lead and `i` to reach the bag. There is no door back to the menu — `esc` twice walks out and undoes the whole run |
 | Shop | Balls, potions, revives and evolution stones. `5` buys five |
-| Trade | `t`, on the team screen or in the box, on whoever the cursor is on: it asks first, because a trade only goes one way, and then hands you the code. `r`, on either screen, takes one in from a code you were sent |
+| Trade | `t` exports the selected team/box Pokémon as a one-way local code; `r` imports one. Codes preserve base/form identity, nature, ability and the currently attached held item, reject incompatible/future datasets, and cannot duplicate an attached Mega Stone |
 | Trainer | Everything the game has been counting: battles won, lost and run from, the streak of days you have opened it, the hours Claude has worked beside you, and fifteen achievements with how far along each one is. `s` writes the trainer card |
 | Option | How big sprites are drawn, the menu sounds, the bell, and when the version check runs — daily, every launch, or never. `← →` changes a setting, and the Pokémon underneath redraws as you do |
 
@@ -223,9 +228,11 @@ battle message. That is the whole scheme — it is the same everywhere.
 ## The trainer card
 
 `s` on the **TRAINER** screen, or `claudemon card` from a terminal: your six drawn to
-`~/.claudemon/card.png`, with your badges, your achievements and the hours Claude has
-worked while you played, opened in whatever shows PNGs on your desktop. There is more
-about it, and a picture of one, [on the site](https://zamarrowski.github.io/claudemon/#card).
+`~/.claudemon/card.png`, with long modern species/form names fitted into their cells,
+level, nature, ability, held item, badges, achievements, National completion out of
+809 and the hours Claude has worked while you played. A missing downloaded sprite gets
+a visible `NO SPRITE` fallback instead of a blank cell. There is more about it, and a
+picture of one, [on the site](https://zamarrowski.github.io/claudemon/#card).
 
 ## Trading
 
@@ -238,8 +245,10 @@ CMON1-eJxNkMFugzAMht_F53QChxXIrdIeYNJ62rRDBKYgIKAEKBPi3edAWSfl...
 
 That goes to your clipboard and to `~/.claudemon/trade.txt`. Send it however you send
 anything else. On the other side, `r` — on either of those two screens — takes a
-pasted code, and the Pokémon turns up with its nickname, its level, its IVs, its
-bruises and the PP it had when it left.
+pasted code, and the Pokémon turns up with its exact persistent species/form identity,
+nickname, level, IVs, nature, ability, currently attached held item, bruises and the PP
+it had when it left. An item already consumed in battle is absent because the code
+serializes the Pokémon's current state, not an earlier battle snapshot.
 
 A trade only goes one way, and the game is strict about it:
 
@@ -250,6 +259,12 @@ A trade only goes one way, and the game is strict about it:
 - **A code works once.** The game remembers every one it has taken in, so pasting the
   same code twice brings nothing the second time.
 - **Your last Pokémon stays.** Somebody has to fight.
+- **Old codes migrate; future or incompatible codes do not guess.** Legacy trade
+  payloads are upgraded deterministically. New codes carry a local dataset fingerprint,
+  and a code from a different generated identity dataset is refused.
+- **Battle-only forms never enter a save.** Mega and other temporary battle identities
+  are rejected as permanent trade records, and an attached Mega Stone is refused when
+  that same stone already exists in the receiving save.
 
 No network is involved: the code *is* the Pokémon, deflated and written out in base64,
 and getting it to the other machine is your business rather than the game's. It
@@ -296,9 +311,17 @@ One egg at a time, and taking a parent back does not take the egg with it.
 
 ## What is in it
 
-- The original 151, with real base stats, types, catch rates and Red/Blue movesets.
-- Battles with critical hits, the type chart, status conditions, PP, one-hit KOs,
-  fleeing and switching Pokémon mid-fight.
+- All 809 National Pokédex species through Generation VII, plus stable collectible
+  form identities. The generated dataset includes Gen VII stats, types, abilities,
+  items, moves, learnsets, evolution data, capture data and provenance.
+- Nine overlapping expedition biomes — Meadow, Forest, Wetlands, Coast, Highlands,
+  Badlands, Frostlands, City & Powerworks and Mystic Ruins. Travel advances only with
+  Claude's active work; visits eventually force a neighboring move and may offer an
+  earlier optional fork.
+- Singles battles with critical hits, the full type chart, status conditions, PP,
+  switching, supported abilities and held items, rain/sun/sandstorm/hail, all four
+  Generation VII terrains, and one Mega Evolution per side when a matching stone is
+  attached.
 - Catching, where weakening and status genuinely help.
 - Shiny Pokémon, at the same 1 in 4096 the modern games use in the grass and 1 in 512
   out of a day care egg. One gets its own colours, a ✧ by its name, a sound and a line
@@ -312,15 +335,13 @@ One egg at a time, and taking a parent back does not take the egg with it.
   as the universal partner it is in the games. The egg only comes along while Claude
   works and the tab is open, and it rolls shiny eight times more often than the grass
   does — the one shiny in the game you can go after rather than wait for.
-- Trading by code, which is the only social thing in here that needs no server at
-  all: one of yours leaves the moment the code exists, arrives in somebody else's
-  game exactly as it was, and never comes back the way it went.
-- Eight gyms, one per type and ordered by difficulty, each a run of two trainers
-  and then the leader with no way back to the menu in between. No shop and no rest
-  in there: the potions you walk in with are the potions you get. Beat the leader
-  and the badge is yours; lose, walk out or close the terminal and the whole run is
-  undone — the experience, the money, the potions and the bruises, as if you had
-  never gone in.
+- Trading by versioned code, still with no server: current codes fingerprint the
+  generated dataset, preserve collectible form/nature/ability/item state, migrate old
+  payloads deterministically, reject future or mismatched data, and keep battle-only
+  transformations out of permanent saves.
+- Eight Kanto gyms followed by the Elite Four and Champion once all badges are won.
+  Their gauntlets are transactional: lose or withdraw and the run rolls back instead
+  of leaking experience, inventory or temporary battle forms into the save.
 - A line telling you whether Claude is working, which tool it is on and for how
   long — and a bell when it finishes or gets stuck on a permission prompt, so the
   game tab is somewhere you can actually sit and wait.
@@ -337,6 +358,17 @@ One egg at a time, and taking a parent back does not take the egg with it.
   numbers; the two tracks are mono WAV in `assets/`, which is the one format every
   player on every platform will open.
 
+Not every Generation VII effect is pretended to work. `data/mechanics-coverage.json`
+classifies imported moves, abilities and items against the implemented effect engine;
+unsupported/deferred mechanics retain an explicit coverage reason instead of silently
+using made-up behavior. The battle engine remains singles-only, and biome day/night
+weighting and seasons are not implemented.
+
+Save and config migrations are forward-only. Existing Pokémon keep their permanent
+identity and old saves deterministically gain nature/ability/item fields where those
+did not exist; National and form collection state are separated during migration.
+Files or trade codes from a newer format are rejected rather than rewritten.
+
 ## Contributing
 
 Bugs and ideas go in [issues](https://github.com/zamarrowski/claudemon/issues/new/choose),
@@ -349,11 +381,17 @@ it, written for humans and agents alike, and it is what a review holds a change 
 
 ## Credits
 
-Data and Pokémon sprites come from [PokeAPI](https://pokeapi.co). The stats and
-movesets in `data/` are built from it by `tools/fetch-data.mjs`. The trainer sprites
-come from [Pokémon Showdown](https://play.pokemonshowdown.com/sprites/trainers/).
-None of the sprites are in here: they are somebody else's artwork, so they are
-downloaded at install time rather than redistributed.
+Generated data combines [PokéAPI REST v2](https://pokeapi.co/docs/v2) for capture,
+growth, evolution, breeding, habitat and encounter-location evidence with pinned
+[`@pkmn/data` and `@pkmn/dex`](https://github.com/pkmn/ps) for Generation VII species,
+forms, stats, types, abilities, items, moves and learnsets. Pokémon Showdown is also
+the mechanics reference for effect semantics and ordering.
+
+Pokémon sprites are downloaded at install time primarily from Pokémon Showdown's
+Gen 5 front/back/shiny directories, with the PokéAPI sprite repository as fallback;
+trainer sprites come from Pokémon Showdown. The generated manifest is validated before
+installation and every missing optional Pokémon image has an explicit fallback. Sprite
+artwork is not redistributed by this repository.
 
 `assets/battle.wav` is the trainer battle theme from the Game Boy games, trimmed to
 two minutes and downmixed to mono; `assets/victory.wav` is the victory fanfare, given

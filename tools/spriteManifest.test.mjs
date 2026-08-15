@@ -5,6 +5,7 @@ import {
   showdownSpriteSlug,
   spriteCandidates,
   spriteStorageKey,
+  validateSpriteManifest,
 } from './spriteManifest.mjs'
 
 const base = (overrides = {}) => ({
@@ -135,6 +136,28 @@ test('the manifest declares ordinary missing assets as unavailable and shiny ass
     alola.find((entry) => entry.side === 'front' && entry.shiny)?.fallback,
   ).toBe('ordinary')
   expect(alola.every((entry) => entry.storageKey === '10001')).toBe(true)
+})
+
+test('Should validate a complete four-view manifest and reject missing or duplicate assets', () => {
+  const records = [base()]
+  const manifest = buildSpriteManifest(records)
+
+  expect(validateSpriteManifest(manifest, records)).toBe(true)
+  expect(
+    validateSpriteManifest(
+      { ...manifest, assets: manifest.assets.slice(1) },
+      records,
+    ),
+  ).toBe(false)
+  expect(
+    validateSpriteManifest(
+      {
+        ...manifest,
+        assets: [...manifest.assets.slice(0, 3), manifest.assets[0]],
+      },
+      records,
+    ),
+  ).toBe(false)
 })
 
 test('candidate URLs are normalized and PNG validation rejects HTML or truncated downloads', () => {

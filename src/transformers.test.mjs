@@ -675,10 +675,17 @@ test('Should map only the fields a trade code carries', () => {
       level: 14,
     },
     from: { name: 'ASH', at: '2026-01-01T00:00:00.000Z', save: '/home/ash' },
+    dataset: { generation: 7, identityVersion: 1, fingerprint: 'abc' },
     cheatMode: true,
   })
 
-  expect(Object.keys(trade).sort()).toEqual(['from', 'id', 'mon', 'v'])
+  expect(Object.keys(trade).sort()).toEqual([
+    'dataset',
+    'from',
+    'id',
+    'mon',
+    'v',
+  ])
   expect(trade.from).toEqual({ name: 'ASH', at: '2026-01-01T00:00:00.000Z' })
   expect(trade.mon.moves).toEqual([
     { move: 'thunder-shock', pp: 28, maxPp: 30 },
@@ -688,6 +695,11 @@ test('Should map only the fields a trade code carries', () => {
   expect(trade.mon.ability).toBe('static')
   expect(trade.mon.heldItem).toBe('light-ball')
   expect(trade.mon.level).toBeUndefined()
+  expect(trade.dataset).toEqual({
+    generation: 7,
+    identityVersion: 1,
+    fingerprint: 'abc',
+  })
   expect(trade.cheatMode).toBeUndefined()
 })
 
@@ -714,9 +726,17 @@ test('Should write a trade with the same fields it reads', () => {
       statusTurns: 0,
     },
     from: { name: 'ASH', at: '2026-01-01T00:00:00.000Z' },
+    dataset: { legacy: true },
   })
 
-  expect(Object.keys(written).sort()).toEqual(['from', 'id', 'mon', 'v'])
+  expect(Object.keys(written).sort()).toEqual([
+    'dataset',
+    'from',
+    'id',
+    'mon',
+    'v',
+  ])
+  expect(written.dataset).toEqual({ legacy: true })
   expect(written.mon.shiny, 'an older save has no shiny flag').toBe(false)
   expect(written.mon.stats).toBeUndefined()
 })

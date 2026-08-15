@@ -1097,6 +1097,7 @@ export const DEFAULT_MANIFEST_URL =
 
 export const UPDATE_STEP_TIMEOUTS = {
   pull: 60_000,
+  verify: 30_000,
   install: 180_000,
   marketplace: 60_000,
   plugin: 120_000,
@@ -1107,6 +1108,11 @@ export const UPDATE_STEP_TEXT = {
     id: 'pull',
     label: 'pulling the latest commit',
     done: 'pulled the latest commit',
+  },
+  generatedArtifacts: {
+    id: 'verify',
+    label: 'checking generated data and sprite manifest',
+    done: 'generated data and sprite manifest are complete',
   },
   cloneInstall: {
     id: 'install',
@@ -1257,7 +1263,7 @@ export const CLIPBOARD_COMMANDS = {
   default: { command: 'xclip', args: ['-selection', 'clipboard'] },
 }
 
-export const TRADE_VERSION = 2
+export const TRADE_VERSION = 3
 export const TRADE_CODE_PREFIX = 'CMON1-'
 export const TRADE_ID_RADIX = 36
 export const TRADE_CODE_PATTERN = /[^A-Za-z0-9._-]/g
@@ -1277,4 +1283,6 @@ export const TRADE_MESSAGES = {
   fromNewer: 'That code comes from a newer claudemon than this one.',
   ownGame: 'That one came out of your own game. A trade only goes one way.',
   alreadyTaken: 'You have already taken that one in.',
+  datasetMismatch: 'That code was made with a different Pokemon dataset.',
+  duplicateMegaStone: 'That Mega Stone is already in this save.',
 }

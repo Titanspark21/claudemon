@@ -400,6 +400,12 @@ const migrateTradeV1ToV2 = (trade) => ({
   mon: migratePokemon(trade.mon, tradeIdentityOf(trade)),
 })
 
+const migrateTradeV2ToV3 = (trade) => ({
+  ...trade,
+  v: 3,
+  dataset: { legacy: true },
+})
+
 export const migrateTrade = (rawTrade) => {
   if (!rawTrade || typeof rawTrade !== 'object') return null
 
@@ -411,6 +417,7 @@ export const migrateTrade = (rawTrade) => {
   let trade = structuredClone(rawTrade)
   while (version < TRADE_VERSION) {
     if (version === 1) trade = migrateTradeV1ToV2(trade)
+    else if (version === 2) trade = migrateTradeV2ToV3(trade)
     else throw new Error(`No trade migration from version ${version}`)
     version = trade.v
   }

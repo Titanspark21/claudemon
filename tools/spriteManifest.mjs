@@ -112,6 +112,32 @@ export const buildSpriteManifest = (speciesRecords) => {
   return { version: 1, records: speciesRecords.length, assets }
 }
 
+export const validateSpriteManifest = (manifest, speciesRecords) => {
+  if (manifest?.version !== 1) return false
+  if (manifest.records !== speciesRecords.length) return false
+  if (manifest.assets?.length !== speciesRecords.length * 4) return false
+
+  const identities = new Set(speciesRecords.map((record) => record.id))
+  const seen = new Set()
+
+  for (const asset of manifest.assets) {
+    const key = `${asset.id}:${asset.side}:${asset.shiny}`
+
+    if (!identities.has(asset.id) || seen.has(key)) return false
+    if (!SPRITE_SIDES.includes(asset.side) || typeof asset.shiny !== 'boolean')
+      return false
+    if (!Array.isArray(asset.candidates) || asset.candidates.length === 0)
+      return false
+    if (!asset.candidates.every((url) => /^https:\/\//.test(url))) return false
+    if (!['ordinary', 'unavailable-sprite'].includes(asset.fallback))
+      return false
+
+    seen.add(key)
+  }
+
+  return true
+}
+
 export const isPng = (value) => {
   const bytes = Buffer.isBuffer(value) ? value : Buffer.from(value)
 

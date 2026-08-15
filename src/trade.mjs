@@ -8,11 +8,20 @@ import {
   TRADE_MESSAGES,
   TRADE_VERSION,
 } from './constants.mjs'
-import { hasMove, hasSpecies, move as moveData } from './data.mjs'
+import {
+  hasMove,
+  item,
+  loadData,
+  move as moveData,
+  tradeDataset,
+  tradeDatasetCompatible,
+} from './data.mjs'
 import { isPersistentSpecies } from './forms.mjs'
-import { canSpare, pokemonList } from './helpers.mjs'
-import { TRADE_FILE } from './paths.mjs'
+import { canHoldItem } from './heldItems.mjs'
+import { allPokemon, canSpare, pokemonList } from './helpers.mjs'
 import { MigrationVersionError, migrateTrade } from './migrations.mjs'
+import { NATURES } from './natures.mjs'
+import { TRADE_FILE } from './paths.mjs'
 import { levelOf } from './pokemon.mjs'
 import { randomSeed } from './rng.mjs'
 import { recordInDex, stow } from './state.mjs'
@@ -31,31 +40,69 @@ export const encodeTrade = (mon, trainer, id) => {
     id,
     mon,
     from: { name: trainer.name, at: trainer.startedAt },
+    dataset: tradeDataset(),
   })
   const body = deflateSync(JSON.stringify(payload)).toString('base64url')
 
   return `${TRADE_CODE_PREFIX}${body}`
 }
 
-const isReadableMon = (mon) => {
-  if (!hasSpecies(mon.species) || !isPersistentSpecies(mon.species))
+const isReadableDataset = (dataset) => {
+  if (dataset?.legacy === true) return true
+
+  return (
+    Number.isInteger(dataset?.generation) &&
+    Number.isInteger(dataset?.identityVersion) &&
+    typeof dataset?.fingerprint === 'string' &&
+    dataset.fingerprint.length > 0
+  )
+}
+
+export const validateTradePokemon = (mon, dataset = loadData()) => {
+  if (!mon || typeof mon !== 'object') return false
+
+  const identity = dataset.identityById.get(mon.species)
+  const speciesRecord = dataset.byId.get(mon.species)
+
+  if (!identity || !speciesRecord || identity.battleOnly) return false
+  if (!isPersistentSpecies(mon.species)) return false
+  if (!Number.isFinite(mon.exp) || !Number.isFinite(mon.hp)) return false
+  if (
+    !STAT_NAMES.every(
+      (stat) =>
+        Number.isInteger(mon.ivs?.[stat]) &&
+        mon.ivs[stat] >= 0 &&
+        mon.ivs[stat] <= 31,
+    )
+  )
     return false
-  if (!Number.isFinite(mon.exp)) return false
-  if (!Number.isFinite(mon.hp)) return false
-  if (!STAT_NAMES.every((stat) => Number.isInteger(mon.ivs?.[stat])))
-    return false
+  if (!Object.hasOwn(NATURES, mon.nature)) return false
+
+  const abilities = speciesRecord.abilities ?? []
+  if (!abilities.some((slot) => slot.ability === mon.ability)) return false
+  if (!dataset.mechanicsCoverage.abilities?.[mon.ability]) return false
+
+  if (mon.heldItem != null) {
+    if (!dataset.items[mon.heldItem] || !canHoldItem(mon.heldItem)) return false
+  }
+
+  if (!Array.isArray(mon.moves)) return false
 
   return mon.moves.every(
-    (slot) => hasMove(slot.move) && Number.isInteger(slot.pp),
+    (slot) =>
+      hasMove(slot.move) &&
+      Number.isInteger(slot.pp) &&
+      Number.isFinite(moveData(slot.move).pp),
   )
 }
 
 const isReadableTrade = (trade) => {
   if (!Number.isInteger(trade.v)) return false
   if (typeof trade.id !== 'string' || trade.id === '') return false
-  if (typeof trade.from.name !== 'string') return false
+  if (typeof trade.from?.name !== 'string') return false
+  if (!isReadableDataset(trade.dataset)) return false
 
-  return isReadableMon(trade.mon)
+  return validateTradePokemon(trade.mon)
 }
 
 const readTrade = (body) => {
@@ -63,15 +110,22 @@ const readTrade = (body) => {
     const raw = JSON.parse(
       inflateSync(Buffer.from(body, 'base64url')).toString('utf8'),
     )
+    const sourceVersion = raw?.v
     const trade = migrateTrade(raw)
 
-    if (!isReadableTrade(trade)) return { trade: null, future: false }
+    if (sourceVersion === TRADE_VERSION && trade.dataset?.legacy === true)
+      return { trade: null, future: false, mismatch: false }
+    if (!isReadableTrade(trade))
+      return { trade: null, future: false, mismatch: false }
+    if (!tradeDatasetCompatible(trade.dataset))
+      return { trade: null, future: false, mismatch: true }
 
-    return { trade, future: false }
+    return { trade, future: false, mismatch: false }
   } catch (error) {
     return {
       trade: null,
       future: error instanceof MigrationVersionError && error.kind === 'trade',
+      mismatch: false,
     }
   }
 }
@@ -86,6 +140,8 @@ export const decodeTrade = (text) => {
   const read = readTrade(trimmed.slice(TRADE_CODE_PREFIX.length))
 
   if (read.future) return { ok: false, reason: TRADE_MESSAGES.fromNewer }
+  if (read.mismatch)
+    return { ok: false, reason: TRADE_MESSAGES.datasetMismatch }
   if (!read.trade) return { ok: false, reason: TRADE_MESSAGES.unreadable }
 
   return { ok: true, trade: read.trade }
@@ -134,13 +190,31 @@ const isOwnGame = (save, trade) => {
   )
 }
 
+const duplicatesMegaStone = (save, key) => {
+  if (!key) return false
+
+  const record = item(key)
+  if (!record.megaStone) return false
+  if ((save.bag?.[key] ?? 0) > 0) return true
+
+  return allPokemon(save).some((mon) => mon.heldItem === key)
+}
+
 export const takeIn = (save, trade) => {
+  if (!trade || !validateTradePokemon(trade.mon)) {
+    return { ok: false, reason: TRADE_MESSAGES.unreadable }
+  }
+
   if (isOwnGame(save, trade)) {
     return { ok: false, reason: TRADE_MESSAGES.ownGame }
   }
 
   if (save.trades.received.includes(trade.id)) {
     return { ok: false, reason: TRADE_MESSAGES.alreadyTaken }
+  }
+
+  if (duplicatesMegaStone(save, trade.mon.heldItem)) {
+    return { ok: false, reason: TRADE_MESSAGES.duplicateMegaStone }
   }
 
   const mon = arrivingMon(trade.mon)

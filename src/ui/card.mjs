@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { achievementEntries, earnedCount } from '../achievements.mjs'
 import { gyms } from '../gym.mjs'
 import { nationalCompletion } from '../league.mjs'
-import { species } from '../data.mjs'
+import { item, loadData, species } from '../data.mjs'
 import { HOME, monSpriteFile } from '../paths.mjs'
 import { decodePng, encodePng } from '../png.mjs'
 import { displayName, levelOf } from '../pokemon.mjs'
@@ -121,6 +121,59 @@ const drawCentredText = (canvas, text, centre, y, colour, scale) => {
   drawText(canvas, text, x, y, colour, scale)
 }
 
+const fittedScale = (text, maxWidth, preferred) => {
+  for (let scale = preferred; scale > 1; scale--) {
+    if (textWidth(text, scale) <= maxWidth) return scale
+  }
+
+  return 1
+}
+
+const drawFittedCentredText = (
+  canvas,
+  text,
+  centre,
+  y,
+  maxWidth,
+  colour,
+  preferred,
+) => {
+  drawCentredText(
+    canvas,
+    text,
+    centre,
+    y,
+    colour,
+    fittedScale(text, maxWidth, preferred),
+  )
+}
+
+const displayKey = (key) =>
+  String(key ?? '-')
+    .replace(/[-_]+/g, ' ')
+    .toUpperCase()
+
+const abilityLabel = (mon) => {
+  const record = loadData().abilities[mon.ability]
+  return record?.name?.toUpperCase() ?? displayKey(mon.ability)
+}
+
+const itemLabel = (mon) => {
+  if (!mon.heldItem) return '-'
+
+  try {
+    return item(mon.heldItem).name.toUpperCase()
+  } catch {
+    return displayKey(mon.heldItem)
+  }
+}
+
+export const cardMemberDetails = (mon) => [
+  `L${levelOf(mon)} · NATURE ${displayKey(mon.nature)}`,
+  `ABILITY ${abilityLabel(mon)}`,
+  `ITEM ${itemLabel(mon)}`,
+]
+
 const drawRule = (canvas, x, y, width) => {
   fillRect(canvas, x, y, width, 1, CARD_PALETTE.line)
 }
@@ -138,13 +191,19 @@ const drawHeader = (canvas, save, now) => {
 
   const nameX = CARD_MARGIN + 10 * 4 + 24
 
+  const trainerScale = fittedScale(
+    save.trainer.name,
+    CARD_WIDTH - nameX - CARD_MARGIN - 280,
+    CARD_TITLE_SCALE,
+  )
+
   drawText(
     canvas,
     save.trainer.name,
     nameX,
     top,
     CARD_PALETTE.text,
-    CARD_TITLE_SCALE,
+    trainerScale,
   )
   drawText(
     canvas,
@@ -200,11 +259,22 @@ const drawHpBar = (canvas, mon, x, y, width) => {
 
 const drawCellSprite = (canvas, mon, cell, centre) => {
   const image = loadSpriteImage(mon)
+  const boxHeight = cell.height - CARD_CELL_TEXT_HEIGHT
 
-  if (!image) return
+  if (!image) {
+    drawFittedCentredText(
+      canvas,
+      'NO SPRITE',
+      centre,
+      cell.y + Math.round(boxHeight / 2),
+      cell.width - CARD_CELL_GAP * 2,
+      CARD_PALETTE.dim,
+      CARD_LABEL_SCALE,
+    )
+    return
+  }
 
   const sprite = cropSprite(image)
-  const boxHeight = cell.height - CARD_CELL_TEXT_HEIGHT
   const scale = fitScale(sprite, cell.width - CARD_CELL_GAP * 2, boxHeight)
   const width = sprite.width * scale
   const height = sprite.height * scale
@@ -218,12 +288,14 @@ const drawCellSprite = (canvas, mon, cell, centre) => {
   )
 }
 
-const drawMemberName = (canvas, mon, centre, y) => {
+const drawMemberName = (canvas, mon, centre, y, maxWidth) => {
   const name = displayName(mon)
-  const width = textWidth(name, CARD_NAME_SCALE)
+  const reserved = mon.shiny ? CARD_SHINY_RADIUS * 5 : 0
+  const scale = fittedScale(name, maxWidth - reserved, CARD_NAME_SCALE)
+  const width = textWidth(name, scale)
   const x = Math.round(centre - width / 2)
 
-  drawText(canvas, name, x, y, CARD_PALETTE.text, CARD_NAME_SCALE)
+  drawText(canvas, name, x, y, CARD_PALETTE.text, scale)
 
   if (!mon.shiny) return
 
@@ -246,15 +318,24 @@ const drawMemberCell = (canvas, mon, cell) => {
 
   const nameY = cell.y + cell.height - CARD_CELL_TEXT_HEIGHT + 10
 
-  drawMemberName(canvas, mon, centre, nameY)
-  drawCentredText(
-    canvas,
-    `L${levelOf(mon)}`,
-    centre,
-    nameY + textHeight(CARD_NAME_SCALE) + 10,
-    CARD_PALETTE.amber,
-    CARD_LABEL_SCALE,
-  )
+  const textWidthLimit = cell.width - CARD_CELL_GAP * 2
+
+  drawMemberName(canvas, mon, centre, nameY, textWidthLimit)
+
+  const detailTop = nameY + textHeight(CARD_NAME_SCALE) + 7
+  const details = cardMemberDetails(mon)
+
+  for (let index = 0; index < details.length; index++) {
+    drawFittedCentredText(
+      canvas,
+      details[index],
+      centre,
+      detailTop + index * (textHeight(CARD_LABEL_SCALE) + 5),
+      textWidthLimit,
+      index === 0 ? CARD_PALETTE.amber : CARD_PALETTE.dim,
+      CARD_LABEL_SCALE,
+    )
+  }
 
   const barWidth = Math.round(cell.width * 0.6)
 

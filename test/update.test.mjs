@@ -420,6 +420,7 @@ test('Should update an installed plugin through Claude Code', () => {
   expect(plan.steps.map((step) => step.id)).toEqual([
     'marketplace',
     'plugin',
+    'verify',
     'install',
   ])
 
@@ -460,9 +461,17 @@ test('Should update a clone with git, and report its own manifest', () => {
   const plan = updatePlan({ root: clone, cache: fakeCache('0.5.0') })
 
   expect(plan.kind).toBe('clone')
-  expect(plan.steps.map((step) => step.id)).toEqual(['pull', 'install'])
+  expect(plan.steps.map((step) => step.id)).toEqual([
+    'pull',
+    'verify',
+    'install',
+  ])
   expect(plan.steps[0].plan().args).toEqual(['-C', clone, 'pull', '--ff-only'])
-  expect(plan.steps[1].plan().args[0]).toBe(join(clone, 'tools', 'install.mjs'))
+  expect(plan.steps[1].plan().args).toEqual([
+    join(clone, 'tools', 'install.mjs'),
+    '--verify',
+  ])
+  expect(plan.steps[2].plan().args[0]).toBe(join(clone, 'tools', 'install.mjs'))
   expect(plan.resolveVersion()).toBe('1.2.3')
 })
 

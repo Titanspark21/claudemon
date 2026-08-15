@@ -9,6 +9,7 @@ import {
   TRADE_MESSAGES,
   TRADE_VERSION,
 } from './constants.mjs'
+import { tradeDataset } from './data.mjs'
 import { canSpare } from './helpers.mjs'
 import { createPokemon, displayName, levelOf } from './pokemon.mjs'
 import { makeRng } from './rng.mjs'
@@ -20,7 +21,11 @@ const aSave = (name, starterId, seed) => {
 }
 
 const codeFor = (payload) => {
-  const body = deflateSync(JSON.stringify(payload)).toString('base64url')
+  const normalized =
+    payload?.v === TRADE_VERSION && payload.dataset === undefined
+      ? { ...payload, dataset: tradeDataset() }
+      : payload
+  const body = deflateSync(JSON.stringify(normalized)).toString('base64url')
 
   return `${TRADE_CODE_PREFIX}${body}`
 }
@@ -210,6 +215,15 @@ test('Should refuse a code whose Pokémon has been tampered with', () => {
     ['experience that is not a number', { ...A_TRADED_MON, exp: 'lots' }],
     ['half a set of IVs', { ...A_TRADED_MON, ivs: { hp: 22 } }],
     ['no HP at all', { ...A_TRADED_MON, hp: null }],
+    ['an impossible nature', { ...A_TRADED_MON, nature: 'feral' }],
+    [
+      'an ability this species cannot have',
+      { ...A_TRADED_MON, ability: 'levitate' },
+    ],
+    [
+      'an item outside the dataset',
+      { ...A_TRADED_MON, heldItem: 'missingite' },
+    ],
     [
       'a move nobody knows',
       { ...A_TRADED_MON, moves: [{ move: 'hyper-nuke', pp: 5, maxPp: 5 }] },
@@ -256,6 +270,124 @@ test('Should refuse a code whose Pokémon has been tampered with', () => {
     ).ok,
     'and read the honest one either way',
   ).toBe(true)
+})
+
+test('Should leave a consumed held item out of the trade payload', () => {
+  const ash = aSave('ASH', 1, 1)
+  const gary = aSave('GARY', 4, 2)
+  const pikachu = createPokemon(25, 20, makeRng(21))
+
+  pikachu.heldItem = 'light-ball'
+  pikachu.heldItem = null
+  ash.party.push(pikachu)
+
+  const trade = decodeTrade(giveAway(ash, 'party', 1).code).trade
+  const taken = takeIn(gary, trade)
+
+  expect(trade.mon.heldItem).toBeNull()
+  expect(taken.mon.heldItem).toBeNull()
+})
+
+test('Should reject a current trade that pretends to be a legacy dataset', () => {
+  const read = decodeTrade(
+    codeFor({
+      v: TRADE_VERSION,
+      id: 'fake-legacy',
+      mon: A_TRADED_MON,
+      from: FROM_MISTY,
+      dataset: { legacy: true },
+    }),
+  )
+
+  expect(read.ok).toBe(false)
+  expect(read.reason).toBe(TRADE_MESSAGES.unreadable)
+})
+
+test('Should reject a current trade made from a different dataset', () => {
+  const dataset = tradeDataset()
+  const read = decodeTrade(
+    codeFor({
+      v: TRADE_VERSION,
+      id: 'mismatch',
+      mon: A_TRADED_MON,
+      from: FROM_MISTY,
+      dataset: { ...dataset, fingerprint: `${dataset.fingerprint}-other` },
+    }),
+  )
+
+  expect(read.ok).toBe(false)
+  expect(read.reason).toBe(TRADE_MESSAGES.datasetMismatch)
+})
+
+test('Should preserve a collectible form identity through a trade', () => {
+  const ash = aSave('ASH', 1, 1)
+  const gary = aSave('GARY', 4, 2)
+  const form = createPokemon(10001, 18, makeRng(12))
+
+  form.nickname = 'NIBBLES'
+  ash.party.push(form)
+
+  const given = giveAway(ash, 'party', 1)
+  const taken = takeIn(gary, decodeTrade(given.code).trade)
+
+  expect(taken.ok).toBe(true)
+  expect(taken.mon.species).toBe(10001)
+  expect(taken.mon.nickname).toBe('NIBBLES')
+  expect(taken.mon.nature).toBe(form.nature)
+  expect(taken.mon.ability).toBe(form.ability)
+  expect(gary.dex.caught).toContain(19)
+  expect(gary.dex.forms.caught).toContain(10001)
+})
+
+test('Should reject battle-only form identities before they reach a save', () => {
+  const battleOnly = createPokemon(20001, 30, makeRng(13))
+  const read = decodeTrade(
+    codeFor({
+      v: TRADE_VERSION,
+      id: 'battle-only',
+      mon: battleOnly,
+      from: FROM_MISTY,
+    }),
+  )
+
+  expect(read.ok).toBe(false)
+  expect(read.reason).toBe(TRADE_MESSAGES.unreadable)
+})
+
+test('Should not duplicate an attached Mega Stone into another save', () => {
+  const ash = aSave('ASH', 1, 1)
+  const gary = aSave('GARY', 4, 2)
+  const gengar = createPokemon(94, 35, makeRng(14))
+
+  gengar.heldItem = 'gengarite'
+  ash.party.push(gengar)
+  gary.bag.gengarite = 1
+
+  const trade = decodeTrade(giveAway(ash, 'party', 1).code).trade
+  const taken = takeIn(gary, trade)
+
+  expect(taken.ok).toBe(false)
+  expect(taken.reason).toBe(TRADE_MESSAGES.duplicateMegaStone)
+  expect(gary.party).toHaveLength(1)
+  expect(gary.bag.gengarite).toBe(1)
+
+  const blue = aSave('BLUE', 7, 3)
+  const holder = createPokemon(94, 35, makeRng(15))
+  holder.heldItem = 'gengarite'
+  blue.box.push(holder)
+
+  const heldDuplicate = takeIn(blue, trade)
+  expect(heldDuplicate.ok).toBe(false)
+  expect(heldDuplicate.reason).toBe(TRADE_MESSAGES.duplicateMegaStone)
+})
+
+test('Should reject a missing trade object before touching the save', () => {
+  const save = aSave('GARY', 4, 2)
+
+  expect(takeIn(save, null)).toEqual({
+    ok: false,
+    reason: TRADE_MESSAGES.unreadable,
+  })
 })
 
 test('Should rebuild the stats rather than trust what the code claims', () => {

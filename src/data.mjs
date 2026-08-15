@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { dataFile } from './paths.mjs'
 
@@ -38,11 +39,72 @@ export const loadPokedex = () => loadData().pokedex
 
 export const progressionData = () => loadData().progression
 
+const datasetFingerprint = (dataset) => {
+  const identity = {
+    forms: dataset.speciesIdentities.records.map((record) => [
+      record.id,
+      record.sourceKey,
+      record.dexNumber,
+      record.baseSpecies,
+      record.formKey,
+      record.collectible,
+      record.battleOnly,
+    ]),
+    species: dataset.pokedex.map((mon) => [
+      mon.id,
+      (mon.abilities ?? []).map((slot) => slot.ability),
+    ]),
+    moves: Object.keys(dataset.moves).sort(),
+    items: Object.keys(dataset.items).sort(),
+  }
+
+  return createHash('sha256').update(JSON.stringify(identity)).digest('hex')
+}
+
+export const tradeDataset = (dataset = loadData()) => ({
+  generation: dataset.mechanicsCoverage.generation,
+  identityVersion: dataset.speciesIdentities.version,
+  fingerprint: datasetFingerprint(dataset),
+})
+
+export const tradeDatasetCompatible = (incoming, dataset = loadData()) => {
+  if (incoming?.legacy === true) return true
+  if (!incoming || typeof incoming !== 'object') return false
+
+  const local = tradeDataset(dataset)
+
+  return (
+    incoming.generation === local.generation &&
+    incoming.identityVersion === local.identityVersion &&
+    incoming.fingerprint === local.fingerprint
+  )
+}
+
+export const validateGeneratedData = (dataset = loadData()) => {
+  const total = dataset.progression?.metadata?.nationalDexTotal
+  const identities = dataset.speciesIdentities?.records
+
+  if (dataset.mechanicsCoverage?.generation !== 7) return false
+  if (!Number.isInteger(dataset.speciesIdentities?.version)) return false
+  if (!Number.isInteger(total) || total !== 809) return false
+  if (!Array.isArray(identities) || identities.length < total) return false
+  if (dataset.pokedex.length !== identities.length) return false
+  if (!identities.every((record) => dataset.byId.has(record.id))) return false
+  if (!Object.keys(dataset.moves).length || !Object.keys(dataset.items).length)
+    return false
+
+  for (let id = 1; id <= total; id++) {
+    const identity = dataset.identityById.get(id)
+    if (!identity || identity.dexNumber !== id || identity.formKey !== null)
+      return false
+  }
+
+  return true
+}
+
 export const isDataReady = () => {
   try {
-    loadData()
-
-    return true
+    return validateGeneratedData()
   } catch {
     return false
   }
