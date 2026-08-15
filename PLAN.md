@@ -147,38 +147,6 @@ stablePokemonRoll(mon, namespace) -> unsignedInteger
 
 ### 2026-08-13 — Generation VII expansion
 
-### Task V4: Surface field effects, activations, held items, and Mega state
-
-**Files:**
-
-- Modify: `src/ui/views/battle.mjs`
-- Modify: `src/ui/battleField.mjs`
-- Modify: `src/ui/views/constants.mjs`
-- Modify: `src/battleEvents.mjs`
-- Test: `src/ui/battleField.test.mjs`
-- Test: `src/battleEvents.test.mjs`
-
-**Interfaces:**
-
-```js
-fieldStatusRows(field) -> string[]
-megaPrompt(battle) -> string
-effectAnnouncement(event) -> string
-```
-
-- [ ] Add failing tests for weather/terrain duration, ability reveal, item
-      activation/consumption, Mega-ready toggle, Mega transformation, and no-field
-      compact layout.
-- [ ] Run the focused tests and confirm the missing event/UI cases fail.
-- [ ] Render field effects above the move menu, not over sprites or HP bars.
-- [ ] Render ability and item activations through battle messages and expose
-      held items only when legitimately known.
-- [ ] Add a clear `m` Mega toggle and confirmation marker before move
-      resolution.
-- [ ] Manually run one battle with simultaneous weather, terrain, item, ability,
-      and Mega events and confirm messages remain readable and ordered.
-- [ ] Commit: `visual: expose battle effects and Mega state`
-
 ### Task V5: Generalize sprite installation and rendering for synthetic forms
 
 **Files:**
