@@ -19,6 +19,8 @@ import {
   TRAINER_REFUSALS,
   TURN_MESSAGES,
 } from './constants.mjs'
+import { refreshAbilityEffects } from './abilities.mjs'
+import { moveHasFlag } from './abilityEffects.mjs'
 import { move as moveData, species } from './data.mjs'
 import { effectiveSpeed, moveSlotOf, stageMultiplier } from './battleActor.mjs'
 import { createBattleField, normalizeBattleField } from './battleField.mjs'
@@ -31,6 +33,7 @@ import {
   moneyFromDefeating,
 } from './exp.mjs'
 import { decideOrder, pickFoeMove } from './foeAi.mjs'
+import { runEffectPhase } from './effects.mjs'
 import {
   applyMoveFieldEffect,
   moveExecutionFailure,
@@ -72,6 +75,28 @@ export const emptyStages = () => {
   }
 }
 
+const refreshBattleEffects = (battle) => {
+  refreshAbilityEffects(battle)
+  return battle.effects
+}
+
+const runSwitchInEffects = (battle, side, events) => {
+  runEffectPhase(battle, 'switchIn', { side, events })
+  refreshBattleEffects(battle)
+}
+
+const initializeBattleEffects = (battle) => {
+  const events = []
+
+  refreshBattleEffects(battle)
+  runEffectPhase(battle, 'battleStart', { events })
+  runSwitchInEffects(battle, 'player', events)
+  runSwitchInEffects(battle, 'foe', events)
+  battle.pendingEvents = events
+
+  return battle
+}
+
 export const createBattle = ({
   playerMon,
   wildMon,
@@ -79,12 +104,14 @@ export const createBattle = ({
   participants = [],
   trainer = null,
 }) => {
-  return {
+  const battle = {
     seed,
     rng: makeRng(seed),
     turn: 0,
     field: createBattleField(),
     effects: [],
+    abilityState: {},
+    pendingEvents: [],
     player: {
       mon: playerMon,
       stages: emptyStages(),
@@ -98,14 +125,29 @@ export const createBattle = ({
     rewards: { exp: 0, money: 0 },
     runAttempts: 0,
   }
+
+  return initializeBattleEffects(battle)
 }
 
 export const switchIn = (battle, mon) => {
+  const events = []
+  const previous = battle.player?.mon
+
+  if (previous && previous !== mon && !isFainted(previous))
+    runEffectPhase(battle, 'switchOut', { side: 'player', events })
+
   battle.player.mon = mon
   battle.player.stages = emptyStages()
   battle.player.volatile = emptyVolatile()
+  battle.abilityState ??= {}
+  battle.abilityState.player = {}
 
   if (!battle.participants.includes(mon)) battle.participants.push(mon)
+
+  refreshBattleEffects(battle)
+  runSwitchInEffects(battle, 'player', events)
+  battle.pendingEvents ??= []
+  battle.pendingEvents.push(...events)
 
   return battle
 }
@@ -125,6 +167,9 @@ export const rehydrate = (battle) => {
 
   battle.field = normalizeBattleField(battle.field)
   battle.effects ??= []
+  battle.abilityState ??= {}
+  battle.pendingEvents ??= []
+  refreshBattleEffects(battle)
 
   return battle
 }
@@ -196,7 +241,7 @@ const blockedByStatus = (battle, side, events) => {
   return false
 }
 
-const landsHit = (battle, attackerSide, move) => {
+const landsHit = (battle, attackerSide, move, events) => {
   if (move.accuracy === null) return true
 
   const attacker = battle[attackerSide]
@@ -209,6 +254,7 @@ const landsHit = (battle, attackerSide, move) => {
     defender,
     move,
     value: move.accuracy * modifier,
+    events,
   })
 
   if (accuracy.cancelled) return false
@@ -228,27 +274,51 @@ const applyStatChanges = (battle, attackerSide, move, events) => {
   for (const change of move.statChanges) {
     const side = change.change < 0 ? other(attackerSide) : attackerSide
     const actor = battle[side]
+    const defenderSide = other(attackerSide)
+    const adjusted = runMoveEffectPhase(battle, 'afterHit', {
+      kind: 'stat-change',
+      attacker: battle[attackerSide],
+      defender: battle[defenderSide],
+      targetSide: side,
+      causeSide: attackerSide,
+      stat: change.stat,
+      move,
+      value: change.change,
+      events,
+    })
+
+    if (adjusted.cancelled) continue
+
+    const delta = adjusted.value
     const current = actor.stages[change.stat]
-    const next = Math.max(
-      -STAGE_LIMIT,
-      Math.min(STAGE_LIMIT, current + change.change),
-    )
+    const next = Math.max(-STAGE_LIMIT, Math.min(STAGE_LIMIT, current + delta))
+    const applied = next - current
     const who = label(battle, side)
     const statName = STAT_LABELS[change.stat] ?? change.stat
 
     if (next === current) {
       say(
         events,
-        `${who}'s ${statName} won't go ${change.change < 0 ? 'lower' : 'higher'}!`,
+        `${who}'s ${statName} won't go ${delta < 0 ? 'lower' : 'higher'}!`,
       )
       continue
     }
 
     actor.stages[change.stat] = next
+    events.push({ type: 'stat', side, stat: change.stat, delta: applied })
+    say(events, `${who}'s ${statName} ${describeStatDelta(applied)}!`)
 
-    events.push({ type: 'stat', side, stat: change.stat, delta: change.change })
-
-    say(events, `${who}'s ${statName} ${describeStatDelta(change.change)}!`)
+    runMoveEffectPhase(battle, 'afterHit', {
+      kind: 'stat-change-applied',
+      attacker: battle[attackerSide],
+      defender: battle[defenderSide],
+      targetSide: side,
+      causeSide: attackerSide,
+      stat: change.stat,
+      delta: applied,
+      move,
+      events,
+    })
   }
 }
 
@@ -266,23 +336,35 @@ const rollsAilment = (battle, move) => {
   return chance(battle.rng, rate / 100)
 }
 
-const applyStatusAilment = (battle, defenderSide, move, events) => {
+const applyStatusAilment = (
+  battle,
+  attackerSide,
+  defenderSide,
+  move,
+  events,
+) => {
   const defender = battle[defenderSide]
-  const attacker = battle[other(defenderSide)]
 
   if (defender.mon.status) return
   if (!rollsAilment(battle, move)) return
-  if (isImmuneToAilment(defender.mon, move.ailment)) return
 
   const status = runMoveEffectPhase(battle, 'tryStatus', {
-    attacker,
+    attacker: battle[attackerSide],
     defender,
+    targetSide: defenderSide,
+    causeSide: attackerSide,
     move,
+    status: move.ailment,
     value: move.ailment,
     events,
   })
 
   if (status.cancelled) return
+
+  const corrosion =
+    battle[attackerSide]?.mon?.ability === 'corrosion' &&
+    ['poison', 'badly-poisoned'].includes(status.value)
+  if (!corrosion && isImmuneToAilment(defender.mon, status.value)) return
 
   defender.mon.status = status.value
   defender.mon.statusTurns =
@@ -292,8 +374,18 @@ const applyStatusAilment = (battle, defenderSide, move, events) => {
   defender.volatile.statusTurn = battle.turn
 
   events.push({ type: 'status', side: defenderSide, status: status.value })
-
   say(events, `${label(battle, defenderSide)} ${STATUS_LABELS[status.value]}!`)
+
+  runMoveEffectPhase(battle, 'afterHit', {
+    kind: 'status-applied',
+    attacker: battle[attackerSide],
+    defender,
+    targetSide: defenderSide,
+    causeSide: attackerSide,
+    status: status.value,
+    move,
+    events,
+  })
 }
 
 const applyAilment = (battle, attackerSide, move, events) => {
@@ -304,14 +396,25 @@ const applyAilment = (battle, attackerSide, move, events) => {
   if (isVolatileAilment(move.ailment)) {
     if (!rollsAilment(battle, move)) return
 
-    applyVolatileAilment(battle, defenderSide, move, events)
+    const attempted = runMoveEffectPhase(battle, 'tryStatus', {
+      attacker: battle[attackerSide],
+      defender: battle[defenderSide],
+      targetSide: defenderSide,
+      causeSide: attackerSide,
+      move,
+      status: move.ailment,
+      value: move.ailment,
+      events,
+    })
+    if (attempted.cancelled) return
 
+    applyVolatileAilment(battle, defenderSide, move, events)
     return
   }
 
   if (!(move.ailment in STATUS_LABELS)) return
 
-  applyStatusAilment(battle, defenderSide, move, events)
+  applyStatusAilment(battle, attackerSide, defenderSide, move, events)
 }
 
 const doesNotAffect = (move, defenderTypes, events) => {
@@ -324,21 +427,49 @@ const doesNotAffect = (move, defenderTypes, events) => {
 
 const rollHitCount = (battle, move) => rollMoveHits(battle.rng, move)
 
-const applyRecoil = (battle, attackerSide, amount, events) => {
-  applyDamage(battle, attackerSide, amount, events)
-  say(events, `${label(battle, attackerSide)} ${TURN_MESSAGES.recoil}`)
+const applyRecoil = (battle, attackerSide, amount, move, events) => {
+  const defenderSide = other(attackerSide)
+  const blocked = runMoveEffectPhase(battle, 'afterDamage', {
+    kind: 'recoil',
+    attacker: battle[attackerSide],
+    defender: battle[defenderSide],
+    attackerSide,
+    defenderSide,
+    move,
+    value: amount,
+    events,
+  })
+  if (blocked.cancelled) return 0
+
+  const dealt = applyDamage(battle, attackerSide, amount, events)
+  if (dealt)
+    say(events, `${label(battle, attackerSide)} ${TURN_MESSAGES.recoil}`)
+  return dealt
 }
 
-const applyDrain = (battle, attackerSide, drain, total, events) => {
+const applyDrain = (battle, attackerSide, drain, total, move, events) => {
   const amount = Math.max(1, Math.floor((total * Math.abs(drain)) / 100))
 
-  if (drain < 0) return applyRecoil(battle, attackerSide, amount, events)
+  if (drain < 0)
+    return applyRecoil(battle, attackerSide, amount, move, events)
 
-  applyHeal(battle, attackerSide, amount, events)
-  say(
+  const defenderSide = other(attackerSide)
+  const reversed = runMoveEffectPhase(battle, 'afterDamage', {
+    kind: 'drain',
+    attacker: battle[attackerSide],
+    defender: battle[defenderSide],
+    attackerSide,
+    defenderSide,
+    move,
+    value: amount,
     events,
-    `${label(battle, other(attackerSide))} ${TURN_MESSAGES.energyDrained}`,
-  )
+  })
+  if (reversed.cancelled) return 0
+
+  const healed = applyHeal(battle, attackerSide, amount, events)
+  if (healed)
+    say(events, `${label(battle, defenderSide)} ${TURN_MESSAGES.energyDrained}`)
+  return healed
 }
 
 const fixedDamageAmount = (battle, attackerSide, move) => {
@@ -359,6 +490,7 @@ const fixedDamageAmount = (battle, attackerSide, move) => {
 const useMove = (battle, attackerSide, moveIndex, events) => {
   const attacker = battle[attackerSide]
   const defenderSide = other(attackerSide)
+  const defender = battle[defenderSide]
 
   if (blockedByStatus(battle, attackerSide, events)) return
   if (blockedByVolatile(battle, attackerSide, events)) return
@@ -370,7 +502,6 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
 
   if (slot && !disabled) {
     move = { ...moveData(slot.move), key: slot.move }
-    slot.pp--
   } else if (moveIndex === null || !hasUsableMove(attacker)) {
     move = { ...STRUGGLE.data, key: STRUGGLE.move }
   } else if (disabled) {
@@ -380,12 +511,37 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
       events,
       `${who}'s ${moveData(slot.move).name} ${TURN_MESSAGES.disabled}`,
     )
-
     return
   } else {
     say(events, TURN_MESSAGES.noPp)
     return
   }
+
+  const before = runMoveEffectPhase(battle, 'beforeAction', {
+    attacker,
+    defender,
+    side: attackerSide,
+    move,
+    moveIndex,
+    slot,
+    action: { type: 'move', index: moveIndex },
+    events,
+  })
+  if (before.cancelled) return
+
+  const priority = runMoveEffectPhase(battle, 'modifyPriority', {
+    attacker,
+    defender,
+    move,
+    value: move.priority ?? 0,
+    events,
+  })
+  if (priority.cancelled) {
+    say(events, TURN_MESSAGES.failed)
+    return
+  }
+
+  if (slot) slot.pp--
 
   say(events, `${label(battle, attackerSide)} used ${move.name}!`)
 
@@ -397,7 +553,7 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
     return
   }
 
-  if (!landsHit(battle, attackerSide, move)) {
+  if (!landsHit(battle, attackerSide, move, events)) {
     say(events, `${label(battle, attackerSide)}'s attack missed!`)
     return
   }
@@ -409,15 +565,39 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
     return
   }
 
-  if (move.damageClass === 'status') {
-    applyStatChanges(battle, attackerSide, move, events)
-    applyAilment(battle, attackerSide, move, events)
+  const moveType = runMoveEffectPhase(battle, 'modifyMoveType', {
+    attacker,
+    defender,
+    move,
+    value: move.type,
+    events,
+  })
+  const typedMove = { ...move, type: moveType.value }
+  const defenderTypes =
+    defender.mon.battleTypes ?? species(defender.mon.species).types
+  const typeMultiplier = effectiveness(typedMove.type, defenderTypes)
+  const immunity = runMoveEffectPhase(battle, 'checkImmunity', {
+    attacker,
+    defender,
+    move: typedMove,
+    effectiveness: typeMultiplier,
+    events,
+  })
 
-    if (move.healing) {
+  if (immunity.cancelled) {
+    say(events, EFFECTIVENESS_MESSAGES.immune)
+    return
+  }
+
+  if (typedMove.damageClass === 'status') {
+    applyStatChanges(battle, attackerSide, typedMove, events)
+    applyAilment(battle, attackerSide, typedMove, events)
+
+    if (typedMove.healing) {
       const healed = applyHeal(
         battle,
         attackerSide,
-        Math.floor((attacker.mon.stats.hp * move.healing) / 100),
+        Math.floor((attacker.mon.stats.hp * typedMove.healing) / 100),
         events,
       )
 
@@ -428,51 +608,84 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
     return
   }
 
-  const defenderTypes = species(battle[defenderSide].mon.species).types
+  if (typedMove.ohko) {
+    if (doesNotAffect(typedMove, defenderTypes, events)) return
 
-  if (move.ohko) {
-    if (doesNotAffect(move, defenderTypes, events)) return
+    const protectedHit = runMoveEffectPhase(battle, 'modifyDamage', {
+      attacker,
+      defender,
+      move: typedMove,
+      value: defender.mon.hp,
+      effectiveness: typeMultiplier,
+      ohko: true,
+      events,
+    })
+    if (protectedHit.cancelled || protectedHit.value <= 0) return
 
-    applyDamage(battle, defenderSide, battle[defenderSide].mon.hp, events)
+    const hpBefore = defender.mon.hp
+    const dealt = applyDamage(battle, defenderSide, protectedHit.value, events)
     say(events, TURN_MESSAGES.oneHitKo)
-
+    battle.lastHit = {
+      attackerSide,
+      defenderSide,
+      move: typedMove,
+      contact: false,
+      lastDamage: dealt,
+      hpBefore,
+    }
     return
   }
 
-  const fixedDamage = fixedDamageAmount(battle, attackerSide, move)
+  const fixedDamage = fixedDamageAmount(battle, attackerSide, typedMove)
 
   if (fixedDamage !== null) {
-    if (doesNotAffect(move, defenderTypes, events)) return
+    if (doesNotAffect(typedMove, defenderTypes, events)) return
 
-    applyDamage(battle, defenderSide, fixedDamage, events)
-
+    const hpBefore = defender.mon.hp
+    const dealt = applyDamage(battle, defenderSide, fixedDamage, events)
+    const contact = moveHasFlag(typedMove, 'contact')
+    runMoveEffectPhase(battle, 'afterDamage', {
+      attacker,
+      defender,
+      attackerSide,
+      defenderSide,
+      move: typedMove,
+      damage: dealt,
+      hpBefore,
+      contact,
+      events,
+    })
+    battle.lastHit = {
+      attackerSide,
+      defenderSide,
+      move: typedMove,
+      contact,
+      lastDamage: dealt,
+      hpBefore,
+    }
     return
   }
 
-  const moveType = runMoveEffectPhase(battle, 'modifyMoveType', {
-    attacker,
-    defender: battle[defenderSide],
-    move,
-    value: move.type,
-  })
-  const typedMove = { ...move, type: moveType.value }
   const movePower = runMoveEffectPhase(battle, 'modifyPower', {
     attacker,
-    defender: battle[defenderSide],
+    defender,
     move: typedMove,
     value: typedMove.power,
-  })
-  const resolvedMove = { ...typedMove, power: movePower.value }
-  const critChance = resolvedMove.critRate > 0 ? HIGH_CRIT_CHANCE : CRIT_CHANCE
-  const isCrit = chance(battle.rng, critChance)
-  const computed = computeDamage(battle, attackerSide, resolvedMove, isCrit)
-  const modifiedDamage = runMoveEffectPhase(battle, 'modifyDamage', {
-    attacker,
-    defender: battle[defenderSide],
-    move: resolvedMove,
-    value: computed.damage,
     events,
   })
+  const resolvedMove = { ...typedMove, power: movePower.value }
+
+  const critStage = runMoveEffectPhase(battle, 'beforeAction', {
+    kind: 'critical-stage',
+    attacker,
+    defender,
+    move: resolvedMove,
+    value: resolvedMove.critRate ?? 0,
+    events,
+  }).value
+  const critChance = critStage > 0 ? HIGH_CRIT_CHANCE : CRIT_CHANCE
+  const isCrit = chance(battle.rng, critChance)
+  const computed = computeDamage(battle, attackerSide, resolvedMove, isCrit)
   const multiplier = computed.multiplier
 
   if (multiplier === 0) {
@@ -480,14 +693,78 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
     return
   }
 
-  const hits = rollHitCount(battle, resolvedMove)
+  const attackerTypes =
+    attacker.mon.battleTypes ?? species(attacker.mon.species).types
+  let hits = rollHitCount(battle, resolvedMove)
+  const hitOverride = runMoveEffectPhase(battle, 'beforeAction', {
+    kind: 'hit-count',
+    attacker,
+    defender,
+    move: resolvedMove,
+    value: hits,
+    events,
+  })
+  if (Number.isFinite(hitOverride.value)) hits = hitOverride.value
 
+  const contact = moveHasFlag(resolvedMove, 'contact')
   let total = 0
+  let landedHits = 0
 
   for (let hit = 0; hit < hits; hit++) {
-    if (isFainted(battle[defenderSide].mon)) break
+    if (isFainted(defender.mon) || isFainted(attacker.mon)) break
 
-    total += applyDamage(battle, defenderSide, modifiedDamage.value, events)
+    const hitDamage = runMoveEffectPhase(battle, 'modifyDamage', {
+      attacker,
+      defender,
+      move: resolvedMove,
+      value: computed.damage,
+      critical: isCrit,
+      effectiveness: multiplier,
+      stab: attackerTypes.includes(resolvedMove.type),
+      contact,
+      hitIndex: hit,
+      burnApplied:
+        attacker.mon.status === 'burn' &&
+        resolvedMove.damageClass === 'physical',
+      events,
+    })
+    if (hitDamage.cancelled || hitDamage.value <= 0) break
+
+    const hpBefore = defender.mon.hp
+    const dealt = applyDamage(
+      battle,
+      defenderSide,
+      Math.max(1, Math.floor(hitDamage.value)),
+      events,
+    )
+    total += dealt
+    landedHits++
+
+    const reaction = runMoveEffectPhase(battle, 'afterDamage', {
+      attacker,
+      defender,
+      attackerSide,
+      defenderSide,
+      move: resolvedMove,
+      damage: dealt,
+      hpBefore,
+      contact,
+      hitIndex: hit,
+      critical: isCrit,
+      effectiveness: multiplier,
+      events,
+    })
+    if (reaction.replacement) battle.pendingReplacement = reaction.replacement
+
+    battle.lastHit = {
+      attackerSide,
+      defenderSide,
+      move: resolvedMove,
+      contact,
+      lastDamage: dealt,
+      hpBefore,
+      critical: isCrit,
+    }
   }
 
   if (isCrit) say(events, TURN_MESSAGES.criticalHit)
@@ -495,23 +772,54 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
   const note = effectivenessMessage(multiplier)
 
   if (note) say(events, note)
-  if (hits > 1) say(events, `Hit ${hits} times!`)
+  if (landedHits > 1) say(events, `Hit ${landedHits} times!`)
 
-  if (move.drain && total > 0)
-    applyDrain(battle, attackerSide, move.drain, total, events)
+  if (resolvedMove.drain && total > 0)
+    applyDrain(
+      battle,
+      attackerSide,
+      resolvedMove.drain,
+      total,
+      resolvedMove,
+      events,
+    )
 
-  if (move.key === STRUGGLE.move && total > 0)
+  if (resolvedMove.key === STRUGGLE.move && total > 0)
     applyRecoil(
       battle,
       attackerSide,
       Math.max(1, Math.floor(total / STRUGGLE_RECOIL_FRACTION)),
+      resolvedMove,
       events,
     )
 
-  if (!isFainted(battle[defenderSide].mon)) {
-    applyAilment(battle, attackerSide, move, events)
-    applyStatChanges(battle, attackerSide, move, events)
-    applyFlinch(battle, defenderSide, move)
+  if (!isFainted(defender.mon)) {
+    const secondary = runMoveEffectPhase(battle, 'afterHit', {
+      kind: 'secondary-effect',
+      attacker,
+      defender,
+      targetSide: defenderSide,
+      causeSide: attackerSide,
+      move: resolvedMove,
+      events,
+    })
+
+    if (!secondary.cancelled) {
+      applyAilment(battle, attackerSide, resolvedMove, events)
+      applyStatChanges(battle, attackerSide, resolvedMove, events)
+
+      const flinch = runMoveEffectPhase(battle, 'tryStatus', {
+        attacker,
+        defender,
+        targetSide: defenderSide,
+        causeSide: attackerSide,
+        move: resolvedMove,
+        status: 'flinch',
+        value: 'flinch',
+        events,
+      })
+      if (!flinch.cancelled) applyFlinch(battle, defenderSide, resolvedMove)
+    }
   }
 }
 

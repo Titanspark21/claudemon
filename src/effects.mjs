@@ -62,6 +62,7 @@ export const runEffectPhase = (battle, phase, context = {}) => {
 
   const events = context.events ?? []
   const state = {
+    ...context,
     battle,
     phase,
     attacker: context.attacker ?? null,

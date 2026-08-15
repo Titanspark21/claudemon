@@ -172,8 +172,8 @@
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "illuminate": {
-      "status": "supported",
-      "handler": "ability:illuminate",
+      "status": "no-effect-in-singles",
+      "reason": "Illuminate has no in-battle effect in Generation VII, so there is nothing to execute in Claudemon singles battles.",
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "trace": {
@@ -587,8 +587,8 @@
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "honeygather": {
-      "status": "supported",
-      "handler": "ability:honeygather",
+      "status": "no-effect-in-singles",
+      "reason": "Honey Gather has no in-battle effect in Generation VII, so there is nothing to execute in Claudemon singles battles.",
       "source": "@pkmn/data 0.10.11 · Generation VII"
     },
     "frisk": {

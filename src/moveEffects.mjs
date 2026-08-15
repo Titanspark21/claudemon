@@ -1,3 +1,4 @@
+import { weatherIsSuppressed } from './abilityEffects.mjs'
 import {
   MOVE_FIELD_EFFECTS,
   MOVE_GENERIC_COVERAGE_HANDLERS,
@@ -102,20 +103,23 @@ const effectRegistry = (sources) => {
   return registry
 }
 
+const activeFieldHandlers = (battle) => {
+  return fieldHandlers(battle.field).filter(
+    (handler) =>
+      handler.sourceType !== 'weather' || !weatherIsSuppressed(battle),
+  )
+}
+
 export const runMoveEffectPhase = (battle, phase, context) => {
   const registry = effectRegistry([
     ...(battle.effects ?? []),
     ...moveEffectHandlers(context.move),
-    ...(battle.field ? fieldHandlers(battle.field) : []),
+    ...(battle.field ? activeFieldHandlers(battle) : []),
   ])
 
   return runEffectPhase(battle, phase, {
-    attacker: context.attacker,
-    defender: context.defender,
-    move: context.move,
+    ...context,
     field: battle.field,
-    events: context.events,
-    value: context.value,
     registry,
   })
 }
@@ -123,7 +127,7 @@ export const runMoveEffectPhase = (battle, phase, context) => {
 export const runFieldEffectPhase = (battle, phase, events) => {
   const registry = effectRegistry([
     ...battle.effects,
-    ...fieldHandlers(battle.field),
+    ...activeFieldHandlers(battle),
   ])
 
   return runEffectPhase(battle, phase, {
