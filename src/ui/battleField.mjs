@@ -17,6 +17,49 @@ import { visibleLength } from './text.mjs'
 
 const CHROME_ROWS = FOE_INFO_ROWS + PLAYER_INFO_ROWS + MESSAGE_BOX_ROWS
 
+const FIELD_LABELS = {
+  weather: {
+    rain: 'Rain',
+    sun: 'Harsh sunlight',
+    sandstorm: 'Sandstorm',
+    hail: 'Hail',
+  },
+  terrain: {
+    electric: 'Electric',
+    grassy: 'Grassy',
+    misty: 'Misty',
+    psychic: 'Psychic',
+  },
+}
+
+const titleCase = (value) =>
+  String(value ?? '')
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(' ')
+
+const fieldName = (kind, key) => FIELD_LABELS[kind]?.[key] ?? titleCase(key)
+
+export const fieldStatusRows = (field) => {
+  const rows = []
+
+  for (const [kind, label] of [
+    ['weather', 'Weather'],
+    ['terrain', 'Terrain'],
+  ]) {
+    const active = field?.[kind]
+    if (!active) continue
+
+    const turns = Math.max(0, Number(active.turns) || 0)
+    rows.push(
+      `${label}: ${fieldName(kind, active.key)} · ${turns} ${turns === 1 ? 'turn' : 'turns'}`,
+    )
+  }
+
+  return rows
+}
+
 export const usableRows = (size) => size.rows - 1
 
 export const fieldWidth = (size) => Math.min(size.cols - 2, MAX_FIELD_WIDTH)

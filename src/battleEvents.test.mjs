@@ -1,6 +1,14 @@
 import { expect, test } from 'vitest'
 
-import { applyDamage, applyHeal, label, other, say } from './battleEvents.mjs'
+import { sourceSpeciesIdentity } from './data.mjs'
+import {
+  applyDamage,
+  applyHeal,
+  effectAnnouncement,
+  label,
+  other,
+  say,
+} from './battleEvents.mjs'
 
 const aBattle = () => {
   return {
@@ -27,6 +35,49 @@ test('Should push a message event', () => {
   say(events, 'Hello!')
 
   expect(events).toEqual([{ type: 'message', text: 'Hello!' }])
+})
+
+test('Should announce ability, item, field, and Mega events without exposing idle held items', () => {
+  expect(
+    effectAnnouncement({ type: 'ability', side: 'foe', ability: 'intimidate' }),
+  ).toBe('Foe ability: Intimidate')
+  expect(
+    effectAnnouncement({
+      type: 'item',
+      action: 'activated',
+      side: 'foe',
+      key: 'quick-claw',
+    }),
+  ).toBe('Foe held item: Quick Claw activated!')
+  expect(
+    effectAnnouncement({
+      type: 'item',
+      action: 'consumed',
+      side: 'player',
+      key: 'oran-berry',
+    }),
+  ).toBe('Your Oran Berry was consumed.')
+  expect(
+    effectAnnouncement({
+      type: 'field',
+      kind: 'weather',
+      key: 'rain',
+      turns: 5,
+    }),
+  ).toBe('Weather: Rain began · 5 turns')
+  expect(
+    effectAnnouncement({ type: 'mega-toggle', side: 'player', enabled: true }),
+  ).toBe('Mega Evolution ready — choose a move.')
+  expect(
+    effectAnnouncement({
+      type: 'mega',
+      side: 'player',
+      targetId: sourceSpeciesIdentity('charizardmegax').id,
+    }),
+  ).toContain('Mega Evolved')
+  expect(
+    effectAnnouncement({ type: 'damage', side: 'foe', amount: 5 }),
+  ).toBeNull()
 })
 
 test('Should cap the damage at the remaining HP and report what actually landed', () => {

@@ -8,6 +8,7 @@ import {
   HP_DRAIN_STEPS,
   ITEMS,
 } from './constants.mjs'
+import { effectAnnouncement } from './battleEvents.mjs'
 import { expFromDefeating } from './exp.mjs'
 import { applyItem } from './itemUse.mjs'
 import { displayName, isFainted, levelOf } from './pokemon.mjs'
@@ -54,10 +55,24 @@ const syncBars = (battle) => {
   battle.hpTarget = { ...battle.hp }
 }
 
+const announcedEvents = (events) =>
+  events.flatMap((event, index) => {
+    const text = effectAnnouncement(event)
+
+    const alreadyAnnounced =
+      event.type === 'item' &&
+      event.action === 'activated' &&
+      events[index + 1]?.type === 'message'
+
+    if (!text || alreadyAnnounced) return [event]
+
+    return [event, { type: 'message', text }]
+  })
+
 const queueEvents = (ctx, events) => {
   const battle = ctx.battle
 
-  battle.events.push(...events)
+  battle.events.push(...announcedEvents(events))
 
   if (!battle.message) playNextBeat(ctx)
 }
@@ -238,6 +253,18 @@ export const backOutOfBattleMenu = (ctx) => {
   }
 
   openMenu(battle, 'main')
+}
+
+export const toggleBattleMega = (ctx) => {
+  const battle = ctx.battle
+
+  if (!battle || battle.message || battle.menu !== 'fight') return false
+
+  const before = Boolean(battle.state.megaSelected)
+  const events = submitAction(battle.state, { type: 'mega' })
+  const toggled = events.some((event) => event.type === 'mega-toggle')
+
+  return toggled && Boolean(battle.state.megaSelected) !== before
 }
 
 export const chooseBattleOption = (ctx) => {

@@ -1,7 +1,12 @@
 import { expect, test } from 'vitest'
 
 import { spriteFile } from '../paths.mjs'
-import { fieldWidth, fitBattleSprites, usableRows } from './battleField.mjs'
+import {
+  fieldStatusRows,
+  fieldWidth,
+  fitBattleSprites,
+  usableRows,
+} from './battleField.mjs'
 import { MAX_FIELD_WIDTH } from './constants.mjs'
 
 test('Should leave the bottom row to the renderer and cap the field width', () => {
@@ -51,6 +56,16 @@ test('Should only share rows between sprites when there is clear air between the
     shared,
     'the overlap does happen, or this proves nothing',
   ).toBeGreaterThan(0)
+})
+
+test('Should show active weather and terrain durations without reserving empty rows', () => {
+  expect(fieldStatusRows({ weather: null, terrain: null })).toEqual([])
+  expect(
+    fieldStatusRows({
+      weather: { key: 'rain', turns: 4 },
+      terrain: { key: 'electric', turns: 2 },
+    }),
+  ).toEqual(['Weather: Rain · 4 turns', 'Terrain: Electric · 2 turns'])
 })
 
 test('Should never grow the field past the rows the layout can spare', () => {

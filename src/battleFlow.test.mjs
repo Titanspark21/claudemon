@@ -6,6 +6,7 @@ import {
   backOutOfBattleMenu,
   chooseBattleOption,
   createBattleFlow,
+  toggleBattleMega,
 } from './battleFlow.mjs'
 import { BATTLE_MESSAGES } from './constants.mjs'
 import { createPokemon, displayName } from './pokemon.mjs'
@@ -99,6 +100,29 @@ test('Should say there is no PP left rather than spending the turn on an empty m
 
   expect(battle.message).toBe(BATTLE_MESSAGES.noPp)
   expect(battle.menu).toBe('fight')
+  expect(state.turn).toBe(0)
+})
+
+test('Should toggle Mega readiness from the fight menu without spending the turn', () => {
+  const mon = createPokemon(6, 50, makeRng(10))
+  mon.heldItem = 'charizardite-x'
+  const state = createBattle({
+    playerMon: mon,
+    wildMon: createPokemon(242, 50, makeRng(11)),
+    seed: 12,
+  })
+  const battle = createBattleFlow(state)
+  const ctx = { save: { party: [mon] }, battle }
+
+  battle.menu = 'fight'
+
+  expect(toggleBattleMega(ctx)).toBe(true)
+  expect(state.megaSelected).toBe(true)
+  expect(state.turn).toBe(0)
+  expect(battle.menu).toBe('fight')
+
+  expect(toggleBattleMega(ctx)).toBe(true)
+  expect(state.megaSelected).toBe(false)
   expect(state.turn).toBe(0)
 })
 

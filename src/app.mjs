@@ -42,6 +42,7 @@ import {
   createBattleFlow,
   queueMessages,
   tickBattle,
+  toggleBattleMega,
 } from './battleFlow.mjs'
 import {
   encounterTtlMs,
@@ -1112,6 +1113,8 @@ export const createApp = ({
   ctx.backOutOfBattleMenu = () => backOutOfBattleMenu(ctx)
 
   ctx.chooseBattleOption = () => chooseBattleOption(ctx)
+
+  ctx.toggleBattleMega = () => toggleBattleMega(ctx)
 
   ctx.tickScene = () => {
     if (ctx.mode !== 'home' || !isWorking(ctx.activity)) return false

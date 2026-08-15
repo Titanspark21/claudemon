@@ -2,6 +2,7 @@ import { battleSpecies } from '../../battleActor.mjs'
 import { ITEMS } from '../../constants.mjs'
 import { move as moveData } from '../../data.mjs'
 import { expProgress } from '../../exp.mjs'
+import { canMegaEvolve } from '../../mega.mjs'
 import { monSpriteFile, trainerSpriteFile } from '../../paths.mjs'
 import { displayName, genderOf, levelOf } from '../../pokemon.mjs'
 import { monsLeft, trainerLabel } from '../../trainer.mjs'
@@ -9,6 +10,7 @@ import { isMoveDisabled } from '../../volatile.mjs'
 import { bold, brightGreen, dim, gray } from '../ansi.mjs'
 import { ballOverlays, ballScale, ballSteps } from '../ball.mjs'
 import {
+  fieldStatusRows,
   fieldWidth,
   fitBattleSprites,
   placeField,
@@ -243,7 +245,21 @@ export const draw = (ctx, size) => {
   return { lines, overlays }
 }
 
+export const megaPrompt = (battle) => {
+  const state = battle?.state ?? battle
+
+  if (!state) return ''
+  if (state.megaSelected) return '[m] Mega Evolution ✓ READY'
+  if (canMegaEvolve(state, 'player')) return '[m] Mega Evolution'
+
+  return ''
+}
+
 const messageBody = (ctx, width) => {
+  return [...fieldStatusRows(ctx.battle.state.field), ...battleBody(ctx, width)]
+}
+
+const battleBody = (ctx, width) => {
   const battle = ctx.battle
   const inner = width - 2
 
@@ -266,8 +282,14 @@ const messageBody = (ctx, width) => {
           width: inner,
         }),
       ]
-    case 'fight':
-      return moveMenu(battle.state.player, battle.selection, inner)
+    case 'fight': {
+      const mega = megaPrompt(battle)
+
+      return [
+        ...(mega ? [dim(mega)] : []),
+        ...moveMenu(battle.state.player, battle.selection, inner),
+      ]
+    }
     case 'bag': {
       const labels = battle.bagItems.map(
         (key) =>
@@ -338,6 +360,7 @@ export const onKey = (ctx, key) => {
     battle.selection = wrap(battle.selection - 1, options)
   else if (key.name === 'right')
     battle.selection = wrap(battle.selection + 1, options)
+  else if (key.name === 'm' && battle.menu === 'fight') ctx.toggleBattleMega()
   else if (key.name === 'enter' || key.name === 'space')
     ctx.chooseBattleOption()
   else if (key.name === 'escape') ctx.backOutOfBattleMenu()
