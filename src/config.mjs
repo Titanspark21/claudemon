@@ -1,34 +1,13 @@
 import {
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs'
-import {
+  CONFIG_VERSION,
   DEFAULT_CONFIG,
   SPRITE_SCALE_MAX,
   SPRITE_SCALE_MIN,
 } from './constants.mjs'
-import { CONFIG_FILE, HOME } from './paths.mjs'
-import {
-  transformRequestWriteConfig,
-  transformResponseConfig,
-} from './transformers.mjs'
-
-const readConfigFile = () => {
-  try {
-    return JSON.parse(readFileSync(CONFIG_FILE, 'utf8'))
-  } catch {
-    return null
-  }
-}
-
-const withStored = (stored, patch) => {
-  if (!stored) return patch
-
-  return { ...stored, ...patch }
-}
+import { updateJsonFile as updateFile } from './fileLock.mjs'
+import { migrateConfig, migrateConfigFile } from './migrations.mjs'
+import { CONFIG_FILE } from './paths.mjs'
+import { transformRequestWriteConfig } from './transformers.mjs'
 
 const withDefaults = (stored) => {
   return {
@@ -50,7 +29,7 @@ const withDefaults = (stored) => {
 }
 
 export const loadConfig = () => {
-  const stored = transformResponseConfig(readConfigFile())
+  const stored = migrateConfigFile(CONFIG_FILE)
 
   if (!stored) return withDefaults(DEFAULT_CONFIG)
 
@@ -58,23 +37,20 @@ export const loadConfig = () => {
 }
 
 export const saveConfig = (patch) => {
-  const merged = withStored(transformResponseConfig(readConfigFile()), patch)
+  migrateConfigFile(CONFIG_FILE)
 
-  mkdirSync(HOME, { recursive: true })
-
-  const tmp = `${CONFIG_FILE}.${process.pid}.tmp`
-  const payload = JSON.stringify(transformRequestWriteConfig(merged), null, 2)
-
-  try {
-    writeFileSync(tmp, `${payload}\n`)
-    renameSync(tmp, CONFIG_FILE)
-  } catch (error) {
-    try {
-      unlinkSync(tmp)
-    } catch {}
-
-    throw error
-  }
+  const merged = updateFile({
+    path: CONFIG_FILE,
+    incoming: patch,
+    transformResponse: (raw) =>
+      raw ? migrateConfig(raw) : { version: CONFIG_VERSION },
+    transformRequest: transformRequestWriteConfig,
+    merge: (current, incoming) => ({
+      ...(current ?? {}),
+      ...incoming,
+      version: CONFIG_VERSION,
+    }),
+  })
 
   return withDefaults(merged)
 }

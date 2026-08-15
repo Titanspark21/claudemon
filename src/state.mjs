@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs'
 import { recordAchievements } from './achievements.mjs'
 import {
   DAY_MS,
@@ -12,8 +11,10 @@ import {
 } from './constants.mjs'
 import { updateJsonFile as updateFile } from './fileLock.mjs'
 import { allPokemon, pokemonList } from './helpers.mjs'
-import { createExpedition, normalizeExpedition } from './expedition.mjs'
+import { speciesIdentity } from './data.mjs'
+import { createExpedition } from './expedition.mjs'
 import { nationalCompletion } from './league.mjs'
+import { migrateSave, migrateSaveFile } from './migrations.mjs'
 import { SAVE_FILE } from './paths.mjs'
 import {
   createPokemon,
@@ -25,13 +26,10 @@ import {
   rollShiny,
 } from './pokemon.mjs'
 import { writeStatus, writeStatusSnapshot } from './status.mjs'
-import { randomSeed, seedFromRng } from './rng.mjs'
+import { seedFromRng } from './rng.mjs'
 import { countOfKind } from './shop.mjs'
 import { advanceStreak } from './streak.mjs'
-import {
-  transformRequestSaveGame,
-  transformResponseSave,
-} from './transformers.mjs'
+import { transformRequestSaveGame } from './transformers.mjs'
 import { readWorked } from './worked.mjs'
 
 const saveBaselines = new WeakMap()
@@ -68,6 +66,7 @@ export const createSave = ({ trainer, starterId, rng }) => {
       caught: [starterId],
       shiny: starter.shiny ? [starterId] : [],
       faced: {},
+      forms: { seen: [], caught: [], shiny: [], faced: {} },
     },
     stats: { ...EMPTY_STATS, caught: STARTER_CAUGHT_COUNT },
     achievements: [],
@@ -97,38 +96,70 @@ export const awardBadge = (save, gymId) => {
   return save
 }
 
-export const markSeen = (save, speciesId) => {
-  if (!save.dex.seen.includes(speciesId)) save.dex.seen.push(speciesId)
+const formDex = (save) => {
+  save.dex.forms ??= { seen: [], caught: [], shiny: [], faced: {} }
+  return save.dex.forms
+}
+
+const dexIdentity = (speciesId) => {
+  const identity = speciesIdentity(speciesId)
+
+  return identity.battleOnly ? null : identity
+}
+
+const markDexArray = (save, field, speciesId) => {
+  const identity = dexIdentity(speciesId)
+
+  if (!identity) return save
+  if (!save.dex[field].includes(identity.dexNumber))
+    save.dex[field].push(identity.dexNumber)
+
+  if (identity.formKey != null && identity.collectible) {
+    const forms = formDex(save)
+    if (!forms[field].includes(identity.id)) forms[field].push(identity.id)
+  }
 
   return save
 }
 
+export const markSeen = (save, speciesId) =>
+  markDexArray(save, 'seen', speciesId)
+
 export const timesFaced = (save, speciesId) => {
-  return save.dex.faced[speciesId] ?? 0
+  const identity = dexIdentity(speciesId)
+
+  if (!identity) return 0
+  if (identity.formKey != null && identity.collectible)
+    return formDex(save).faced[identity.id] ?? 0
+
+  return save.dex.faced[identity.dexNumber] ?? 0
 }
 
 export const markFaced = (save, speciesId) => {
+  const identity = dexIdentity(speciesId)
+
+  if (!identity) return save
   markSeen(save, speciesId)
 
-  save.dex.faced[speciesId] = timesFaced(save, speciesId) + 1
+  save.dex.faced[identity.dexNumber] =
+    (save.dex.faced[identity.dexNumber] ?? 0) + 1
+
+  if (identity.formKey != null && identity.collectible) {
+    const forms = formDex(save)
+    forms.faced[identity.id] = (forms.faced[identity.id] ?? 0) + 1
+  }
 
   return save
 }
 
 export const markCaught = (save, speciesId) => {
   markSeen(save, speciesId)
-
-  if (!save.dex.caught.includes(speciesId)) save.dex.caught.push(speciesId)
-
-  return save
+  return markDexArray(save, 'caught', speciesId)
 }
 
 export const markShiny = (save, speciesId) => {
   markCaught(save, speciesId)
-
-  if (!save.dex.shiny.includes(speciesId)) save.dex.shiny.push(speciesId)
-
-  return save
+  return markDexArray(save, 'shiny', speciesId)
 }
 
 export const recordInDex = (save, mon) => {
@@ -137,46 +168,26 @@ export const recordInDex = (save, mon) => {
   return markCaught(save, mon.species)
 }
 
-const migrate = (save) => {
+const repairLoadedSave = (save, worked = readWorked()) => {
   for (const mon of allPokemon(save)) {
-    mon.heldItem ??= null
     recordInDex(save, mon)
     refreshStats(mon)
   }
 
-  save.league ??= { championships: 0, firstWonAt: null }
-
-  const worked = readWorked()
-
-  save.expedition = normalizeExpedition(
-    save.expedition,
-    worked.totalMs,
-    randomSeed(),
-  )
   recordAchievements(save, worked)
-
-  save.version = SAVE_VERSION
-
   return save
 }
 
-const readSaveFile = () => {
-  try {
-    return JSON.parse(readFileSync(SAVE_FILE, 'utf8'))
-  } catch {
-    return null
-  }
-}
-
 export const loadSave = () => {
-  const save = transformResponseSave(readSaveFile())
+  const worked = readWorked()
+  const save = migrateSaveFile(SAVE_FILE, { workedMs: worked.totalMs })
 
   if (!save) return null
 
   const baseline = saveFingerprint(save)
 
   saveBaselines.set(save, baseline)
-  migrate(save)
+  repairLoadedSave(save, worked)
 
   return save
 }
@@ -262,10 +273,15 @@ const chooseSave = (current, incoming) => {
 }
 
 export const saveGame = (save, { publish = true } = {}) => {
+  const worked = readWorked()
+
+  save.version ??= SAVE_VERSION
+
   const saved = updateFile({
     path: SAVE_FILE,
     incoming: save,
-    transformResponse: transformResponseSave,
+    transformResponse: (raw) =>
+      raw ? migrateSave(raw, { workedMs: 0 }) : null,
     transformRequest: transformRequestSaveGame,
     merge: chooseSave,
   })
@@ -273,7 +289,7 @@ export const saveGame = (save, { publish = true } = {}) => {
 
   saveBaselines.set(saved, baseline)
 
-  if (saved !== save) migrate(saved)
+  if (saved !== save) repairLoadedSave(saved, worked)
 
   if (publish) {
     try {

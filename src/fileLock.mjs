@@ -59,6 +59,16 @@ const readJsonFile = (path) => {
   }
 }
 
+const readJsonSource = (path) => {
+  try {
+    const source = fs.readFileSync(path, 'utf8')
+
+    return { source, value: JSON.parse(source) }
+  } catch {
+    return null
+  }
+}
+
 const atomicReplace = (path, payload) => {
   const tmp = `${path}.${process.pid}.${Date.now()}.tmp`
 
@@ -71,6 +81,56 @@ const atomicReplace = (path, payload) => {
     } catch {}
 
     throw error
+  }
+}
+
+const createBackupOnce = (path, source) => {
+  try {
+    fs.writeFileSync(path, source, { flag: 'wx' })
+  } catch (error) {
+    if (error?.code !== 'EEXIST') throw error
+  }
+}
+
+export const migrateJsonFile = ({
+  path,
+  backupPath,
+  migrate,
+  transformRequest = (value) => value,
+  needsMigration,
+}) => {
+  fs.mkdirSync(dirname(path), { recursive: true })
+
+  const lockPath = lockPathFor(path)
+  const lock = acquireLock(lockPath)
+
+  try {
+    const read = readJsonSource(path)
+
+    if (!read) return null
+
+    const next = migrate(read.value)
+
+    if (!needsMigration(read.value)) return next
+
+    const payload = JSON.stringify(transformRequest(next))
+    const validated = migrate(JSON.parse(payload))
+    const validatedPayload = JSON.stringify(transformRequest(validated))
+
+    if (validatedPayload !== payload) {
+      throw new Error(`Migration did not normalize idempotently: ${path}`)
+    }
+
+    if (backupPath) createBackupOnce(backupPath, read.source)
+    atomicReplace(path, payload)
+
+    return next
+  } finally {
+    fs.closeSync(lock)
+
+    try {
+      fs.unlinkSync(lockPath)
+    } catch {}
   }
 }
 

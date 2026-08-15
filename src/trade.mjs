@@ -12,14 +12,12 @@ import { hasMove, hasSpecies, move as moveData } from './data.mjs'
 import { isPersistentSpecies } from './forms.mjs'
 import { canSpare, pokemonList } from './helpers.mjs'
 import { TRADE_FILE } from './paths.mjs'
+import { MigrationVersionError, migrateTrade } from './migrations.mjs'
 import { levelOf } from './pokemon.mjs'
 import { randomSeed } from './rng.mjs'
 import { recordInDex, stow } from './state.mjs'
 import { statsAtLevel } from './stats.mjs'
-import {
-  transformRequestTrade,
-  transformResponseTrade,
-} from './transformers.mjs'
+import { transformRequestTrade } from './transformers.mjs'
 
 export const newTradeId = () => {
   return `${randomSeed().toString(TRADE_ID_RADIX)}${randomSeed().toString(
@@ -62,15 +60,19 @@ const isReadableTrade = (trade) => {
 
 const readTrade = (body) => {
   try {
-    const trade = transformResponseTrade(
-      JSON.parse(inflateSync(Buffer.from(body, 'base64url')).toString('utf8')),
+    const raw = JSON.parse(
+      inflateSync(Buffer.from(body, 'base64url')).toString('utf8'),
     )
+    const trade = migrateTrade(raw)
 
-    if (!isReadableTrade(trade)) return null
+    if (!isReadableTrade(trade)) return { trade: null, future: false }
 
-    return trade
-  } catch {
-    return null
+    return { trade, future: false }
+  } catch (error) {
+    return {
+      trade: null,
+      future: error instanceof MigrationVersionError && error.kind === 'trade',
+    }
   }
 }
 
@@ -81,14 +83,12 @@ export const decodeTrade = (text) => {
     return { ok: false, reason: TRADE_MESSAGES.unreadable }
   }
 
-  const trade = readTrade(trimmed.slice(TRADE_CODE_PREFIX.length))
+  const read = readTrade(trimmed.slice(TRADE_CODE_PREFIX.length))
 
-  if (!trade) return { ok: false, reason: TRADE_MESSAGES.unreadable }
-  if (trade.v > TRADE_VERSION) {
-    return { ok: false, reason: TRADE_MESSAGES.fromNewer }
-  }
+  if (read.future) return { ok: false, reason: TRADE_MESSAGES.fromNewer }
+  if (!read.trade) return { ok: false, reason: TRADE_MESSAGES.unreadable }
 
-  return { ok: true, trade }
+  return { ok: true, trade: read.trade }
 }
 
 export const giveAway = (save, source, index) => {

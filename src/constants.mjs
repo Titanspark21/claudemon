@@ -388,7 +388,9 @@ export const ITEMS = {
   },
 }
 
-export const SAVE_VERSION = 1
+export const SAVE_VERSION = 2
+export const CONFIG_VERSION = 1
+export const MIGRATION_BACKUP_SUFFIX = '.pre-migration.bak'
 export const PARTY_LIMIT = 6
 export const DAYCARE_LIMIT = 2
 export const DAYCARE_EXP_PER_STEP = 8
@@ -1255,10 +1257,18 @@ export const CLIPBOARD_COMMANDS = {
   default: { command: 'xclip', args: ['-selection', 'clipboard'] },
 }
 
-export const TRADE_VERSION = 1
+export const TRADE_VERSION = 2
 export const TRADE_CODE_PREFIX = 'CMON1-'
 export const TRADE_ID_RADIX = 36
 export const TRADE_CODE_PATTERN = /[^A-Za-z0-9._-]/g
+
+export const SAVE_MESSAGES = {
+  fromNewer: 'This save comes from a newer claudemon than this one.',
+}
+
+export const CONFIG_MESSAGES = {
+  fromNewer: 'This config comes from a newer claudemon than this one.',
+}
 
 export const TRADE_MESSAGES = {
   arrivedFrom: 'arrived from',
