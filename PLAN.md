@@ -458,43 +458,6 @@ encounterWeight(record, assignment, context) -> number
 - [ ] Require every biome to remain within the `SPEC.md` breadth targets.
 - [ ] Commit: `feature: tie encounters to broad biomes`
 
-### Task O17: Preserve trade, trainer cards, update flow, and all old systems
-
-**Files:**
-
-- Modify: `src/trade.mjs`
-- Modify: `src/transformers.mjs`
-- Modify: `src/ui/card.mjs`
-- Modify: `src/update.mjs`
-- Modify: `tools/install.mjs`
-- Modify: `README.md`
-- Test: `src/trade.test.mjs`
-- Test: `src/ui/card.test.mjs`
-- Test: `test/update.test.mjs`
-
-**Interfaces:**
-
-```js
-validateTradePokemon(mon, dataset, coverage) -> ValidationResult
-datasetCompatibility(local, incoming) -> Compatibility
-```
-
-- [ ] Add failing end-to-end tests for base/form trades, nature/ability/item
-      preservation, consumed item absence, battle-only rejection, old code
-      migration, future code rejection, duplicate protection including attached
-      Mega Stones, and dataset mismatch.
-- [ ] Add card fixtures containing long modern names, forms, 809 completion,
-      nature/ability/item labels, and missing sprite fallback.
-- [ ] Run focused trade/card/update tests.
-- [ ] Version trade payloads and dataset compatibility without making codes
-      depend on any server.
-- [ ] Update install/update checks for generated data and complete sprite
-      manifests while retaining the offline/no-socket option.
-- [ ] Update README only after behavior exists, including source credits,
-      install size expectations, controls, migrations, biomes, and explicit
-      unsupported mechanics.
-- [ ] Commit: `docs: explain the Generation VII expansion`
-
 ### Task O18: Release audit, simulation, visual verification, and v1 tag
 
 **Files:**
