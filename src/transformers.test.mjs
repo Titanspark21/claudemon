@@ -19,6 +19,12 @@ import {
   transformResponseWorked,
 } from './transformers.mjs'
 
+const runtime = {
+  root: '/plugins/claudemon/1.9.2',
+  version: '1.9.2',
+  dataset: { generation: 7, identityVersion: 1, fingerprint: 'abc' },
+}
+
 const rawSave = {
   version: 1,
   trainer: { name: 'ASH', startedAt: '2026-01-01T00:00:00.000Z' },
@@ -279,6 +285,7 @@ test('Should write the worked ledger with the same two fields', () => {
 
 test('Should map a status to the lead, the counters and the heartbeat', () => {
   const status = transformResponseStatus({
+    runtime,
     lead: { name: 'Charmander', level: 7, hp: 18 },
     balls: 5,
     money: 3000,
@@ -291,6 +298,7 @@ test('Should map a status to the lead, the counters and the heartbeat', () => {
   })
 
   expect(status).toEqual({
+    runtime,
     lead: { name: 'Charmander', level: 7 },
     balls: 5,
     money: 3000,
@@ -312,6 +320,7 @@ test('Should read a status with no lead as no lead, in both directions', () => {
 
 test('Should write a status with only the five fields the status line reads', () => {
   const written = transformRequestWriteStatus({
+    runtime,
     lead: { name: 'Pikachu', level: 5 },
     balls: 1,
     money: 10,
@@ -329,6 +338,7 @@ test('Should write a status with only the five fields the status line reads', ()
     'heartbeat',
     'lead',
     'money',
+    'runtime',
     'visitRevision',
   ])
   expect(written.state).toBeUndefined()
@@ -442,6 +452,9 @@ test('Should write only the config keys that are actually set', () => {
 test('Should map an encounter to the fields the queue file carries, and call one with no kind a wild one', () => {
   const entry = transformResponseEncounter({
     v: 1,
+    runtime,
+    biome: 'city-powerworks',
+    visitRevision: 4,
     species: 16,
     name: 'Pidgey',
     level: 4,
@@ -455,6 +468,9 @@ test('Should map an encounter to the fields the queue file carries, and call one
   expect(entry).toEqual({
     v: 1,
     kind: 'wild',
+    runtime,
+    biome: 'city-powerworks',
+    visitRevision: 4,
     species: 16,
     name: 'Pidgey',
     level: 4,
@@ -470,6 +486,9 @@ test('Should map a trainer encounter to its roster and drop the wild fields', ()
   const entry = transformResponseEncounter({
     v: 1,
     kind: 'trainer',
+    runtime,
+    biome: 'forest',
+    visitRevision: 2,
     species: 16,
     level: 4,
     trainer: {
@@ -489,6 +508,9 @@ test('Should map a trainer encounter to its roster and drop the wild fields', ()
   expect(entry).toEqual({
     v: 1,
     kind: 'trainer',
+    runtime,
+    biome: 'forest',
+    visitRevision: 2,
     trainer: {
       class: 'Bug Catcher',
       name: 'Joey',
@@ -531,6 +553,9 @@ test('Should give a trainer with no roster, or no trainer at all, an empty team 
 test('Should write an encounter with the same fields and nothing more', () => {
   const written = transformRequestWriteEncounter({
     v: 1,
+    runtime,
+    biome: 'meadow',
+    visitRevision: 3,
     species: 16,
     name: 'Pidgey',
     level: 4,
@@ -542,20 +567,26 @@ test('Should write an encounter with the same fields and nothing more', () => {
 
   expect(Object.keys(written).sort()).toEqual([
     'at',
+    'biome',
     'kind',
     'level',
     'name',
+    'runtime',
     'seed',
     'session',
     'shiny',
     'species',
     'v',
+    'visitRevision',
   ])
   expect(written.expiresAt).toBeUndefined()
 
   const trainer = transformRequestWriteEncounter({
     v: 1,
     kind: 'trainer',
+    runtime,
+    biome: 'forest',
+    visitRevision: 5,
     species: 16,
     name: 'Pidgey',
     level: 4,
@@ -566,11 +597,14 @@ test('Should write an encounter with the same fields and nothing more', () => {
 
   expect(Object.keys(trainer).sort(), 'no wild fields tag along').toEqual([
     'at',
+    'biome',
     'kind',
+    'runtime',
     'seed',
     'session',
     'trainer',
     'v',
+    'visitRevision',
   ])
 })
 

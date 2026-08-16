@@ -183,8 +183,29 @@ const mapStatusLead = (lead) => {
   }
 }
 
+const mapRuntimeDataset = (dataset) => {
+  if (!dataset) return null
+
+  return {
+    generation: dataset.generation,
+    identityVersion: dataset.identityVersion,
+    fingerprint: dataset.fingerprint,
+  }
+}
+
+const mapRuntime = (runtime) => {
+  if (!runtime) return null
+
+  return {
+    root: runtime.root,
+    version: runtime.version,
+    dataset: mapRuntimeDataset(runtime.dataset),
+  }
+}
+
 const mapStatus = (status) => {
   return {
+    runtime: mapRuntime(status.runtime),
     lead: mapStatusLead(status.lead),
     balls: status.balls,
     money: status.money,
@@ -302,6 +323,9 @@ const mapTrainerEncounter = (entry) => {
   return {
     v: entry.v,
     kind: 'trainer',
+    runtime: mapRuntime(entry.runtime),
+    biome: entry.biome ?? null,
+    visitRevision: entry.visitRevision ?? 0,
     trainer: mapTrainer(entry.trainer),
     seed: entry.seed,
     session: entry.session,
@@ -313,6 +337,9 @@ const mapWildEncounter = (entry) => {
   return {
     v: entry.v,
     kind: 'wild',
+    runtime: mapRuntime(entry.runtime),
+    biome: entry.biome ?? null,
+    visitRevision: entry.visitRevision ?? 0,
     species: entry.species,
     name: entry.name,
     level: entry.level,

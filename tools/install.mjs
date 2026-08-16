@@ -6,13 +6,14 @@ import {
   lstatSync,
   mkdirSync,
   readFileSync,
+  rmSync,
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { HOME } from '../src/paths.mjs'
+import { HOME, PLUGIN_CACHE } from '../src/paths.mjs'
 import { loadConfig, saveConfig } from '../src/config.mjs'
 import { isDataReady, loadData } from '../src/data.mjs'
 import { LAUNCHERS, writeLauncher } from '../src/shim.mjs'
@@ -115,9 +116,9 @@ const generatedArtifactsReady = () => {
   }
 }
 
-const installCommand = () => {
-  chmodSync(join(projectRoot, 'bin', 'claudemon'), 0o755)
-  chmodSync(join(projectRoot, 'scripts', 'run.sh'), 0o755)
+const installCommand = (root) => {
+  chmodSync(join(root, 'bin', 'claudemon'), 0o755)
+  chmodSync(join(root, 'scripts', 'run.sh'), 0o755)
 
   if (exists(binTarget)) unlinkSync(binTarget)
 
@@ -126,7 +127,7 @@ const installCommand = () => {
       path: launcher.path,
       target: launcher.target,
       args: launcher.args,
-      root: projectRoot,
+      root,
     })
 
   step(`installed ${bold('claudemon')} at ${dim(binTarget)}`)
@@ -193,18 +194,76 @@ const checkPath = () => {
   return false
 }
 
-const pluginInstalled = () => {
-  const listed = run('claude', ['plugin', 'list'], 'pipe', 30_000)
+const pluginFilesMatch = (sourceRoot, installedRoot) => {
+  const files = [
+    '.claude-plugin/plugin.json',
+    'hooks/hooks.json',
+    'scripts/on-activity.mjs',
+  ]
+
+  try {
+    return files.every((path) => {
+      return (
+        readFileSync(join(sourceRoot, path), 'utf8') ===
+        readFileSync(join(installedRoot, path), 'utf8')
+      )
+    })
+  } catch {
+    return false
+  }
+}
+
+const pluginListed = (runCommand) => {
+  const listed = runCommand('claude', ['plugin', 'list'], 'pipe', 30_000)
 
   if (listed.missing) return 'no-claude'
 
   return listed.ok && listed.output.includes('claudemon@claudemon')
 }
 
-const installPlugin = () => {
-  const before = pluginInstalled()
+export const refreshPlugin = ({ runCommand, root, cache, version }) => {
+  const before = pluginListed(runCommand)
 
-  if (before === 'no-claude') {
+  if (before === 'no-claude') return { ok: false, reason: 'no-claude' }
+
+  runCommand('claude', ['plugin', 'marketplace', 'remove', 'claudemon'])
+
+  const installedRoot = join(cache, version)
+
+  rmSync(installedRoot, { recursive: true, force: true })
+
+  const marketplace = runCommand('claude', [
+    'plugin',
+    'marketplace',
+    'add',
+    root,
+  ])
+
+  if (!marketplace.ok) return { ok: false, reason: 'marketplace' }
+
+  const installed = runCommand('claude', [
+    'plugin',
+    'install',
+    'claudemon@claudemon',
+  ])
+
+  if (!installed.ok) return { ok: false, reason: 'install' }
+  if (pluginListed(runCommand) !== true) return { ok: false, reason: 'install' }
+  if (!pluginFilesMatch(root, installedRoot))
+    return { ok: false, reason: 'root' }
+
+  return { ok: true, root: installedRoot }
+}
+
+const installPlugin = () => {
+  const result = refreshPlugin({
+    runCommand: run,
+    root: projectRoot,
+    cache: PLUGIN_CACHE,
+    version: VERSION,
+  })
+
+  if (result.reason === 'no-claude') {
     fail('no `claude` command found, so the plugin could not be installed')
     console.log(
       `      Install Claude Code, then run this again — or do it by hand:`,
@@ -212,33 +271,27 @@ const installPlugin = () => {
     console.log(`      ${bold(`claude plugin marketplace add ${projectRoot}`)}`)
     console.log(`      ${bold('claude plugin install claudemon@claudemon')}`)
 
-    return false
+    return null
   }
 
-  if (before === true) {
-    step('plugin already installed')
-
-    return true
-  }
-
-  run('claude', ['plugin', 'marketplace', 'add', projectRoot])
-  run('claude', ['plugin', 'install', 'claudemon@claudemon'])
-
-  if (pluginInstalled() !== true) {
-    fail('could not install the plugin, so nothing will appear in the grass')
+  if (!result.ok) {
+    fail('could not refresh this checkout as the installed claudemon plugin')
     console.log(
-      `      Try by hand:  ${bold(`claude plugin marketplace add ${projectRoot}`)}`,
+      `      Try by hand:  ${bold('claude plugin marketplace remove claudemon')}`,
+    )
+    console.log(
+      `                    ${bold(`claude plugin marketplace add ${projectRoot}`)}`,
     )
     console.log(
       `                    ${bold('claude plugin install claudemon@claudemon')}`,
     )
 
-    return false
+    return null
   }
 
-  step(`installed the plugin ${dim('(claudemon@claudemon)')}`)
+  step(`installed this checkout at ${dim(result.root)}`)
 
-  return true
+  return result.root
 }
 
 const fetchSprites = () => {
@@ -288,27 +341,37 @@ const uninstallStatusLine = () => {
   step('removed the status line setting')
 }
 
-const label = VERSION ? `claudemon ${dim(`v${VERSION}`)}` : 'claudemon'
-const action = uninstalling ? 'Removing' : verifying ? 'Checking' : 'Installing'
-console.log(`\n${bold(action)} ${label}\n`)
+const main = () => {
+  const label = VERSION ? `claudemon ${dim(`v${VERSION}`)}` : 'claudemon'
+  const action = uninstalling
+    ? 'Removing'
+    : verifying
+      ? 'Checking'
+      : 'Installing'
 
-if (verifying) {
-  const ready = generatedArtifactsReady()
+  console.log(`\n${bold(action)} ${label}\n`)
 
-  if (ready) step('generated data and sprite manifest are complete')
-  else fail('generated data or sprite manifest is incomplete')
+  if (verifying) {
+    const ready = generatedArtifactsReady()
 
-  if (!ready) process.exitCode = 1
-} else if (uninstalling) {
-  removeCommand()
-  uninstallStatusLine()
-  console.log(`\n  Your save in ${dim(HOME)} was left untouched.`)
-  console.log(
-    `  Also run: ${bold('claude plugin uninstall claudemon@claudemon')}\n`,
-  )
-} else {
-  installCommand()
-  installStatusLine()
+    if (ready) step('generated data and sprite manifest are complete')
+    else fail('generated data or sprite manifest is incomplete')
+
+    if (!ready) process.exitCode = 1
+
+    return
+  }
+
+  if (uninstalling) {
+    removeCommand()
+    uninstallStatusLine()
+    console.log(`\n  Your save in ${dim(HOME)} was left untouched.`)
+    console.log(
+      `  Also run: ${bold('claude plugin uninstall claudemon@claudemon')}\n`,
+    )
+
+    return
+  }
 
   const dataOk = generatedArtifactsReady()
 
@@ -319,10 +382,15 @@ if (verifying) {
     )
 
   const spritesOk = dataOk ? fetchSprites() : false
-  const pluginOk = installPlugin()
-  const pathOk = checkPath()
+  const pluginRoot = installPlugin()
 
-  const ready = dataOk && spritesOk && pluginOk && pathOk
+  if (pluginRoot) {
+    installCommand(pluginRoot)
+    installStatusLine()
+  }
+
+  const pathOk = pluginRoot ? checkPath() : false
+  const ready = dataOk && spritesOk && Boolean(pluginRoot) && pathOk
 
   if (ready) {
     console.log(`\n${bold('Done.')} Two things left, both one-offs:\n`)
@@ -342,3 +410,9 @@ if (verifying) {
 
   if (!ready) process.exitCode = 1
 }
+
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+)
+  main()

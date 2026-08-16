@@ -14,6 +14,7 @@ process.env.CLAUDEMON_HOME = mkdtempSync(join(tmpdir(), 'claudemon-status-'))
 const { HOME, STATUS_FILE } = await import('../src/paths.mjs')
 const { companionIsLive, readStatus, writeStatus } =
   await import('../src/status.mjs')
+const { runtimeIdentity } = await import('../src/runtime.mjs')
 
 const clearStatus = () => {
   try {
@@ -52,6 +53,7 @@ test('Should read back what was written, stamped with the moment it went out', (
   expect(read.balls).toBe(5)
   expect(read.money).toBe(3000)
   expect(read.caught).toBe(2)
+  expect(read.runtime).toEqual(runtimeIdentity())
   expect(
     read.heartbeat,
     'the heartbeat is stamped on the way out, not by the caller',
@@ -86,6 +88,7 @@ test('Should let nothing beyond the status contract survive the write', () => {
     'heartbeat',
     'lead',
     'money',
+    'runtime',
     'visitRevision',
   ])
   expect(

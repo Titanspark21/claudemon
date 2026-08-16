@@ -11,14 +11,13 @@ import {
   CARD_OUT_FLAG,
   CARD_WRITTEN_PREFIX,
   DATASET_MISSING_HINT,
-  DATASET_MISSING_MESSAGE,
   FRAME_MS,
   HEARTBEAT_MS,
   POLL_MS,
   TICK_MS,
   UPDATE_POLL_MS,
 } from '../src/constants.mjs'
-import { isDataReady } from '../src/data.mjs'
+import { generatedDataError } from '../src/data.mjs'
 import { CARD_FILE, HOME, QUEUE_FILE } from '../src/paths.mjs'
 import { revealFile } from '../src/reveal.mjs'
 import { loadSave, publishStatus, recordPlayday } from '../src/state.mjs'
@@ -56,8 +55,14 @@ const outPath = (args) => {
   return resolve(args[flag + 1])
 }
 
+const requireDataset = () => {
+  const error = generatedDataError()
+
+  if (error) bail(error.message, DATASET_MISSING_HINT)
+}
+
 const exportCard = (args) => {
-  if (!isDataReady()) bail(DATASET_MISSING_MESSAGE, DATASET_MISSING_HINT)
+  requireDataset()
 
   const save = loadSave()
 
@@ -71,7 +76,7 @@ const exportCard = (args) => {
 }
 
 const main = () => {
-  if (!isDataReady()) bail(DATASET_MISSING_MESSAGE, DATASET_MISSING_HINT)
+  requireDataset()
 
   mkdirSync(HOME, { recursive: true })
 
