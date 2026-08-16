@@ -202,14 +202,14 @@ when all four slots are occupied.
 - Test: `src/battleFlow.test.mjs`
 - Test: `test/app.test.mjs`
 
-- [ ] Add a player-driven failing test for a four-move Pokémon learning an
+- [x] Add a player-driven failing test for a four-move Pokémon learning an
       evolution move through an item and through Link Cable evolution.
-- [ ] Route battle, item, and trade evolution learning through one persisted
+- [x] Route battle, item, and trade evolution learning through one persisted
       choice queue that shows the new move, all four current moves, and “Do not
       learn it”; Escape must not silently discard a pending choice.
-- [ ] Handle multiple moves learned by one evolution in order, persisting each
+- [x] Handle multiple moves learned by one evolution in order, persisting each
       accepted replacement or decline before continuing.
-- [ ] Keep Day Care recovery routed through Task B5's EXP-gated queue rather
+- [x] Keep Day Care recovery routed through Task B5's EXP-gated queue rather
       than treating a Day Care level as an immediate learning event.
 - [ ] Commit: `fix: prompt before replacing an evolution move`
 
