@@ -183,6 +183,35 @@ which makes a broken install look like valid gameplay.
       biome, revision, and dataset fingerprint as the open terminal.
 - [ ] Commit: `fix: keep hooks and terminal on the same version`
 
+### Task B4: Use the move-replacement prompt for every learning path
+
+**Problem:** Post-battle level-up already pauses on a full four-move set and
+asks which move to forget or whether to decline. Item and Link Cable evolution
+instead flatten the same `learn-choice` step into bag text, append “no room for
+another move,” and discard the choice, so evolution moves can never be accepted
+when all four slots are occupied.
+
+**Files:**
+
+- Modify: `src/app.mjs`
+- Modify: `src/itemUse.mjs`
+- Modify: `src/progression.mjs`
+- Modify: `src/battleFlow.mjs`
+- Modify: `src/ui/views/bag.mjs`
+- Test: `src/itemUse.test.mjs`
+- Test: `src/battleFlow.test.mjs`
+- Test: `test/app.test.mjs`
+
+- [ ] Add a player-driven failing test for a four-move Pokémon learning an
+      evolution move through an item and through Link Cable evolution.
+- [ ] Route battle, item, and trade evolution learning through one persisted
+      choice queue that shows the new move, all four current moves, and “Do not
+      learn it”; Escape must not silently discard a pending choice.
+- [ ] Handle multiple moves learned by one evolution in order, persisting each
+      accepted replacement or decline before continuing.
+- [ ] Keep Day Care excluded because it intentionally does not teach moves.
+- [ ] Commit: `fix: prompt before replacing an evolution move`
+
 ---
 
 ## Visual
