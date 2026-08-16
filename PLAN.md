@@ -165,20 +165,20 @@ which makes a broken install look like valid gameplay.
 - Test: `test/encounter.test.mjs`
 - Test: `test/activity.test.mjs`
 
-- [ ] Reproduce an already-installed same-name upstream plugin alongside a
+- [x] Reproduce an already-installed same-name upstream plugin alongside a
       launcher targeting this fork; assert that the test hook and terminal
       report different roots/dataset fingerprints before the fix.
-- [ ] Make local setup add or refresh this repository's marketplace and plugin
+- [x] Make local setup add or refresh this repository's marketplace and plugin
       even when `claudemon@claudemon` is already installed from another
       marketplace; verify the installed hook root instead of accepting the
       plugin name alone.
-- [ ] Publish a build/dataset identity in status and encounter payloads so a
+- [x] Publish a build/dataset identity in status and encounter payloads so a
       terminal rejects stale or foreign hook output with an exact reinstall
       instruction rather than mixing two game versions.
-- [ ] Replace the silent Kanto fallback for invalid Generation VII data with a
+- [x] Replace the silent Kanto fallback for invalid Generation VII data with a
       logged, player-visible failure naming the missing or invalid data file;
       retain a fallback only for an explicitly tested first-run state.
-- [ ] Run the real hook entry point against this checkout and prove a level-22
+- [x] Run the real hook entry point against this checkout and prove a level-22
       City & Powerworks table includes post-Gen-I species and uses the same
       biome, revision, and dataset fingerprint as the open terminal.
 - [ ] Commit: `fix: keep hooks and terminal on the same version`
