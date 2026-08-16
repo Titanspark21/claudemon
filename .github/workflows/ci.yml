@@ -14,7 +14,8 @@ env:
 
 jobs:
   sprites:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ajay-trusted]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,7 +32,8 @@ jobs:
         run: node tools/fetch-sprites.mjs
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ajay-trusted]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,7 +49,8 @@ jobs:
 
   test:
     needs: sprites
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ajay-trusted]
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -73,7 +76,8 @@ jobs:
 
   coverage:
     needs: sprites
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ajay-trusted]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -122,7 +126,8 @@ jobs:
 
   dataset:
     needs: sprites
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ajay-trusted]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
