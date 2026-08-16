@@ -12,6 +12,54 @@ permissions:
 env:
   CLAUDEMON_HOME: ${{ github.workspace }}/.claudemon-ci
 
+# A newer push supersedes an older run rather than queueing behind it.
+#
+# Without this, four pushes in twenty minutes on 2026-08-16 put four runs of
+# seven jobs each in flight against one runner, which round-robins between
+# runs rather than draining one. Run 31944909475 finished lint at 12:50 and
+# did not start its first test job until 13:39 — the runner spent those 49
+# minutes on lint and sprites for two later runs and then all five remaining
+# jobs of an earlier one. Nobody was waiting on the intermediate commits.
+#
+# Safe for the landing watcher, which follows the checks of one specific
+# commit: it is only ever superseded by a newer commit, and a run cancelled
+# this way reads as stopped rather than failed (src/ci.js in chatgpt-bridge
+# treats an all-cancelled run as the machine interrupting, not the branch
+# saying no).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# The 20-minute limits below are left where they are, and this note is here so
+# the next person does not "fix" them the way I nearly did.
+#
+# On the morning of 2026-08-16 every job here was cancelled at almost exactly
+# 20 minutes — lint 20m08s, test (22) 20m09s, coverage 20m24s — which reads
+# like a limit set too low. It was not. That was five runners building at once
+# on one box. In the quiet window the same jobs on the same commits finished
+# well inside the limit:
+#
+#   lint       7m35s      test (24)    4m48s      sprites   23s
+#   test (22)  5m38s      dataset      4m49s
+#   test (20.19) 5m11s    coverage     5m07s
+#
+# So the limit has about 2.6x headroom over the slowest measured job, and
+# raising it would have hidden the contention rather than fixed it. The fix
+# for contention is the concurrency group above and more runners, not a
+# bigger number here.
+#
+# The work itself is far smaller than any of that. Timed step by step on the
+# box with a warm npm cache:
+#
+#   npm ci                4.5s      npm test                    13.2s
+#   npm run lint          9.4s      npm run coverage            19.8s
+#   npm run format:check  5.0s      npm run mechanics:coverage   0.9s
+#   node tools/check-data.mjs  0.6s
+#   node tools/fetch-sprites.mjs   241s, and only on a sprites cache miss
+#
+# Roughly 35 seconds of actual work per job. The rest was `cache: npm`, which
+# is gone — see the comment on the sprites cache below.
+
 jobs:
   sprites:
     runs-on: [self-hosted, Linux, X64, ajay-trusted]
@@ -22,6 +70,16 @@ jobs:
         with:
           node-version: '22'
 
+      # This cache stays. It is 2 MB and restores in about ten seconds, and it
+      # saves the 241-second fetch. The npm one did not stay, for the opposite
+      # reason: `npm config get cache` on a self-hosted runner is the machine's
+      # own ~/.npm, shared by every runner and every checkout on the box, so
+      # what `cache: npm` shipped through GitHub's cache service was a
+      # 1,061,251,973-byte tarball of the whole machine's npm history — pulled
+      # over a home connection at 2.2 MB/s, so 8 to 20 minutes per job, to
+      # protect an `npm ci` that takes four seconds because that same ~/.npm is
+      # already on disk and survives `git clean -ffdx`. It also grows forever.
+      # MacroSnap's ci.yml learned this first; this file had not been told.
       - uses: actions/cache@v4
         id: sprites
         with:
@@ -39,7 +97,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
 
       - run: npm ci
 
@@ -61,7 +118,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
 
       - run: npm ci
 
@@ -83,7 +139,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
 
       - run: npm ci
 
@@ -133,7 +188,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
 
       - run: npm ci
 
