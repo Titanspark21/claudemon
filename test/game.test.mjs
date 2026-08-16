@@ -77,15 +77,16 @@ test('Should keep collectible forms separate from the National Dex', () => {
 
 test('Should open the streak on a new save and only move it on a later day', () => {
   const save = createSave({ trainer: 'Tester', starterId: 4, rng: makeRng(7) })
-  const started = new Date(save.stats.lastPlayedAt)
+  const started = new Date(2026, 0, 15, 12, 0, 0)
   const tomorrow = new Date(started)
 
   tomorrow.setDate(tomorrow.getDate() + 1)
+  save.stats.lastPlayedAt = started.toISOString()
 
   expect(save.stats.streak).toBe(1)
   expect(
     recordPlayday(save, started.getTime() + 60_000),
-    'the same day again',
+    'the same day again, whatever time the suite runs',
   ).toBe(false)
   expect(save.stats.streak).toBe(1)
 

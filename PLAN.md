@@ -183,26 +183,6 @@ which makes a broken install look like valid gameplay.
       biome, revision, and dataset fingerprint as the open terminal.
 - [ ] Commit: `fix: keep hooks and terminal on the same version`
 
-### 2026-08-17 — update failure follow-ups
-
-### Task B6: Stop the streak test failing for one minute every midnight
-
-**Problem:** `test/game.test.mjs` builds a save at the real current time and
-then asserts that the same time plus sixty seconds is still the same day. Run
-in the last minute before midnight, that minute lands on the next date, the
-assertion flips, and the pre-commit hook blocks every commit until the clock
-moves on. The subject under test is fine; the test is reading the wall clock.
-
-**Files:**
-
-- Test: `test/game.test.mjs`
-
-- [ ] Pin the save's `lastPlayedAt` to a fixed mid-day timestamp so the
-      same-day and next-day cases no longer depend on when the suite runs.
-- [ ] Prove it by running the suite with the clock faked to 23:59:30 and again
-      to midday; both must pass.
-- [ ] Commit: `fix: stop the streak test reading the wall clock`
-
 ### Task B4: Use the move-replacement prompt for every learning path
 
 **Problem:** Post-battle level-up already pauses on a full four-move set and
