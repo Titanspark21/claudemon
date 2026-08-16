@@ -16,7 +16,7 @@ import {
 } from './constants.mjs'
 import { BIOME_IDS, BIOME_NAMES } from './biomeOverrides.mjs'
 import { validateSpeciesIdentityManifest } from './speciesIdentity.mjs'
-import { validateCoverage } from './mechanicsCoverage.mjs'
+import { moveCoverageReport, validateCoverage } from './mechanicsCoverage.mjs'
 import { buildSpriteManifest, isPng } from './spriteManifest.mjs'
 
 const failures = []
@@ -71,6 +71,24 @@ const mechanicsValidation = validateCoverage(
 
 for (const error of mechanicsValidation.errors)
   failures.push(`mechanics coverage ${dim(`(${error})`)}`)
+
+const moveCoverageReportPath = bundledDataFile('move-coverage-report.md')
+const checkedMoveCoverageReport = existsSync(moveCoverageReportPath)
+  ? readFileSync(moveCoverageReportPath, 'utf8')
+  : null
+check(
+  'move coverage report matches executable registry and coverage manifest',
+  checkedMoveCoverageReport ===
+    moveCoverageReport(
+      {
+        moves,
+        abilities: sourceAbilities,
+        items: sourceItems,
+        species: pokedex,
+      },
+      mechanicsCoverage,
+    ),
+)
 
 const collectibleFormTotal = identities.records.filter(
   (record) =>

@@ -1,14 +1,13 @@
 import { battleAbility, battleTypes, effectiveSpeed } from './battleActor.mjs'
 import {
   MOVE_FIELD_EFFECTS,
-  MOVE_GENERIC_COVERAGE_HANDLERS,
-  MOVE_RUNTIME_ONE_OFF_HANDLERS,
   MOVE_SPECIAL_FIXED_DAMAGE,
   MULTI_HIT_ROLLS,
   WEATHER_BALL_TYPES,
 } from './constants.mjs'
 import { moveCoverage } from './data.mjs'
 import { registerEffect, runEffectPhase } from './effects.mjs'
+import { resolveMoveRuntimeCoverage } from './moveRuntimeCoverage.mjs'
 import { levelOf } from './pokemon.mjs'
 import { fieldHandlers, startTerrain } from './terrain.mjs'
 import { startWeather } from './weather.mjs'
@@ -106,12 +105,8 @@ const isFixedDamageFamily = (move) => {
 }
 
 const runtimeHandlerExists = (move, coverage) => {
-  if (MOVE_GENERIC_COVERAGE_HANDLERS.has(coverage.handler)) return true
-  if (MOVE_RUNTIME_ONE_OFF_HANDLERS.has(coverage.handler)) return true
-  if (isFixedDamageFamily(move)) return true
-  if (move.ohko) return true
-
-  return false
+  const runtime = resolveMoveRuntimeCoverage(move)
+  return runtime?.executable === true && runtime.handler === coverage.handler
 }
 
 export const resolveMoveCoverage = (moveKey) => moveCoverage(moveKey)

@@ -29,6 +29,7 @@ data/generation-vii-audit.json
 data/growth.json
 data/items.json
 data/mechanics-coverage.json
+data/move-coverage-report.md
 data/moves.json
 data/pokedex.json
 data/progression.json
@@ -136,6 +137,7 @@ src/moveEffects.mjs
 src/moveEffects.test.mjs
 src/moveRecovery.mjs
 src/moveRecovery.test.mjs
+src/moveRuntimeCoverage.mjs
 src/natures.mjs
 src/natures.test.mjs
 src/paths.mjs

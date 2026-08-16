@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "mechanics:coverage": "node tools/mechanicsCoverage.mjs",
+    "mechanics:coverage:write": "node tools/mechanicsCoverage.mjs --write",
     "data:items": "node tools/itemData.mjs"
   },
   "devDependencies": {
