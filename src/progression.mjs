@@ -129,6 +129,27 @@ export const applyVictory = (save, mons, rewards) => {
 
 export const learnEvolutionMoves = (mon) => learnMovesAt(mon, levelOf(mon))
 
+export const pendingMoveChoice = (save) => {
+  const choice = save.moveChoices[0]
+
+  if (!choice) return null
+
+  return { ...choice, mon: save.party[choice.partyIndex] }
+}
+
+export const queueMoveChoices = (save, steps) => {
+  for (const step of steps) {
+    if (step.kind !== 'learn-choice') continue
+
+    save.moveChoices.push({
+      partyIndex: save.party.indexOf(step.mon),
+      move: step.move,
+    })
+  }
+
+  return save.moveChoices
+}
+
 export const learnMove = (mon, newMove, slotIndex) => {
   if (slotIndex === null || slotIndex === undefined) {
     return { learned: false, forgot: null }
@@ -139,6 +160,15 @@ export const learnMove = (mon, newMove, slotIndex) => {
   mon.moves[slotIndex] = makeMoveSlot(newMove)
 
   return { learned: true, forgot }
+}
+
+export const resolveMoveChoice = (save, slotIndex) => {
+  const choice = pendingMoveChoice(save)
+  const result = learnMove(choice.mon, choice.move, slotIndex)
+
+  save.moveChoices.shift()
+
+  return { ...result, move: choice.move, mon: choice.mon }
 }
 
 export const describeStep = (step) => {

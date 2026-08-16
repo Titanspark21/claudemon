@@ -1062,6 +1062,7 @@ const MENU_SAVE = {
   party: [POKEMON, { ...POKEMON, species: 25 }],
   box: [{ ...POKEMON, species: 19 }],
   daycare: { slots: [], egg: null },
+  moveChoices: [],
   stats: {},
 }
 

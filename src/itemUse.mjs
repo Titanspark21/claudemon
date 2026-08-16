@@ -1,7 +1,11 @@
 import { ITEM_MESSAGES, LINK_CABLE_KEY } from './constants.mjs'
 import { equipHeldItem, unequipHeldItem } from './heldItems.mjs'
 import { displayName, pendingEvolution, speciesName } from './pokemon.mjs'
-import { applyEvolution, learnEvolutionMoves } from './progression.mjs'
+import {
+  applyEvolution,
+  learnEvolutionMoves,
+  queueMoveChoices,
+} from './progression.mjs'
 import { countOf, useItem } from './shop.mjs'
 import { markCaught } from './state.mjs'
 
@@ -20,6 +24,8 @@ const applyLinkCable = (save, mon) => {
   const before = displayName(mon)
   const evolution = applyEvolution(save, mon, rule)
 
+  queueMoveChoices(save, evolution.steps)
+
   return {
     ok: true,
     message: `Congratulations! ${before.toUpperCase()} evolved into ${speciesName(evolution.to).toUpperCase()}!`,
@@ -37,7 +43,11 @@ export const applyItem = (save, key, mon) => {
 
   markCaught(save, result.evolvedInto)
 
-  return { ...result, steps: learnEvolutionMoves(mon) }
+  const steps = learnEvolutionMoves(mon)
+
+  queueMoveChoices(save, steps)
+
+  return { ...result, steps }
 }
 
 export const giveHeldItem = (save, key, mon) => equipHeldItem(save, mon, key)

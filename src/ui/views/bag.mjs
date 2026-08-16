@@ -1,6 +1,8 @@
 import { LINK_CABLE_KEY } from '../../constants.mjs'
+import { move as moveData } from '../../data.mjs'
 import { canHoldItem } from '../../heldItems.mjs'
 import { monSpriteFile } from '../../paths.mjs'
+import { pendingMoveChoice } from '../../progression.mjs'
 import {
   displayName,
   linkCableEvolution,
@@ -16,11 +18,14 @@ import { menuList, padRight, withFooter, wrap } from '../widgets.mjs'
 import {
   BAG_ITEM_NAME_WIDTH,
   BAG_TITLE,
+  BATTLE_PROMPTS,
   COLUMN_DIVIDER,
   EMPTY_BAG_MESSAGE,
   LIST_HEIGHT_FLOOR,
   LIST_WIDTH,
   MON_SPRITE_RESERVED_ROWS,
+  MOVE_CHOICE_HINTS,
+  MOVE_CHOICE_TITLE,
   TEAM_BAG_HINTS,
   TEAM_MESSAGES,
 } from './constants.mjs'
@@ -30,6 +35,27 @@ import {
   partyEntryAt,
   zipColumns,
 } from './helpers.mjs'
+
+const drawMoveChoice = (ctx, size) => {
+  const choice = pendingMoveChoice(ctx.save)
+  const mon = choice.mon
+  const labels = mon.moves.map((slot) => moveData(slot.move).name)
+  const lines = [
+    ` ${brightYellow('◓')} ${bold(MOVE_CHOICE_TITLE)}`,
+    '',
+    ` Which move should ${bold(displayName(mon).toUpperCase())} forget to learn ${bold(moveData(choice.move).name)}?`,
+    '',
+    ...menuList([...labels, BATTLE_PROMPTS.declineMove], ctx.moveSelection, {
+      height: 5,
+      width: LIST_WIDTH,
+    }).map((line) => ` ${line}`),
+  ]
+
+  return {
+    lines: withFooter(lines, dim(MOVE_CHOICE_HINTS), size.rows),
+    overlays: [],
+  }
+}
 
 const itemEvolutionTarget = (mon, key) => {
   if (key === LINK_CABLE_KEY) return linkCableEvolution(mon)
@@ -87,6 +113,8 @@ const itemRow = (ctx, key, selected) => {
 }
 
 export const draw = (ctx, size) => {
+  if (ctx.save.moveChoices.length > 0) return drawMoveChoice(ctx, size)
+
   const { rows } = size
   const lines = []
   const overlays = []
@@ -138,6 +166,20 @@ export const draw = (ctx, size) => {
 }
 
 export const onKey = (ctx, key) => {
+  if (ctx.save.moveChoices.length > 0) {
+    const choice = pendingMoveChoice(ctx.save)
+    const options = choice.mon.moves.length + 1
+
+    if (key.name === 'up' || key.name === 'k')
+      ctx.moveSelection = wrap(ctx.moveSelection - 1, options)
+    else if (key.name === 'down' || key.name === 'j')
+      ctx.moveSelection = wrap(ctx.moveSelection + 1, options)
+    else if (key.name === 'enter' || key.name === 'space')
+      ctx.chooseMoveReplacement()
+
+    return
+  }
+
   const bag = itemsInBag(ctx.save)
   const index = clampSelection(ctx.bagSelection, bag.length)
 

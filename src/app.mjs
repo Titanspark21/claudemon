@@ -71,7 +71,11 @@ import {
 } from './league.mjs'
 import { canSpare } from './helpers.mjs'
 import { giveHeldItem, applyItem, takeHeldItem } from './itemUse.mjs'
-import { describeStep } from './progression.mjs'
+import {
+  describeStep,
+  pendingMoveChoice,
+  resolveMoveChoice,
+} from './progression.mjs'
 import { createPokemon, displayName, makeMoveSlot } from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { CARD_FILE } from './paths.mjs'
@@ -143,6 +147,7 @@ const VIEWS = {
 }
 
 const activeView = (ctx) => {
+  if (ctx.save?.moveChoices.length && !ctx.battle) return VIEWS.bag
   if (ctx.bagSelection !== null && BAG_MODES.has(ctx.mode)) return VIEWS.bag
 
   return VIEWS[ctx.mode]
@@ -212,6 +217,7 @@ export const createApp = ({
 
     bagSelection: null,
     bagMessage: null,
+    moveSelection: 0,
 
     shopSelection: 0,
     shopMessage: null,
@@ -783,11 +789,9 @@ export const createApp = ({
 
     const result = applyItem(ctx.save, key, mon)
 
-    const taught = result.steps.flatMap(describeStep)
-
-    if (result.steps.some((step) => step.kind === 'learn-choice')) {
-      taught.push(BAG_MESSAGES.noRoomForMove)
-    }
+    const taught = result.steps
+      .filter((step) => step.kind !== 'learn-choice')
+      .flatMap(describeStep)
 
     ctx.bagMessage =
       taught.length > 0 ? [result.message, ...taught] : result.message
@@ -796,6 +800,16 @@ export const createApp = ({
 
     ctx.persist()
     ctx.bagSelection = null
+  }
+
+  ctx.chooseMoveReplacement = () => {
+    const choice = pendingMoveChoice(ctx.save)
+    const slotIndex =
+      ctx.moveSelection === choice.mon.moves.length ? null : ctx.moveSelection
+
+    resolveMoveChoice(ctx.save, slotIndex)
+    ctx.moveSelection = 0
+    ctx.persist()
   }
 
   ctx.askToGiveAway = ({ from, source, index, mon }) => {

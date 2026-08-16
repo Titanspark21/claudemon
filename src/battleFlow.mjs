@@ -14,7 +14,13 @@ import { expFromDefeating } from './exp.mjs'
 import { applyItem } from './itemUse.mjs'
 import { moveExecutionFailure } from './moveEffects.mjs'
 import { displayName, isFainted, levelOf } from './pokemon.mjs'
-import { applyVictory, describeStep, learnMove } from './progression.mjs'
+import {
+  applyVictory,
+  describeStep,
+  pendingMoveChoice,
+  queueMoveChoices,
+  resolveMoveChoice,
+} from './progression.mjs'
 import { ballsInBag, countOf, removeItem } from './shop.mjs'
 import {
   activePokemon,
@@ -510,6 +516,9 @@ const processNextStep = (ctx) => {
   const step = steps.shift()
 
   if (step.kind === 'learn-choice') {
+    queueMoveChoices(ctx.save, [step])
+    ctx.persist()
+
     battle.learnStep = step
     openMenu(battle, 'learn')
     battle.message = null
@@ -558,20 +567,21 @@ const processNextStep = (ctx) => {
 
 const resolveLearnChoice = (ctx) => {
   const battle = ctx.battle
-  const step = battle.learnStep
-  const mon = step.mon
+  const choice = pendingMoveChoice(ctx.save)
+  const mon = choice.mon
   const declineIndex = mon.moves.length
+  const slotIndex = battle.selection === declineIndex ? null : battle.selection
+  const result = resolveMoveChoice(ctx.save, slotIndex)
+  const name = displayName(mon).toUpperCase()
 
-  if (battle.selection === declineIndex) {
-    queueMessages(ctx, [
-      `${displayName(mon).toUpperCase()} did not learn the move.`,
-    ])
+  ctx.persist()
+
+  if (!result.learned) {
+    queueMessages(ctx, [`${name} did not learn the move.`])
   } else {
-    const result = learnMove(mon, step.move, battle.selection)
-
     queueMessages(ctx, [
       BATTLE_MESSAGES.forgetting,
-      `${displayName(mon).toUpperCase()} forgot ${result.forgot} and learned a new move!`,
+      `${name} forgot ${result.forgot} and learned a new move!`,
     ])
   }
 

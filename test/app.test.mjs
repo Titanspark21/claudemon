@@ -41,6 +41,7 @@ const { HIT_FRAMES, SHINY_MARK } = await import('../src/ui/constants.mjs')
 const { SETTINGS } = await import('../src/ui/views/options.mjs')
 const homeView = await import('../src/ui/views/home.mjs')
 const battleView = await import('../src/ui/views/battle.mjs')
+const bagView = await import('../src/ui/views/bag.mjs')
 const gymView = await import('../src/ui/views/gym.mjs')
 const teamView = await import('../src/ui/views/team.mjs')
 const daycareView = await import('../src/ui/views/daycare.mjs')
@@ -120,6 +121,13 @@ const gymText = (app) => {
 
 const teamText = (app) => {
   return teamView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+}
+
+const bagText = (app) => {
+  return bagView
     .draw(app, { cols: 100, rows: 34 })
     .lines.map(stripAnsi)
     .join('\n')
@@ -2785,7 +2793,7 @@ test('Should teach what the new form knows at the level it arrived at', () => {
   ).toContain('icicle-crash')
 })
 
-test('Should keep the four moves it knows and say why when the new one cannot fit', () => {
+test('Should ask which move to replace when an item evolution learns a fifth move', () => {
   const app = createApp({
     screen: stubScreen(),
     save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
@@ -2803,15 +2811,78 @@ test('Should keep the four moves it knows and say why when the new one cannot fi
   press(app, 'enter')
 
   expect(shellder.species, 'it still evolves').toBe(91)
-  expect(
-    shellder.moves.map((slot) => slot.move),
-    'and keeps its moves',
-  ).toEqual(before)
+  expect(bagText(app)).toMatch(
+    /Which move should CLOYSTER forget to learn Icicle Crash/i,
+  )
+  expect(bagText(app)).toMatch(/Do not learn it/i)
+  expect(loadSave().moveChoices).toEqual([
+    { partyIndex: 1, move: 'icicle-crash' },
+  ])
 
-  const said = [].concat(app.bagMessage).join(' ')
+  press(app, 'escape')
 
-  expect(said).toMatch(/Icicle Crash/i)
-  expect(said).toMatch(/kept the four it knows/)
+  expect(bagText(app), 'Escape leaves the decision in place').toMatch(
+    /Icicle Crash/i,
+  )
+  expect(loadSave().moveChoices).toHaveLength(1)
+
+  const resumed = createApp({
+    screen: stubScreen(),
+    save: loadSave(),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  expect(bagText(resumed), 'the saved choice returns after reopening').toMatch(
+    /Icicle Crash/i,
+  )
+
+  press(resumed, 'down')
+  press(resumed, 'enter')
+
+  expect(resumed.save.party[1].moves.map((slot) => slot.move)).toEqual([
+    before[0],
+    'icicle-crash',
+    before[2],
+    before[3],
+  ])
+  expect(loadSave().moveChoices).toEqual([])
+  expect(loadSave().party[1].moves[1].move).toBe('icicle-crash')
+})
+
+test('Should ask before replacing a move learned through Link Cable evolution', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(1) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  const kadabra = createPokemon(64, 41, makeRng(4))
+  app.save.party.push(kadabra)
+  app.save.bag['link-cable'] = 1
+  const before = kadabra.moves.map((slot) => slot.move)
+
+  app.openHomeSelection('team')
+  press(app, 'down')
+  openBagOn(app, 'link-cable')
+  press(app, 'enter')
+
+  expect(kadabra.species, 'Kadabra evolved').toBe(65)
+  expect(bagText(app)).toMatch(
+    /Which move should ALAKAZAM forget to learn Calm Mind/i,
+  )
+  expect(bagText(app)).toMatch(/Do not learn it/i)
+
+  press(app, 'down')
+  press(app, 'down')
+  press(app, 'enter')
+
+  expect(kadabra.moves.map((slot) => slot.move)).toEqual([
+    before[0],
+    before[1],
+    'calm-mind',
+    before[3],
+  ])
+  expect(loadSave().party[1].moves[2].move).toBe('calm-mind')
 })
 
 test('Should refuse the wrong stone, keep it, and leave the bag open', () => {

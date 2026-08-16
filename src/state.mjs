@@ -58,6 +58,7 @@ export const createSave = ({ trainer, starterId, rng }) => {
     party: [starter],
     box: [],
     daycare: { slots: [], egg: null },
+    moveChoices: [],
     bag: { ...STARTING_BAG },
     money: STARTING_MONEY,
     badges: [],
