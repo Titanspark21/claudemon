@@ -54,6 +54,9 @@ const entryFor = (records, key) => {
 
 export const loadCoverageManifest = () => bundledJson('mechanics-coverage.json')
 
+export const significantFieldKnownFailures =
+  loadCoverageManifest().significantFieldKnownFailures ?? []
+
 export const loadCoverageDataset = () => {
   const source = loadGenerationSource(7)
 
@@ -115,6 +118,38 @@ const addCoverageShapeErrors = (errors, coverage, expected) => {
     for (const key of Object.keys(records)) {
       if (!expectedNormalized.has(normalizeKey(key)))
         errors.push(`${singularKind(kind)} ${key} is a stale coverage entry`)
+    }
+  }
+}
+
+const addSignificantFieldKnownFailureErrors = (errors, coverage, dataset) => {
+  const failures = coverage?.significantFieldKnownFailures
+
+  if (!Array.isArray(failures)) {
+    errors.push('significantFieldKnownFailures must be an array')
+    return
+  }
+
+  const moveKeys = normalizedIndex(dataset.moves)
+
+  for (const [index, failure] of failures.entries()) {
+    const label = `significantFieldKnownFailures[${index}]`
+
+    if (typeof failure?.field !== 'string' || failure.field.trim().length === 0)
+      errors.push(`${label} has no field`)
+    if (
+      typeof failure?.reason !== 'string' ||
+      failure.reason.trim().length === 0
+    )
+      errors.push(`${label} has no reason`)
+    if (!Array.isArray(failure?.moves) || failure.moves.length === 0) {
+      errors.push(`${label} has no moves`)
+      continue
+    }
+
+    for (const key of failure.moves) {
+      if (!moveKeys.has(normalizeKey(key)))
+        errors.push(`${label} references unknown move ${key}`)
     }
   }
 }
@@ -193,6 +228,7 @@ export const validateCoverage = (dataset, coverage) => {
     )
 
   addCoverageShapeErrors(errors, coverage, dataset)
+  addSignificantFieldKnownFailureErrors(errors, coverage, dataset)
   addSpeciesReferenceErrors(errors, dataset)
 
   return {

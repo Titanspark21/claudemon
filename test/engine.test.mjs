@@ -995,6 +995,152 @@ test('Should fall back to Struggle when the only move left is disabled', () => {
   expect(texts.some((text) => text.includes('is disabled'))).toBe(false)
 })
 
+test('Should remember a successful Minimize until the user switches out', () => {
+  const slot = (key) => ({
+    move: key,
+    pp: moveOf(key).pp,
+    maxPp: moveOf(key).pp,
+  })
+  const player = aPokemon(4, 30)
+  const wild = aPokemon(10, 5)
+
+  player.moves = [slot('minimize')]
+  wild.moves = [slot('growl')]
+  player.stats.speed = 999
+  wild.stats.speed = 1
+
+  const battle = createBattle({ playerMon: player, wildMon: wild, seed: 1 })
+
+  submitAction(battle, { type: 'move', index: 0 })
+
+  expect(battle.player.volatile.minimized).toBe(true)
+})
+
+test('Should use Teleport to leave wild battles but fail against trainers', () => {
+  const slot = (key) => ({
+    move: key,
+    pp: moveOf(key).pp,
+    maxPp: moveOf(key).pp,
+  })
+  const player = aPokemon(4, 30)
+  const wild = aPokemon(10, 5)
+
+  player.moves = [slot('teleport')]
+  wild.moves = [slot('growl')]
+  player.stats.speed = 999
+  wild.stats.speed = 1
+
+  const wildBattle = createBattle({ playerMon: player, wildMon: wild, seed: 1 })
+  const wildPp = wild.moves[0].pp
+  const escape = textsOf(submitAction(wildBattle, { type: 'move', index: 0 }))
+
+  expect(wildBattle.over).toBe(true)
+  expect(wildBattle.outcome).toBe('fled')
+  expect(escape).toContain('Got away safely!')
+  expect(wild.moves[0].pp).toBe(wildPp)
+
+  const trainerPlayer = aPokemon(4, 30)
+  const trainerFoe = aPokemon(10, 5)
+
+  trainerPlayer.moves = [slot('teleport')]
+  trainerFoe.moves = [slot('growl')]
+  trainerPlayer.stats.speed = 999
+  trainerFoe.stats.speed = 1
+
+  const trainerBattle = aTrainerBattle([trainerFoe], trainerPlayer)
+  const failed = textsOf(
+    submitAction(trainerBattle, { type: 'move', index: 0 }),
+  )
+
+  expect(trainerBattle.over).toBe(false)
+  expect(failed).toContain('But it failed!')
+})
+
+test('Should end a wild battle immediately when the foe uses Teleport', () => {
+  const slot = (key) => ({
+    move: key,
+    pp: moveOf(key).pp,
+    maxPp: moveOf(key).pp,
+  })
+  const player = aPokemon(4, 30)
+  const wild = aPokemon(10, 30)
+
+  player.moves = [slot('growl')]
+  wild.moves = [slot('teleport')]
+  player.stats.speed = 1
+  wild.stats.speed = 999
+
+  const battle = createBattle({ playerMon: player, wildMon: wild, seed: 1 })
+  const playerPp = player.moves[0].pp
+
+  submitAction(battle, { type: 'move', index: 0 })
+
+  expect(battle.over).toBe(true)
+  expect(battle.outcome).toBe('foe-fled')
+  expect(player.moves[0].pp).toBe(playerPp)
+})
+
+test('Should use Generation VII OHKO level and Sheer Cold accuracy rules', () => {
+  const slot = (key) => ({
+    move: key,
+    pp: moveOf(key).pp,
+    maxPp: moveOf(key).pp,
+  })
+  const battleFor = (
+    moveKey,
+    attackerId = 4,
+    defenderId = 143,
+    levels = [50, 50],
+  ) => {
+    const player = aPokemon(attackerId, levels[0])
+    const foe = aPokemon(defenderId, levels[1])
+
+    player.moves = [slot(moveKey)]
+    foe.moves = [slot('growl')]
+    player.stats.speed = 999
+    foe.stats.speed = 1
+
+    return createBattle({ playerMon: player, wildMon: foe, seed: 1 })
+  }
+
+  const nonIceSheerCold = battleFor('sheer-cold')
+  const sheerColdHp = nonIceSheerCold.foe.mon.hp
+
+  nonIceSheerCold.rng = () => 0.25
+  submitAction(nonIceSheerCold, { type: 'move', index: 0 })
+  expect(nonIceSheerCold.foe.mon.hp).toBe(sheerColdHp)
+
+  const guillotine = battleFor('guillotine')
+
+  guillotine.player.stages.accuracy = -6
+  guillotine.foe.stages.evasion = 6
+  guillotine.rng = () => 0.25
+  submitAction(guillotine, { type: 'move', index: 0 })
+  expect(guillotine.foe.mon.hp).toBe(0)
+
+  const higherTarget = battleFor('guillotine', 4, 143, [50, 51])
+  const higherHp = higherTarget.foe.mon.hp
+
+  higherTarget.rng = () => 0
+  submitAction(higherTarget, { type: 'move', index: 0 })
+  expect(higherTarget.foe.mon.hp).toBe(higherHp)
+
+  const noGuardLower = battleFor('guillotine', 4, 143, [50, 51])
+  const noGuardHp = noGuardLower.foe.mon.hp
+
+  noGuardLower.player.mon.ability = 'noguard'
+  noGuardLower.rng = () => 0
+  submitAction(noGuardLower, { type: 'move', index: 0 })
+  expect(noGuardLower.foe.mon.hp).toBe(noGuardHp)
+
+  const iceTarget = battleFor('sheer-cold', 131, 361)
+  const iceHp = iceTarget.foe.mon.hp
+
+  iceTarget.rng = () => 0
+  submitAction(iceTarget, { type: 'move', index: 0 })
+  expect(iceTarget.foe.mon.hp).toBe(iceHp)
+})
+
 test('Should execute imported move metadata through battle runtime paths', () => {
   const slot = (key) => ({
     move: key,

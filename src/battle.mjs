@@ -598,7 +598,7 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
   if (typeof changedType.value === 'string')
     move = { ...move, type: changedType.value }
 
-  if (move.power != null) {
+  if (move.power != null || move.key === 'electro-ball') {
     const changedPower = runMoveEffectPhase(battle, 'modifyPower', {
       attacker,
       defender,
@@ -627,6 +627,19 @@ const useMove = (battle, attackerSide, moveIndex, events) => {
   const fieldEvents = applyMoveFieldEffect(battle, attackerSide, move)
   if (fieldEvents.length > 0) {
     events.push(...fieldEvents)
+    return
+  }
+
+  if (move.key === 'teleport') {
+    if (battle.trainer) {
+      say(events, TURN_MESSAGES.failed)
+      return
+    }
+
+    if (attackerSide === 'player') say(events, TURN_MESSAGES.gotAway)
+    else say(events, `${label(battle, attackerSide)} fled!`)
+
+    finish(battle, attackerSide === 'player' ? 'fled' : 'foe-fled', events)
     return
   }
 
@@ -1165,6 +1178,7 @@ export const submitAction = (battle, action) => {
     if (decideOrder(battle, action.index, foeMoveIndex)) {
       useMove(battle, 'player', action.index, events)
 
+      if (battle.over) return events
       if (checkFaint(battle, events)) return events
 
       refreshHeldItemEffects(battle)
@@ -1172,18 +1186,21 @@ export const submitAction = (battle, action) => {
     } else {
       useMove(battle, 'foe', foeMoveIndex, events)
 
+      if (battle.over) return events
       if (checkFaint(battle, events)) return events
 
       refreshHeldItemEffects(battle)
       useMove(battle, 'player', action.index, events)
     }
 
+    if (battle.over) return events
     if (checkFaint(battle, events)) return events
   }
 
   if (action.type !== 'move') {
     useMove(battle, 'foe', pickFoeMove(battle), events)
 
+    if (battle.over) return events
     if (checkFaint(battle, events)) return events
   }
 

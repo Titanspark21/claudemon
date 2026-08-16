@@ -263,6 +263,69 @@ test('Should change Weather Ball type and power while weather is active', () => 
   expect(power.value).toBe(150)
 })
 
+test('Should resolve Electro Ball from the effective Speed ratio', () => {
+  const actor = (speed) => ({
+    mon: { stats: { speed }, status: null },
+    stages: { speed: 0 },
+    volatile: {},
+  })
+  const battle = {
+    field: createBattleField(),
+    effects: [],
+    player: actor(400),
+    foe: actor(100),
+  }
+  const electroBall = { ...move('electro-ball'), key: 'electro-ball' }
+  const power = () =>
+    runMoveEffectPhase(battle, 'modifyPower', {
+      attacker: battle.player,
+      defender: battle.foe,
+      move: electroBall,
+      value: electroBall.power,
+    }).value
+
+  expect(power()).toBe(150)
+
+  battle.player.mon.stats.speed = 300
+  expect(power()).toBe(120)
+
+  battle.player.mon.stats.speed = 200
+  expect(power()).toBe(80)
+
+  battle.player.mon.stats.speed = 150
+  expect(power()).toBe(60)
+
+  battle.player.mon.stats.speed = 100
+  expect(power()).toBe(40)
+})
+
+test('Should always hit and double flagged attacks into a minimized target', () => {
+  const battle = {
+    field: createBattleField(),
+    effects: [],
+    player: { mon: { species: 19 }, volatile: {} },
+    foe: { mon: { species: 19 }, volatile: { minimized: true } },
+  }
+  const stomp = { ...move('stomp'), key: 'stomp' }
+
+  expect(
+    runMoveEffectPhase(battle, 'modifyAccuracy', {
+      attacker: battle.player,
+      defender: battle.foe,
+      move: stomp,
+      value: 1,
+    }).value,
+  ).toBe(100)
+  expect(
+    runMoveEffectPhase(battle, 'modifyPower', {
+      attacker: battle.player,
+      defender: battle.foe,
+      move: stomp,
+      value: stomp.power,
+    }).value,
+  ).toBe(stomp.power * 2)
+})
+
 test('Should leave Weather Ball unchanged without weather or a field registry', () => {
   const battle = {
     player: { mon: { species: 7 } },
@@ -352,6 +415,18 @@ test('Should recognize each supported runtime coverage path', () => {
       key: 'sheer-cold',
     }),
   ).toBe(true)
+  expect(
+    moveCanExecute(battle, 'player', {
+      ...move('electro-ball'),
+      key: 'electro-ball',
+    }),
+  ).toBe(true)
+  expect(
+    moveCanExecute(battle, 'player', {
+      ...move('teleport'),
+      key: 'teleport',
+    }),
+  ).toBe(true)
 })
 
 test('Should enforce Psychic Terrain priority blocking for either attacking side', () => {
@@ -392,6 +467,16 @@ test('Should keep deferred moves visible but non-executable with their coverage 
     }),
   ).toBe(false)
 })
+
+test.each(['rapid-spin', 'flying-press', 'close-combat'])(
+  'Should expose incomplete %s semantics as explicit deferred debt',
+  (key) => {
+    const coverage = resolveMoveCoverage(key)
+
+    expect(coverage.status).toBe('deferred-complex-one-off')
+    expect(coverage.reason).toMatch(new RegExp(move(key).name, 'i'))
+  },
+)
 
 test('Should reject a falsely generic custom move until its dedicated runtime semantics exist', () => {
   const battle = {

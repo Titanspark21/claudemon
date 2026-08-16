@@ -483,6 +483,11 @@ const beginPostBattle = (ctx) => {
     return
   }
 
+  if (state.outcome === 'foe-fled') {
+    battle.postSteps = []
+    return
+  }
+
   const next = activePokemon(save)
 
   if (state.outcome === 'loss' && next) {

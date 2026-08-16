@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import {
   coverageFor,
   coverageReport,
+  significantFieldKnownFailures,
   validateCoverage,
 } from './mechanicsCoverage.mjs'
 
@@ -32,6 +33,7 @@ const fixture = () => ({
   },
   coverage: {
     generation: 7,
+    significantFieldKnownFailures: [],
     abilities: { overgrow: entry('ability:overgrow') },
     items: {
       leftovers: entry('item:leftovers'),
@@ -107,6 +109,26 @@ test('Should reject species references to unknown records', () => {
   expect(errors).toContain('unknown item missing-item')
   expect(errors).toContain('unknown held item missing-held-item')
   expect(errors).toContain('unknown evolution move missing-evo-move')
+})
+
+test('Should reject significant-field debt that points at an unknown move', () => {
+  const { dataset, coverage } = fixture()
+  coverage.significantFieldKnownFailures.push({
+    field: 'move.self.boosts',
+    moves: ['missing-move'],
+    reason: 'fixture debt',
+  })
+
+  expect(validateCoverage(dataset, coverage).errors).toContain(
+    'significantFieldKnownFailures[0] references unknown move missing-move',
+  )
+})
+
+test('Should expose the repository significant-field debt as a central invariant', () => {
+  expect(significantFieldKnownFailures.length).toBeGreaterThan(0)
+  expect(
+    significantFieldKnownFailures.map((failure) => failure.field),
+  ).toContain('move.secondary.self.boosts')
 })
 
 test('Should normalize source ids for coverage lookup', () => {

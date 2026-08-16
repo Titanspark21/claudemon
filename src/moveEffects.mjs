@@ -1,4 +1,4 @@
-import { battleAbility } from './battleActor.mjs'
+import { battleAbility, battleTypes, effectiveSpeed } from './battleActor.mjs'
 import {
   MOVE_FIELD_EFFECTS,
   MOVE_GENERIC_COVERAGE_HANDLERS,
@@ -9,6 +9,7 @@ import {
 } from './constants.mjs'
 import { moveCoverage } from './data.mjs'
 import { registerEffect, runEffectPhase } from './effects.mjs'
+import { levelOf } from './pokemon.mjs'
 import { fieldHandlers, startTerrain } from './terrain.mjs'
 import { startWeather } from './weather.mjs'
 
@@ -20,6 +21,73 @@ const weatherBallType = ({ field, value }) => {
 
 const weatherBallPower = ({ field, value }) => {
   return field?.weather ? value * 2 : value
+}
+
+const sideOfActor = (battle, actor) =>
+  battle.player === actor ? 'player' : 'foe'
+
+const resolvedSpeed = (state, actor) => {
+  const side = sideOfActor(state.battle, actor)
+  const opponentSide = side === 'player' ? 'foe' : 'player'
+
+  return runEffectPhase(state.battle, 'modifySpeed', {
+    side,
+    attacker: side,
+    defender: opponentSide,
+    value: effectiveSpeed(actor),
+    paralysisApplied: actor.mon.status === 'paralysis',
+    events: state.events,
+  }).value
+}
+
+const electroBallPower = (state) => {
+  const attackerSpeed = resolvedSpeed(state, state.attacker)
+  const defenderSpeed = resolvedSpeed(state, state.defender)
+  const ratio = defenderSpeed > 0 ? attackerSpeed / defenderSpeed : Infinity
+
+  if (ratio >= 4) return 150
+  if (ratio >= 3) return 120
+  if (ratio >= 2) return 80
+  if (ratio > 1) return 60
+  return 40
+}
+
+const ohkoAccuracy = (state) => {
+  const attackerLevel = levelOf(state.attacker.mon)
+  const defenderLevel = levelOf(state.defender.mon)
+
+  if (attackerLevel < defenderLevel) return 0
+  if (
+    state.move.key === 'sheer-cold' &&
+    battleTypes(state.defender).includes('ice')
+  )
+    return 0
+  if (
+    battleAbility(state.attacker) === 'noguard' ||
+    battleAbility(state.defender) === 'noguard'
+  )
+    return 100
+
+  const base =
+    state.move.key === 'sheer-cold' &&
+    !battleTypes(state.attacker).includes('ice')
+      ? 20
+      : 30
+
+  return base + attackerLevel - defenderLevel
+}
+
+const minimizedTarget = ({ defender }) => defender?.volatile?.minimized === true
+const minimizePower = (state) =>
+  minimizedTarget(state) && Number.isFinite(state.value)
+    ? state.value * 2
+    : state.value
+const minimizeAccuracy = (state) => (minimizedTarget(state) ? 100 : state.value)
+const markMinimized = (state) => {
+  if (state.kind === 'stat-change-applied')
+    state.attacker.volatile.minimized = true
+
+  return state.value
 }
 
 const effectHandler = (key, phase, handler = preserveValue, priority = 100) => {
@@ -68,13 +136,42 @@ export const moveEffectHandlers = (move) => {
   if (move.healing) handlers.push(effectHandler('move:healing', 'afterHit'))
   if (fixedDamage)
     handlers.push(effectHandler('move:fixed-damage', 'modifyDamage'))
-  if (move.ohko) handlers.push(effectHandler('move:ohko', 'modifyDamage'))
+  if (move.ohko) {
+    handlers.push(
+      effectHandler('move:ohko', 'modifyDamage'),
+      effectHandler('move:ohko-accuracy', 'modifyAccuracy', ohkoAccuracy, -100),
+    )
+  }
   if (moveHasFlag(move, 'contact'))
     handlers.push(effectHandler('move:contact', 'afterHit'))
   if (moveHasFlag(move, 'sound'))
     handlers.push(effectHandler('move:sound', 'afterHit'))
   if (moveHasFlag(move, 'powder'))
     handlers.push(effectHandler('move:powder', 'afterHit'))
+  if (moveHasFlag(move, 'minimize')) {
+    handlers.push(
+      effectHandler('move:minimize-power', 'modifyPower', minimizePower, -90),
+      effectHandler(
+        'move:minimize-accuracy',
+        'modifyAccuracy',
+        minimizeAccuracy,
+        -90,
+      ),
+    )
+  }
+  if (move.key === 'minimize')
+    handlers.push(
+      effectHandler('move:minimize-state', 'afterHit', markMinimized),
+    )
+  if (move.key === 'electro-ball')
+    handlers.push(
+      effectHandler(
+        'move:electro-ball-power',
+        'modifyPower',
+        electroBallPower,
+        200,
+      ),
+    )
 
   if (move.key === 'weather-ball') {
     handlers.push(

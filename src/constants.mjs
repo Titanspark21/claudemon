@@ -60,6 +60,8 @@ export const MOVE_SPECIAL_FIXED_DAMAGE = new Set(['super-fang', 'psywave'])
 export const MOVE_RUNTIME_ONE_OFF_HANDLERS = new Set([
   'move:superfang',
   'move:psywave',
+  'move:electroball',
+  'move:teleport',
   'move:raindance',
   'move:sunnyday',
   'move:sandstorm',

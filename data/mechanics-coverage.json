@@ -2896,9 +2896,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "acupressure": {
-      "status": "supported",
-      "handler": "move:acupressure",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Acupressure depends on dedicated move:acupressure Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "aerial-ace": {
       "status": "supported",
@@ -2911,9 +2911,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "after-you": {
-      "status": "supported",
-      "handler": "move:afteryou",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "After You depends on dedicated move:afteryou Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "agility": {
       "status": "supported",
@@ -2946,9 +2946,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "ancient-power": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Ancient Power has a 10% self secondary stat change (+1 Attack, +1 Defense, +1 Sp. Attack, +1 Sp. Defense, +1 Speed); imported runtime data drops secondary.self.boosts, so generic damage would silently omit it."
     },
     "aqua-jet": {
       "status": "supported",
@@ -2956,9 +2956,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "aqua-ring": {
-      "status": "supported",
-      "handler": "move:aquaring",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Aqua Ring depends on dedicated move:aquaring Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "aqua-tail": {
       "status": "supported",
@@ -2971,9 +2971,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "aromatherapy": {
-      "status": "supported",
-      "handler": "move:aromatherapy",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Aromatherapy depends on dedicated move:aromatherapy Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "aromatic-mist": {
       "status": "no-effect-in-singles",
@@ -3001,9 +3001,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "attract": {
-      "status": "supported",
-      "handler": "move:attract",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Attract depends on dedicated move:attract Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "aura-sphere": {
       "status": "supported",
@@ -3031,9 +3031,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "baneful-bunker": {
-      "status": "supported",
-      "handler": "move:banefulbunker",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Baneful Bunker depends on dedicated move:banefulbunker Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "barrage": {
       "status": "supported",
@@ -3056,9 +3056,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "beat-up": {
-      "status": "supported",
-      "handler": "move:beatup",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Beat Up depends on dedicated move:beatup Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "belch": {
       "status": "supported",
@@ -3066,14 +3066,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "belly-drum": {
-      "status": "supported",
-      "handler": "move:bellydrum",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Belly Drum depends on dedicated move:bellydrum Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "bestow": {
-      "status": "supported",
-      "handler": "move:bestow",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Bestow depends on dedicated move:bestow Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "bide": {
       "status": "deferred-complex-one-off",
@@ -3101,9 +3101,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "block": {
-      "status": "supported",
-      "handler": "move:block",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Block depends on dedicated move:block Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "blue-flare": {
       "status": "supported",
@@ -3216,9 +3216,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "camouflage": {
-      "status": "supported",
-      "handler": "move:camouflage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Camouflage depends on dedicated move:camouflage Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "captivate": {
       "status": "supported",
@@ -3231,9 +3231,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "charge-beam": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Charge Beam has a 70% self secondary stat change (+1 Sp. Attack); imported runtime data drops secondary.self.boosts, so generic damage would silently omit it."
     },
     "charm": {
       "status": "supported",
@@ -3271,9 +3271,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "close-combat": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Close Combat applies a 100% self stat change (-1 Defense, -1 Sp. Defense); imported runtime data currently drops move.self.boosts, so ordinary damage execution would be incomplete."
     },
     "coil": {
       "status": "supported",
@@ -3306,14 +3306,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "conversion": {
-      "status": "supported",
-      "handler": "move:conversion",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Conversion depends on dedicated move:conversion Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "conversion-2": {
-      "status": "supported",
-      "handler": "move:conversion2",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Conversion 2 depends on dedicated move:conversion2 Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "copycat": {
       "status": "deferred-complex-one-off",
@@ -3336,9 +3336,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "counter": {
-      "status": "supported",
-      "handler": "move:counter",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Counter depends on dedicated move:counter Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "covet": {
       "status": "supported",
@@ -3351,9 +3351,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "crafty-shield": {
-      "status": "supported",
-      "handler": "move:craftyshield",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Crafty Shield depends on dedicated move:craftyshield Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "cross-chop": {
       "status": "supported",
@@ -3376,14 +3376,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "crush-grip": {
-      "status": "supported",
-      "handler": "move:crushgrip",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Crush Grip depends on dedicated move:crushgrip Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "curse": {
-      "status": "supported",
-      "handler": "move:curse",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Curse depends on dedicated move:curse Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "cut": {
       "status": "supported",
@@ -3421,24 +3421,24 @@
       "source": "data/moves.json · Generation VII import"
     },
     "defog": {
-      "status": "supported",
-      "handler": "move:defog",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Defog depends on dedicated move:defog Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "destiny-bond": {
-      "status": "supported",
-      "handler": "move:destinybond",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Destiny Bond depends on dedicated move:destinybond Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "detect": {
-      "status": "supported",
-      "handler": "move:detect",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Detect depends on dedicated move:detect Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "diamond-storm": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Diamond Storm applies a 50% self stat change (+2 Defense); imported runtime data currently drops move.self.boosts, so ordinary damage execution would be incomplete."
     },
     "dig": {
       "status": "supported",
@@ -3606,9 +3606,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "electrify": {
-      "status": "supported",
-      "handler": "move:electrify",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Electrify depends on dedicated move:electrify Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "electro-ball": {
       "status": "supported",
@@ -3621,9 +3621,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "embargo": {
-      "status": "supported",
-      "handler": "move:embargo",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Embargo depends on dedicated move:embargo Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "ember": {
       "status": "supported",
@@ -3631,19 +3631,19 @@
       "source": "data/moves.json · Generation VII import"
     },
     "encore": {
-      "status": "supported",
-      "handler": "move:encore",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Encore depends on dedicated move:encore Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "endeavor": {
-      "status": "supported",
-      "handler": "move:endeavor",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Endeavor depends on dedicated move:endeavor Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "endure": {
-      "status": "supported",
-      "handler": "move:endure",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Endure depends on dedicated move:endure Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "energy-ball": {
       "status": "supported",
@@ -3651,9 +3651,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "entrainment": {
-      "status": "supported",
-      "handler": "move:entrainment",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Entrainment depends on dedicated move:entrainment Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "eruption": {
       "status": "supported",
@@ -3681,9 +3681,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "fairy-lock": {
-      "status": "supported",
-      "handler": "move:fairylock",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Fairy Lock depends on dedicated move:fairylock Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "fairy-wind": {
       "status": "supported",
@@ -3726,14 +3726,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "fiery-dance": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Fiery Dance has a 50% self secondary stat change (+1 Sp. Attack); imported runtime data drops secondary.self.boosts, so generic damage would silently omit it."
     },
     "final-gambit": {
-      "status": "supported",
-      "handler": "move:finalgambit",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Final Gambit depends on dedicated move:finalgambit Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "fire-blast": {
       "status": "supported",
@@ -3771,9 +3771,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "flail": {
-      "status": "supported",
-      "handler": "move:flail",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Flail depends on dedicated move:flail Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "flame-burst": {
       "status": "supported",
@@ -3781,9 +3781,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "flame-charge": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Flame Charge has a 100% self secondary stat change (+1 Speed); imported runtime data drops secondary.self.boosts, so generic damage would silently omit it."
     },
     "flame-wheel": {
       "status": "supported",
@@ -3816,24 +3816,24 @@
       "source": "data/moves.json · Generation VII import"
     },
     "fleur-cannon": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Fleur Cannon applies a 100% self stat change (-2 Sp. Attack); imported runtime data currently drops move.self.boosts, so ordinary damage execution would be incomplete."
     },
     "fling": {
-      "status": "supported",
-      "handler": "move:fling",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Fling depends on dedicated move:fling Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "floral-healing": {
-      "status": "supported",
-      "handler": "move:floralhealing",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Floral Healing depends on dedicated move:floralhealing Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "flower-shield": {
-      "status": "supported",
-      "handler": "move:flowershield",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Flower Shield depends on dedicated move:flowershield Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "fly": {
       "status": "supported",
@@ -3841,9 +3841,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "flying-press": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Flying Press uses both Fighting and Flying for type effectiveness in Generation VII; the current single-type damage pipeline would calculate the wrong matchup even though its Minimize interaction is handled."
     },
     "focus-blast": {
       "status": "supported",
@@ -3851,9 +3851,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "focus-energy": {
-      "status": "supported",
-      "handler": "move:focusenergy",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Focus Energy depends on dedicated move:focusenergy Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "focus-punch": {
       "status": "supported",
@@ -3871,14 +3871,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "foresight": {
-      "status": "supported",
-      "handler": "move:foresight",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Foresight depends on dedicated move:foresight Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "forests-curse": {
-      "status": "supported",
-      "handler": "move:forestscurse",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Forest's Curse depends on dedicated move:forestscurse Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "foul-play": {
       "status": "supported",
@@ -3901,9 +3901,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "frustration": {
-      "status": "supported",
-      "handler": "move:frustration",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Frustration depends on dedicated move:frustration Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "fury-attack": {
       "status": "supported",
@@ -3936,9 +3936,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "gastro-acid": {
-      "status": "supported",
-      "handler": "move:gastroacid",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Gastro Acid depends on dedicated move:gastroacid Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "gear-grind": {
       "status": "supported",
@@ -3946,9 +3946,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "gear-up": {
-      "status": "supported",
-      "handler": "move:gearup",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Gear Up depends on dedicated move:gearup Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "geomancy": {
       "status": "supported",
@@ -3976,9 +3976,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "grass-knot": {
-      "status": "supported",
-      "handler": "move:grassknot",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Grass Knot depends on dedicated move:grassknot Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "grass-whistle": {
       "status": "supported",
@@ -3991,9 +3991,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "gravity": {
-      "status": "supported",
-      "handler": "move:gravity",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Gravity depends on dedicated move:gravity Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "growl": {
       "status": "supported",
@@ -4006,19 +4006,19 @@
       "source": "data/moves.json · Generation VII import"
     },
     "grudge": {
-      "status": "supported",
-      "handler": "move:grudge",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Grudge depends on dedicated move:grudge Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "guard-split": {
-      "status": "supported",
-      "handler": "move:guardsplit",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Guard Split depends on dedicated move:guardsplit Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "guard-swap": {
-      "status": "supported",
-      "handler": "move:guardswap",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Guard Swap depends on dedicated move:guardswap Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "guillotine": {
       "status": "supported",
@@ -4036,9 +4036,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "gyro-ball": {
-      "status": "supported",
-      "handler": "move:gyroball",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Gyro Ball depends on dedicated move:gyroball Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "hail": {
       "status": "supported",
@@ -4046,9 +4046,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "hammer-arm": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Hammer Arm applies a 100% self stat change (-1 Speed); imported runtime data currently drops move.self.boosts, so ordinary damage execution would be incomplete."
     },
     "harden": {
       "status": "supported",
@@ -4056,9 +4056,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "haze": {
-      "status": "supported",
-      "handler": "move:haze",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Haze depends on dedicated move:haze Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "head-charge": {
       "status": "supported",
@@ -4076,14 +4076,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "heal-bell": {
-      "status": "supported",
-      "handler": "move:healbell",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Heal Bell depends on dedicated move:healbell Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "heal-block": {
-      "status": "supported",
-      "handler": "move:healblock",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Heal Block depends on dedicated move:healblock Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "heal-order": {
       "status": "supported",
@@ -4091,14 +4091,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "heal-pulse": {
-      "status": "supported",
-      "handler": "move:healpulse",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Heal Pulse depends on dedicated move:healpulse Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "healing-wish": {
-      "status": "supported",
-      "handler": "move:healingwish",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Healing Wish depends on dedicated move:healingwish Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "heart-stamp": {
       "status": "supported",
@@ -4106,14 +4106,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "heart-swap": {
-      "status": "supported",
-      "handler": "move:heartswap",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Heart Swap depends on dedicated move:heartswap Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "heat-crash": {
-      "status": "supported",
-      "handler": "move:heatcrash",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Heat Crash depends on dedicated move:heatcrash Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "heat-wave": {
       "status": "supported",
@@ -4121,9 +4121,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "heavy-slam": {
-      "status": "supported",
-      "handler": "move:heavyslam",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Heavy Slam depends on dedicated move:heavyslam Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "helping-hand": {
       "status": "no-effect-in-singles",
@@ -4201,9 +4201,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "hyperspace-fury": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Hyperspace Fury applies a 100% self stat change (-1 Defense); imported runtime data currently drops move.self.boosts, so ordinary damage execution would be incomplete."
     },
     "hyperspace-hole": {
       "status": "supported",
@@ -4236,9 +4236,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "ice-hammer": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Ice Hammer applies a 100% self stat change (-1 Speed); imported runtime data currently drops move.self.boosts, so ordinary damage execution would be incomplete."
     },
     "ice-punch": {
       "status": "supported",
@@ -4266,9 +4266,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "imprison": {
-      "status": "supported",
-      "handler": "move:imprison",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Imprison depends on dedicated move:imprison Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "incinerate": {
       "status": "supported",
@@ -4286,19 +4286,19 @@
       "source": "data/moves.json · Generation VII import"
     },
     "ingrain": {
-      "status": "supported",
-      "handler": "move:ingrain",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Ingrain depends on dedicated move:ingrain Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "instruct": {
-      "status": "supported",
-      "handler": "move:instruct",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Instruct depends on dedicated move:instruct Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "ion-deluge": {
-      "status": "supported",
-      "handler": "move:iondeluge",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Ion Deluge depends on dedicated move:iondeluge Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "iron-defense": {
       "status": "supported",
@@ -4336,9 +4336,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "kings-shield": {
-      "status": "supported",
-      "handler": "move:kingsshield",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "King's Shield depends on dedicated move:kingsshield Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "knock-off": {
       "status": "supported",
@@ -4351,9 +4351,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "laser-focus": {
-      "status": "supported",
-      "handler": "move:laserfocus",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Laser Focus depends on dedicated move:laserfocus Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "last-resort": {
       "status": "supported",
@@ -4371,9 +4371,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "leaf-storm": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Leaf Storm applies a 100% self stat change (-2 Sp. Attack); imported runtime data currently drops move.self.boosts, so ordinary damage execution would be incomplete."
     },
     "leaf-tornado": {
       "status": "supported",
@@ -4406,9 +4406,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "light-screen": {
-      "status": "supported",
-      "handler": "move:lightscreen",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Light Screen depends on dedicated move:lightscreen Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "liquidation": {
       "status": "supported",
@@ -4416,9 +4416,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "lock-on": {
-      "status": "supported",
-      "handler": "move:lockon",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Lock-On depends on dedicated move:lockon Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "lovely-kiss": {
       "status": "supported",
@@ -4426,9 +4426,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "low-kick": {
-      "status": "supported",
-      "handler": "move:lowkick",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Low Kick depends on dedicated move:lowkick Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "low-sweep": {
       "status": "supported",
@@ -4436,14 +4436,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "lucky-chant": {
-      "status": "supported",
-      "handler": "move:luckychant",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Lucky Chant depends on dedicated move:luckychant Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "lunar-dance": {
-      "status": "supported",
-      "handler": "move:lunardance",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Lunar Dance depends on dedicated move:lunardance Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "lunge": {
       "status": "supported",
@@ -4461,14 +4461,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "magic-coat": {
-      "status": "supported",
-      "handler": "move:magiccoat",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Magic Coat depends on dedicated move:magiccoat Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "magic-room": {
-      "status": "supported",
-      "handler": "move:magicroom",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Magic Room depends on dedicated move:magicroom Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "magical-leaf": {
       "status": "supported",
@@ -4486,24 +4486,24 @@
       "source": "data/moves.json · Generation VII import"
     },
     "magnet-rise": {
-      "status": "supported",
-      "handler": "move:magnetrise",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Magnet Rise depends on dedicated move:magnetrise Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "magnetic-flux": {
-      "status": "supported",
-      "handler": "move:magneticflux",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Magnetic Flux depends on dedicated move:magneticflux Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "magnitude": {
-      "status": "supported",
-      "handler": "move:magnitude",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Magnitude depends on dedicated move:magnitude Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "mat-block": {
-      "status": "supported",
-      "handler": "move:matblock",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Mat Block depends on dedicated move:matblock Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "me-first": {
       "status": "deferred-complex-one-off",
@@ -4511,9 +4511,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "mean-look": {
-      "status": "supported",
-      "handler": "move:meanlook",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Mean Look depends on dedicated move:meanlook Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "meditate": {
       "status": "supported",
@@ -4546,14 +4546,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "metal-burst": {
-      "status": "supported",
-      "handler": "move:metalburst",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Metal Burst depends on dedicated move:metalburst Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "metal-claw": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Metal Claw has a 10% self secondary stat change (+1 Attack); imported runtime data drops secondary.self.boosts, so generic damage would silently omit it."
     },
     "metal-sound": {
       "status": "supported",
@@ -4561,9 +4561,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "meteor-mash": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Meteor Mash has a 20% self secondary stat change (+1 Attack); imported runtime data drops secondary.self.boosts, so generic damage would silently omit it."
     },
     "metronome": {
       "status": "deferred-complex-one-off",
@@ -4586,9 +4586,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "mind-reader": {
-      "status": "supported",
-      "handler": "move:mindreader",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Mind Reader depends on dedicated move:mindreader Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "minimize": {
       "status": "supported",
@@ -4596,14 +4596,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "miracle-eye": {
-      "status": "supported",
-      "handler": "move:miracleeye",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Miracle Eye depends on dedicated move:miracleeye Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "mirror-coat": {
-      "status": "supported",
-      "handler": "move:mirrorcoat",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Mirror Coat depends on dedicated move:mirrorcoat Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "mirror-move": {
       "status": "deferred-complex-one-off",
@@ -4616,9 +4616,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "mist": {
-      "status": "supported",
-      "handler": "move:mist",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Mist depends on dedicated move:mist Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "mist-ball": {
       "status": "supported",
@@ -4641,14 +4641,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "moonlight": {
-      "status": "supported",
-      "handler": "move:moonlight",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Moonlight depends on dedicated move:moonlight Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "morning-sun": {
-      "status": "supported",
-      "handler": "move:morningsun",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Morning Sun depends on dedicated move:morningsun Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "mud-bomb": {
       "status": "supported",
@@ -4666,9 +4666,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "mud-sport": {
-      "status": "supported",
-      "handler": "move:mudsport",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Mud Sport depends on dedicated move:mudsport Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "muddy-water": {
       "status": "supported",
@@ -4691,9 +4691,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "natural-gift": {
-      "status": "supported",
-      "handler": "move:naturalgift",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Natural Gift depends on dedicated move:naturalgift Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "nature-power": {
       "status": "deferred-complex-one-off",
@@ -4701,9 +4701,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "natures-madness": {
-      "status": "supported",
-      "handler": "move:naturesmadness",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Nature's Madness depends on dedicated move:naturesmadness Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "needle-arm": {
       "status": "supported",
@@ -4726,9 +4726,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "nightmare": {
-      "status": "supported",
-      "handler": "move:nightmare",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Nightmare depends on dedicated move:nightmare Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "noble-roar": {
       "status": "supported",
@@ -4751,14 +4751,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "odor-sleuth": {
-      "status": "supported",
-      "handler": "move:odorsleuth",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Odor Sleuth depends on dedicated move:odorsleuth Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "ominous-wind": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Ominous Wind has a 10% self secondary stat change (+1 Attack, +1 Defense, +1 Sp. Attack, +1 Sp. Defense, +1 Speed); imported runtime data drops secondary.self.boosts, so generic damage would silently omit it."
     },
     "origin-pulse": {
       "status": "supported",
@@ -4771,14 +4771,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "overheat": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Overheat applies a 100% self stat change (-2 Sp. Attack); imported runtime data currently drops move.self.boosts, so ordinary damage execution would be incomplete."
     },
     "pain-split": {
-      "status": "supported",
-      "handler": "move:painsplit",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Pain Split depends on dedicated move:painsplit Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "parabolic-charge": {
       "status": "supported",
@@ -4786,9 +4786,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "parting-shot": {
-      "status": "supported",
-      "handler": "move:partingshot",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Parting Shot depends on dedicated move:partingshot Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "pay-day": {
       "status": "supported",
@@ -4806,9 +4806,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "perish-song": {
-      "status": "supported",
-      "handler": "move:perishsong",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Perish Song depends on dedicated move:perishsong Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "petal-blizzard": {
       "status": "supported",
@@ -4896,9 +4896,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "powder": {
-      "status": "supported",
-      "handler": "move:powder",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Powder depends on dedicated move:powder Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "powder-snow": {
       "status": "supported",
@@ -4911,19 +4911,19 @@
       "source": "data/moves.json · Generation VII import"
     },
     "power-split": {
-      "status": "supported",
-      "handler": "move:powersplit",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Power Split depends on dedicated move:powersplit Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "power-swap": {
-      "status": "supported",
-      "handler": "move:powerswap",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Power Swap depends on dedicated move:powerswap Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "power-trick": {
-      "status": "supported",
-      "handler": "move:powertrick",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Power Trick depends on dedicated move:powertrick Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "power-trip": {
       "status": "supported",
@@ -4931,9 +4931,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "power-up-punch": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Power-Up Punch has a 100% self secondary stat change (+1 Attack); imported runtime data drops secondary.self.boosts, so generic damage would silently omit it."
     },
     "power-whip": {
       "status": "supported",
@@ -4946,9 +4946,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "present": {
-      "status": "supported",
-      "handler": "move:present",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Present depends on dedicated move:present Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "prismatic-laser": {
       "status": "supported",
@@ -4956,9 +4956,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "protect": {
-      "status": "supported",
-      "handler": "move:protect",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Protect depends on dedicated move:protect Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "psybeam": {
       "status": "supported",
@@ -4966,9 +4966,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "psych-up": {
-      "status": "supported",
-      "handler": "move:psychup",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Psych Up depends on dedicated move:psychup Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "psychic": {
       "status": "supported",
@@ -4986,9 +4986,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "psycho-boost": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Psycho Boost applies a 100% self stat change (-2 Sp. Attack); imported runtime data currently drops move.self.boosts, so ordinary damage execution would be incomplete."
     },
     "psycho-cut": {
       "status": "supported",
@@ -4996,9 +4996,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "psycho-shift": {
-      "status": "supported",
-      "handler": "move:psychoshift",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Psycho Shift depends on dedicated move:psychoshift Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "psyshock": {
       "status": "supported",
@@ -5016,14 +5016,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "punishment": {
-      "status": "supported",
-      "handler": "move:punishment",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Punishment depends on dedicated move:punishment Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "purify": {
-      "status": "supported",
-      "handler": "move:purify",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Purify depends on dedicated move:purify Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "pursuit": {
       "status": "deferred-complex-one-off",
@@ -5031,9 +5031,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "quash": {
-      "status": "supported",
-      "handler": "move:quash",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Quash depends on dedicated move:quash Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "quick-attack": {
       "status": "supported",
@@ -5041,9 +5041,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "quick-guard": {
-      "status": "supported",
-      "handler": "move:quickguard",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Quick Guard depends on dedicated move:quickguard Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "quiver-dance": {
       "status": "supported",
@@ -5066,9 +5066,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "rapid-spin": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Rapid Spin must remove binding and entry hazards in Generation VII; the current runtime has neither cleanup mechanic. The pinned package also exposes a later-generation Speed secondary, which is intentionally not treated as Generation VII behavior."
     },
     "razor-leaf": {
       "status": "supported",
@@ -5091,29 +5091,29 @@
       "source": "data/moves.json · Generation VII import"
     },
     "recycle": {
-      "status": "supported",
-      "handler": "move:recycle",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Recycle depends on dedicated move:recycle Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "reflect": {
-      "status": "supported",
-      "handler": "move:reflect",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Reflect depends on dedicated move:reflect Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "reflect-type": {
-      "status": "supported",
-      "handler": "move:reflecttype",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Reflect Type depends on dedicated move:reflecttype Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "refresh": {
-      "status": "supported",
-      "handler": "move:refresh",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Refresh depends on dedicated move:refresh Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "rest": {
-      "status": "supported",
-      "handler": "move:rest",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Rest depends on dedicated move:rest Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "retaliate": {
       "status": "supported",
@@ -5121,9 +5121,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "return": {
-      "status": "supported",
-      "handler": "move:return",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Return depends on dedicated move:return Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "revelation-dance": {
       "status": "supported",
@@ -5136,14 +5136,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "reversal": {
-      "status": "supported",
-      "handler": "move:reversal",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Reversal depends on dedicated move:reversal Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "roar": {
-      "status": "supported",
-      "handler": "move:roar",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Roar depends on dedicated move:roar Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "roar-of-time": {
       "status": "supported",
@@ -5191,9 +5191,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "role-play": {
-      "status": "supported",
-      "handler": "move:roleplay",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Role Play depends on dedicated move:roleplay Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "rolling-kick": {
       "status": "supported",
@@ -5211,9 +5211,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "rototiller": {
-      "status": "supported",
-      "handler": "move:rototiller",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Rototiller depends on dedicated move:rototiller Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "round": {
       "status": "supported",
@@ -5231,9 +5231,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "safeguard": {
-      "status": "supported",
-      "handler": "move:safeguard",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Safeguard depends on dedicated move:safeguard Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "sand-attack": {
       "status": "supported",
@@ -5361,9 +5361,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "shore-up": {
-      "status": "supported",
-      "handler": "move:shoreup",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Shore Up depends on dedicated move:shoreup Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "signal-beam": {
       "status": "supported",
@@ -5371,14 +5371,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "silver-wind": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Silver Wind has a 10% self secondary stat change (+1 Attack, +1 Defense, +1 Sp. Attack, +1 Sp. Defense, +1 Speed); imported runtime data drops secondary.self.boosts, so generic damage would silently omit it."
     },
     "simple-beam": {
-      "status": "supported",
-      "handler": "move:simplebeam",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Simple Beam depends on dedicated move:simplebeam Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "sing": {
       "status": "supported",
@@ -5391,9 +5391,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "skill-swap": {
-      "status": "supported",
-      "handler": "move:skillswap",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Skill Swap depends on dedicated move:skillswap Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "skull-bash": {
       "status": "supported",
@@ -5491,9 +5491,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "soak": {
-      "status": "supported",
-      "handler": "move:soak",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Soak depends on dedicated move:soak Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "soft-boiled": {
       "status": "supported",
@@ -5536,14 +5536,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "speed-swap": {
-      "status": "supported",
-      "handler": "move:speedswap",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Speed Swap depends on dedicated move:speedswap Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "spider-web": {
-      "status": "supported",
-      "handler": "move:spiderweb",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Spider Web depends on dedicated move:spiderweb Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "spike-cannon": {
       "status": "supported",
@@ -5551,14 +5551,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "spikes": {
-      "status": "supported",
-      "handler": "move:spikes",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Spikes depends on dedicated move:spikes Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "spiky-shield": {
-      "status": "supported",
-      "handler": "move:spikyshield",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Spiky Shield depends on dedicated move:spikyshield Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "spirit-shackle": {
       "status": "supported",
@@ -5566,14 +5566,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "spit-up": {
-      "status": "supported",
-      "handler": "move:spitup",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Spit Up depends on dedicated move:spitup Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "spite": {
-      "status": "supported",
-      "handler": "move:spite",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Spite depends on dedicated move:spite Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "splash": {
       "status": "supported",
@@ -5591,9 +5591,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "stealth-rock": {
-      "status": "supported",
-      "handler": "move:stealthrock",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Stealth Rock depends on dedicated move:stealthrock Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "steam-eruption": {
       "status": "supported",
@@ -5606,19 +5606,19 @@
       "source": "data/moves.json · Generation VII import"
     },
     "steel-wing": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Steel Wing has a 10% self secondary stat change (+1 Defense); imported runtime data drops secondary.self.boosts, so generic damage would silently omit it."
     },
     "sticky-web": {
-      "status": "supported",
-      "handler": "move:stickyweb",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Sticky Web depends on dedicated move:stickyweb Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "stockpile": {
-      "status": "supported",
-      "handler": "move:stockpile",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Stockpile depends on dedicated move:stockpile Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "stomp": {
       "status": "supported",
@@ -5651,9 +5651,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "strength-sap": {
-      "status": "supported",
-      "handler": "move:strengthsap",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Strength Sap depends on dedicated move:strengthsap Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "string-shot": {
       "status": "supported",
@@ -5676,9 +5676,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "substitute": {
-      "status": "supported",
-      "handler": "move:substitute",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Substitute depends on dedicated move:substitute Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "sucker-punch": {
       "status": "supported",
@@ -5701,9 +5701,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "superpower": {
-      "status": "supported",
-      "handler": "move:damage",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Superpower applies a 100% self stat change (-1 Attack, -1 Defense); imported runtime data currently drops move.self.boosts, so ordinary damage execution would be incomplete."
     },
     "supersonic": {
       "status": "supported",
@@ -5716,9 +5716,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "swallow": {
-      "status": "supported",
-      "handler": "move:swallow",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Swallow depends on dedicated move:swallow Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "sweet-kiss": {
       "status": "supported",
@@ -5736,9 +5736,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "switcheroo": {
-      "status": "supported",
-      "handler": "move:switcheroo",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Switcheroo depends on dedicated move:switcheroo Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "swords-dance": {
       "status": "supported",
@@ -5751,9 +5751,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "synthesis": {
-      "status": "supported",
-      "handler": "move:synthesis",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Synthesis depends on dedicated move:synthesis Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "tackle": {
       "status": "supported",
@@ -5776,9 +5776,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "tailwind": {
-      "status": "supported",
-      "handler": "move:tailwind",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Tailwind depends on dedicated move:tailwind Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "take-down": {
       "status": "supported",
@@ -5786,9 +5786,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "taunt": {
-      "status": "supported",
-      "handler": "move:taunt",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Taunt depends on dedicated move:taunt Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "tearful-look": {
       "status": "supported",
@@ -5806,9 +5806,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "telekinesis": {
-      "status": "supported",
-      "handler": "move:telekinesis",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Telekinesis depends on dedicated move:telekinesis Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "teleport": {
       "status": "supported",
@@ -5866,14 +5866,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "topsy-turvy": {
-      "status": "supported",
-      "handler": "move:topsyturvy",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Topsy-Turvy depends on dedicated move:topsyturvy Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "torment": {
-      "status": "supported",
-      "handler": "move:torment",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Torment depends on dedicated move:torment Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "toxic": {
       "status": "supported",
@@ -5881,9 +5881,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "toxic-spikes": {
-      "status": "supported",
-      "handler": "move:toxicspikes",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Toxic Spikes depends on dedicated move:toxicspikes Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "toxic-thread": {
       "status": "supported",
@@ -5901,19 +5901,19 @@
       "source": "data/moves.json · Generation VII import"
     },
     "trick": {
-      "status": "supported",
-      "handler": "move:trick",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Trick depends on dedicated move:trick Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "trick-or-treat": {
-      "status": "supported",
-      "handler": "move:trickortreat",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Trick-or-Treat depends on dedicated move:trickortreat Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "trick-room": {
-      "status": "supported",
-      "handler": "move:trickroom",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Trick Room depends on dedicated move:trickroom Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "triple-kick": {
       "status": "supported",
@@ -5926,9 +5926,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "trump-card": {
-      "status": "supported",
-      "handler": "move:trumpcard",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Trump Card depends on dedicated move:trumpcard Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "twineedle": {
       "status": "supported",
@@ -5956,9 +5956,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "venom-drench": {
-      "status": "supported",
-      "handler": "move:venomdrench",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Venom Drench depends on dedicated move:venomdrench Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "venoshock": {
       "status": "supported",
@@ -6006,9 +6006,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "water-sport": {
-      "status": "supported",
-      "handler": "move:watersport",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Water Sport depends on dedicated move:watersport Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "water-spout": {
       "status": "supported",
@@ -6031,14 +6031,14 @@
       "source": "data/moves.json · Generation VII import"
     },
     "whirlwind": {
-      "status": "supported",
-      "handler": "move:whirlwind",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Whirlwind depends on dedicated move:whirlwind Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "wide-guard": {
-      "status": "supported",
-      "handler": "move:wideguard",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Wide Guard depends on dedicated move:wideguard Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "wild-charge": {
       "status": "supported",
@@ -6056,9 +6056,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "wish": {
-      "status": "supported",
-      "handler": "move:wish",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Wish depends on dedicated move:wish Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "withdraw": {
       "status": "supported",
@@ -6066,9 +6066,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "wonder-room": {
-      "status": "supported",
-      "handler": "move:wonderroom",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Wonder Room depends on dedicated move:wonderroom Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "wood-hammer": {
       "status": "supported",
@@ -6081,9 +6081,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "worry-seed": {
-      "status": "supported",
-      "handler": "move:worryseed",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Worry Seed depends on dedicated move:worryseed Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "wrap": {
       "status": "supported",
@@ -6091,9 +6091,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "wring-out": {
-      "status": "supported",
-      "handler": "move:wringout",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Wring Out depends on dedicated move:wringout Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "x-scissor": {
       "status": "supported",
@@ -6101,9 +6101,9 @@
       "source": "data/moves.json · Generation VII import"
     },
     "yawn": {
-      "status": "supported",
-      "handler": "move:yawn",
-      "source": "data/moves.json · Generation VII import"
+      "status": "deferred-complex-one-off",
+      "source": "data/moves.json · Generation VII import",
+      "reason": "Yawn depends on dedicated move:yawn Generation VII semantics; no runtime implementation exists, so treating it as generic damage or status would be incorrect."
     },
     "zap-cannon": {
       "status": "supported",
@@ -6120,5 +6120,204 @@
       "handler": "move:damage",
       "source": "data/moves.json · Generation VII import"
     }
-  }
+  },
+  "significantFieldKnownFailures": [
+    {
+      "field": "coverage.moves.*.handler",
+      "moves": [
+        "acupressure",
+        "after-you",
+        "aqua-ring",
+        "aromatherapy",
+        "attract",
+        "baneful-bunker",
+        "beat-up",
+        "belly-drum",
+        "bestow",
+        "block",
+        "camouflage",
+        "conversion",
+        "conversion-2",
+        "counter",
+        "crafty-shield",
+        "crush-grip",
+        "curse",
+        "defog",
+        "destiny-bond",
+        "detect",
+        "electrify",
+        "embargo",
+        "encore",
+        "endeavor",
+        "endure",
+        "entrainment",
+        "fairy-lock",
+        "final-gambit",
+        "flail",
+        "fling",
+        "floral-healing",
+        "flower-shield",
+        "focus-energy",
+        "foresight",
+        "forests-curse",
+        "frustration",
+        "gastro-acid",
+        "gear-up",
+        "grass-knot",
+        "gravity",
+        "grudge",
+        "guard-split",
+        "guard-swap",
+        "gyro-ball",
+        "haze",
+        "heal-bell",
+        "heal-block",
+        "heal-pulse",
+        "healing-wish",
+        "heart-swap",
+        "heat-crash",
+        "heavy-slam",
+        "imprison",
+        "ingrain",
+        "instruct",
+        "ion-deluge",
+        "kings-shield",
+        "laser-focus",
+        "light-screen",
+        "lock-on",
+        "low-kick",
+        "lucky-chant",
+        "lunar-dance",
+        "magic-coat",
+        "magic-room",
+        "magnet-rise",
+        "magnetic-flux",
+        "magnitude",
+        "mat-block",
+        "mean-look",
+        "metal-burst",
+        "mind-reader",
+        "miracle-eye",
+        "mirror-coat",
+        "mist",
+        "moonlight",
+        "morning-sun",
+        "mud-sport",
+        "natural-gift",
+        "natures-madness",
+        "nightmare",
+        "odor-sleuth",
+        "pain-split",
+        "parting-shot",
+        "perish-song",
+        "powder",
+        "power-split",
+        "power-swap",
+        "power-trick",
+        "present",
+        "protect",
+        "psych-up",
+        "psycho-shift",
+        "punishment",
+        "purify",
+        "quash",
+        "quick-guard",
+        "recycle",
+        "reflect",
+        "reflect-type",
+        "refresh",
+        "rest",
+        "return",
+        "reversal",
+        "roar",
+        "role-play",
+        "rototiller",
+        "safeguard",
+        "shore-up",
+        "simple-beam",
+        "skill-swap",
+        "soak",
+        "speed-swap",
+        "spider-web",
+        "spikes",
+        "spiky-shield",
+        "spit-up",
+        "spite",
+        "stealth-rock",
+        "sticky-web",
+        "stockpile",
+        "strength-sap",
+        "substitute",
+        "swallow",
+        "switcheroo",
+        "synthesis",
+        "tailwind",
+        "taunt",
+        "telekinesis",
+        "topsy-turvy",
+        "torment",
+        "toxic-spikes",
+        "trick",
+        "trick-or-treat",
+        "trick-room",
+        "trump-card",
+        "venom-drench",
+        "water-sport",
+        "whirlwind",
+        "wide-guard",
+        "wish",
+        "wonder-room",
+        "worry-seed",
+        "wring-out",
+        "yawn"
+      ],
+      "reason": "These records previously claimed dedicated move handlers that do not exist in the battle runtime; they are deferred until those move-specific semantics are implemented."
+    },
+    {
+      "field": "move.self.boosts",
+      "moves": [
+        "close-combat",
+        "diamond-storm",
+        "fleur-cannon",
+        "hammer-arm",
+        "hyperspace-fury",
+        "ice-hammer",
+        "leaf-storm",
+        "overheat",
+        "psycho-boost",
+        "superpower"
+      ],
+      "reason": "The generated move schema does not yet preserve top-level self stat changes from the pinned battle source."
+    },
+    {
+      "field": "move.secondary.self.boosts",
+      "moves": [
+        "ancient-power",
+        "charge-beam",
+        "fiery-dance",
+        "flame-charge",
+        "metal-claw",
+        "meteor-mash",
+        "ominous-wind",
+        "power-up-punch",
+        "silver-wind",
+        "steel-wing"
+      ],
+      "reason": "The generated move schema does not yet preserve self-targeting secondary stat changes from the pinned battle source."
+    },
+    {
+      "field": "move.effectiveness",
+      "moves": [
+        "flying-press"
+      ],
+      "reason": "The current move schema represents one attack type and cannot encode Flying Press dual-type effectiveness."
+    },
+    {
+      "field": "source.move.rapid-spin.secondary.self.boosts",
+      "moves": [
+        "rapid-spin"
+      ],
+      "reason": "The pinned package exposes Rapid Spin's later-generation Speed boost alongside Generation VII base power; runtime coverage must not mistake that field for Generation VII behavior."
+    }
+  ]
 }
