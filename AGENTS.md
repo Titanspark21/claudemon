@@ -93,6 +93,10 @@ steps a non-developer can follow.
 
 ## Recent activity
 
+- Fixed the failing in-game update on Windows: the installer and the updater
+  spawned `claude` directly, which Node cannot do when the command is a `.cmd`
+  shim, so every run ended with a plugin failure and an unhelpful last-line
+  detail on the update screen.
 - Agreed that Day Care-skipped moves must never be permanently lost: each is
   retained behind a 25%-of-next-level outside battle EXP gate, with one won
   battle per move at level 100, and recorded the full recovery flow in

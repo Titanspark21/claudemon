@@ -529,6 +529,33 @@ test('Should stop the steps that come after a failure', async () => {
   expect(run.to, 'nothing claims a new version').toBeNull()
 })
 
+test('Should show the reason the installer printed, not the last line of its help', async () => {
+  const run = createUpdateRun({
+    plan: {
+      kind: 'clone',
+      steps: [{ id: 'install', label: 'x', done: 'x', plan: () => ({}) }],
+      resolveVersion: () => null,
+    },
+    exec: async () => {
+      return {
+        ok: false,
+        output: [
+          '  [92m✔[39m status line already wrapped',
+          '  [91m✘[39m no `claude` command found, so the plugin could not be installed',
+          '      Install Claude Code, then run this again',
+          '  Undo all of it with: node tools/install.mjs --uninstall',
+        ].join('\n'),
+      }
+    },
+  })
+
+  await run.promise
+
+  expect(run.steps[0].detail).toBe(
+    'no `claude` command found, so the plugin could not be installed',
+  )
+})
+
 test('Should say which command is missing rather than that a step failed', async () => {
   const missingClaude = createUpdateRun({
     plan: {

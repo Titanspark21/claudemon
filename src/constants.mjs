@@ -1116,6 +1116,13 @@ export const UPDATE_STEP_TEXT = {
   },
 }
 
+export const INSTALL_FAILURE_MARK = '✘'
+
+export const WINDOWS_QUOTE_PATTERN = /[\s"&()<>^|]/
+export const WINDOWS_ABSOLUTE_PATH_PATTERN = /^([a-zA-Z]:[\\/]|\\\\)/
+export const WINDOWS_MISSING_COMMAND_PATTERN =
+  /is not recognized as an internal or external command|cannot find the path specified/i
+
 export const UPDATE_FAILURE_MESSAGES = {
   noGit: 'no `git` command found',
   noClaude: 'no `claude` command found — is Claude Code on your PATH?',

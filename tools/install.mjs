@@ -14,6 +14,8 @@ import { homedir } from 'node:os'
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { HOME, PLUGIN_CACHE } from '../src/paths.mjs'
+import { commandInvocation, commandMissing } from '../src/command.mjs'
+import { INSTALL_FAILURE_MARK } from '../src/constants.mjs'
 import { loadConfig, saveConfig } from '../src/config.mjs'
 import { isDataReady, loadData } from '../src/data.mjs'
 import { LAUNCHERS, writeLauncher } from '../src/shim.mjs'
@@ -69,14 +71,18 @@ const step = (text) => console.log(`  ${brightGreen('✔')} ${text}`)
 
 const note = (text) => console.log(`  ${brightYellow('•')} ${text}`)
 
-const fail = (text) => console.log(`  ${brightRed('✘')} ${text}`)
+const fail = (text) =>
+  console.log(`  ${brightRed(INSTALL_FAILURE_MARK)} ${text}`)
 
 const run = (command, args, stdio = 'pipe', timeout = 60_000) => {
+  const invocation = commandInvocation(command, args)
+
   try {
-    const stdout = execFileSync(command, args, {
+    const stdout = execFileSync(invocation.command, invocation.args, {
       stdio,
       timeout,
       encoding: 'utf8',
+      shell: invocation.shell,
     })
 
     return { ok: true, output: stdout ?? '' }
@@ -86,7 +92,7 @@ const run = (command, args, stdio = 'pipe', timeout = 60_000) => {
     return {
       ok: false,
       output,
-      missing: error.code === 'ENOENT',
+      missing: commandMissing(error, output),
       timedOut: error.signal === 'SIGTERM',
     }
   }

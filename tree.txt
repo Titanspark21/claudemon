@@ -91,6 +91,8 @@ src/battleFlow.test.mjs
 src/capture.mjs
 src/clipboard.mjs
 src/clipboard.test.mjs
+src/command.mjs
+src/command.test.mjs
 src/config.mjs
 src/constants.mjs
 src/damage.mjs

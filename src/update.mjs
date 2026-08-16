@@ -1,16 +1,19 @@
 import { execFile } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { commandInvocation, commandMissing } from './command.mjs'
 import { updateCheckMode } from './config.mjs'
 import {
   CHECK_INTERVAL_MS,
   DEFAULT_MANIFEST_URL,
   FETCH_TIMEOUT_MS,
+  INSTALL_FAILURE_MARK,
   UPDATE_DETAIL_LIMIT,
   UPDATE_FAILURE_MESSAGES,
   UPDATE_STEP_TEXT,
   UPDATE_STEP_TIMEOUTS,
 } from './constants.mjs'
+import { stripAnsi } from './ui/text.mjs'
 import { HOME, PLUGIN_CACHE, UPDATE_FILE } from './paths.mjs'
 import {
   transformRequestWriteUpdateState,
@@ -233,11 +236,13 @@ export const updatePlan = ({ root = APP_ROOT, cache = PLUGIN_CACHE } = {}) => {
 }
 
 const execCommand = ({ command, args, timeoutMs }) => {
+  const invocation = commandInvocation(command, args)
+
   return new Promise((resolve) => {
     execFile(
-      command,
-      args,
-      { timeout: timeoutMs, encoding: 'utf8' },
+      invocation.command,
+      invocation.args,
+      { timeout: timeoutMs, encoding: 'utf8', shell: invocation.shell },
       (error, stdout, stderr) => {
         const out = stdout ?? ''
         const err = stderr ?? ''
@@ -251,12 +256,28 @@ const execCommand = ({ command, args, timeoutMs }) => {
         resolve({
           ok: false,
           output,
-          missing: error.code === 'ENOENT',
+          missing: commandMissing(error, output),
           timedOut: error.signal === 'SIGTERM',
         })
       },
     )
   })
+}
+
+const reportedLines = (output) => {
+  return stripAnsi(output)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+const failureDetail = (output) => {
+  const lines = reportedLines(output)
+  const marked = lines.find((line) => line.startsWith(INSTALL_FAILURE_MARK))
+
+  if (marked) return marked.slice(INSTALL_FAILURE_MARK.length).trim()
+
+  return lines.pop() ?? null
 }
 
 const explain = (step, result) => {
@@ -268,10 +289,10 @@ const explain = (step, result) => {
 
   if (result.timedOut) return UPDATE_FAILURE_MESSAGES.timedOut
 
-  const last = result.output.split('\n').filter(Boolean).pop()
+  const detail = failureDetail(result.output)
 
-  return last
-    ? last.slice(0, UPDATE_DETAIL_LIMIT)
+  return detail
+    ? detail.slice(0, UPDATE_DETAIL_LIMIT)
     : UPDATE_FAILURE_MESSAGES.unknown
 }
 
