@@ -532,13 +532,13 @@ src/battleEvents.test.mjs src/battleFlow.test.mjs src/damage.test.mjs`.
       then modest one-off. Reclassify only genuinely disproportionate mechanics
       as `deferred-complex-one-off`, each with a move-specific reason rather
       than the current shared generic reason.
-- [ ] Replace the hand-maintained unsupported set with coverage lookups and
+- [x] Replace the hand-maintained unsupported set with coverage lookups and
       visible failure reasons.
-- [ ] Mark unavailable moves directly in the fight menu with their reason and
+- [x] Mark unavailable moves directly in the fight menu with their reason and
       refuse them before PP, turn order, or the opponent advances. Moves with a
       legitimate Claudemon field function but no battle function must say so
       before confirmation instead of consuming a turn.
-- [ ] Make foe AI filter out moves that cannot execute under their coverage
+- [x] Make foe AI filter out moves that cannot execute under their coverage
       status and current battle prerequisites before scoring its choices.
 - [ ] Run mechanics coverage and require zero unclassified moves, zero
       false-supported handlers, and zero executable moves without focused
