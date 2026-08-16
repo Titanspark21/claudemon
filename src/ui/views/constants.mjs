@@ -206,9 +206,9 @@ export const DAYCARE_NOTES = {
   needTwo: 'Leave two here and they might get on.',
   getAlong: 'The two seem to get along.',
   noSpark: 'The two prefer to play with other Pokémon.',
-  raising: 'Whoever waits here keeps gaining EXP while Claude works.',
+  raising: 'Levels gained here do not teach moves or trigger evolution.',
   recovery:
-    'Moves crossed here are saved; won battle EXP unlocks them to relearn.',
+    'Skipped moves stay queued; won battle EXP outside Day Care unlocks them under Team > Relearn Moves.',
   noEgg: 'No egg yet.',
   inside: 'Something is moving inside.',
   onlyWhileOpen: 'It only comes along while Claude works and this is open.',

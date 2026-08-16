@@ -17,6 +17,7 @@ import {
   LEAGUE_MESSAGES,
   TRADE_MESSAGES,
   TRAINER_MESSAGES,
+  MAX_LEVEL,
   MOVE_LIMIT,
 } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
@@ -83,7 +84,13 @@ import {
   queueMoveChoices,
   resolveMoveChoice,
 } from './progression.mjs'
-import { createPokemon, displayName, makeMoveSlot } from './pokemon.mjs'
+import {
+  createPokemon,
+  displayName,
+  levelOf,
+  makeMoveSlot,
+  pendingEvolution,
+} from './pokemon.mjs'
 import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
 import { CARD_FILE } from './paths.mjs'
 import { copyToClipboard } from './clipboard.mjs'
@@ -715,17 +722,13 @@ export const createApp = ({
   ctx.takeBackFromDaycare = (slot) => {
     const { mon, where } = takeBackFromDaycare(ctx.save, slot)
     const name = displayName(mon).toUpperCase()
-    const waiting = relearnableMoves(mon).length
 
     ctx.daycareSelection = slot
     ctx.daycareMessage = [
       `${name} ${DAYCARE_MESSAGES.cameBack}`,
       arrivalWording(where),
-      ...(waiting > 0
-        ? [
-            `${waiting} Day Care move${waiting === 1 ? '' : 's'} waiting under Team > Relearn Moves.`,
-          ]
-        : []),
+      ...daycareEvolutionLines(ctx.save, mon, name),
+      ...daycareRecoveryLines(mon),
     ]
 
     ctx.persist()
@@ -1224,6 +1227,53 @@ export const createApp = ({
 
 const clampToList = (selection, list) => {
   return Math.min(selection, Math.max(0, list.length - 1))
+}
+
+const timeOfDay = () => {
+  const hour = new Date().getHours()
+
+  return hour >= 6 && hour < 18 ? 'day' : 'night'
+}
+
+const daycareEvolutionLines = (save, mon, name) => {
+  const evolution = pendingEvolution(mon, {
+    trigger: 'level-up',
+    level: levelOf(mon),
+    timeOfDay: timeOfDay(),
+    biome: save.expedition?.biome ?? null,
+    party: save.party,
+  })
+
+  if (!evolution) return []
+
+  const target = species(evolution.to).name.toUpperCase()
+
+  if (levelOf(mon) >= MAX_LEVEL) {
+    return [
+      `${name} is eligible to evolve into ${target}.`,
+      'At Lv100 it cannot trigger another level-up evolution.',
+    ]
+  }
+
+  return [
+    `${name} is eligible to evolve into ${target}.`,
+    'It will evolve the next time it levels up outside Day Care.',
+  ]
+}
+
+const daycareRecoveryLines = (mon) => {
+  const entries = relearnableMoves(mon)
+
+  if (entries.length === 0) return []
+
+  return [
+    'Day Care moves wait under Team > Relearn Moves.',
+    'Won-battle EXP outside Day Care unlocks each one:',
+    ...entries.map(
+      (entry) =>
+        `${moveData(entry.move).name} — ${moveRecoveryStatusText(mon, entry)}.`,
+    ),
+  ]
 }
 
 const storeTradeCode = (write, code) => {

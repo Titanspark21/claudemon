@@ -115,10 +115,36 @@ const eggRows = (egg, size, scale, width) => {
 
 const pairNote = (save) => {
   if (save.daycare.slots.length < DAYCARE_LIMIT)
-    return gray(DAYCARE_NOTES.needTwo)
-  if (pairIsCompatible(save)) return DAYCARE_NOTES.getAlong
+    return { text: DAYCARE_NOTES.needTwo, muted: true }
+  if (pairIsCompatible(save))
+    return { text: DAYCARE_NOTES.getAlong, muted: false }
 
-  return gray(DAYCARE_NOTES.noSpark)
+  return { text: DAYCARE_NOTES.noSpark, muted: true }
+}
+
+const wrapWords = (text, width) => {
+  const rows = []
+  let current = ''
+
+  for (const word of String(text).split(/\s+/)) {
+    const next = current ? `${current} ${word}` : word
+
+    if (next.length <= width || current.length === 0) {
+      current = next
+      continue
+    }
+
+    rows.push(current)
+    current = word
+  }
+
+  if (current) rows.push(current)
+
+  return rows
+}
+
+const wrappedNoteRows = (note, width) => {
+  return noteRows(note).flatMap((row) => wrapWords(row, width))
 }
 
 const recoveryDetail = (mon) => {
@@ -152,9 +178,13 @@ const drawSlots = (ctx, size) => {
   }
 
   lines.push('')
-  lines.push(` ${pairNote(ctx.save)}`)
-  lines.push(` ${dim(DAYCARE_NOTES.raising)}`)
-  lines.push(` ${dim(DAYCARE_NOTES.recovery)}`)
+  const pairing = pairNote(ctx.save)
+  for (const row of wrapWords(pairing.text, Math.max(1, cols - 2)))
+    lines.push(` ${pairing.muted ? gray(row) : row}`)
+  for (const row of wrapWords(DAYCARE_NOTES.raising, Math.max(1, cols - 2)))
+    lines.push(` ${dim(row)}`)
+  for (const row of wrapWords(DAYCARE_NOTES.recovery, Math.max(1, cols - 2)))
+    lines.push(` ${dim(row)}`)
   lines.push('')
 
   const list = menuList(slotRows(slots), ctx.daycareSelection, {
@@ -163,8 +193,8 @@ const drawSlots = (ctx, size) => {
   })
   const selected = slots[clampSelection(ctx.daycareSelection, DAYCARE_LIMIT)]
 
-  const note = noteRows(ctx.daycareMessage)
-  const footer = [dim(DAYCARE_HINTS)]
+  const note = wrappedNoteRows(ctx.daycareMessage, Math.max(1, cols - 2))
+  const footer = wrapWords(DAYCARE_HINTS, Math.max(1, cols)).map(dim)
   const budget = rowsLeftFor(rows, lines, footer, note)
   const detailWidth = detailColumnWidth(size, DAYCARE_LIST_WIDTH)
   const right = selected
@@ -188,7 +218,7 @@ const drawSlots = (ctx, size) => {
 }
 
 const drawPick = (ctx, size) => {
-  const { rows } = size
+  const { cols, rows } = size
   const candidates = daycareCandidates(ctx.save)
   const selection = clampSelection(ctx.daycarePickSelection, candidates.length)
 
@@ -199,8 +229,8 @@ const drawPick = (ctx, size) => {
     width: DAYCARE_LIST_WIDTH,
   })
 
-  const note = noteRows(ctx.daycareMessage)
-  const footer = [dim(DAYCARE_PICK_HINTS)]
+  const note = wrappedNoteRows(ctx.daycareMessage, Math.max(1, cols - 2))
+  const footer = wrapWords(DAYCARE_PICK_HINTS, Math.max(1, cols)).map(dim)
   const budget = rowsLeftFor(rows, lines, footer, note)
   const detailWidth = detailColumnWidth(size, DAYCARE_LIST_WIDTH)
   const selected = candidates[selection].mon

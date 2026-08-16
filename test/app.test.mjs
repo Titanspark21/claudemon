@@ -3923,11 +3923,8 @@ test('Should leave the grass alone during a gym run and pick the encounter up on
   expect(app.save.dex.seen).toContain(129)
 })
 
-const daycareText = (app) => {
-  return daycareView
-    .draw(app, { cols: 100, rows: 34 })
-    .lines.map(stripAnsi)
-    .join('\n')
+const daycareText = (app, size = { cols: 100, rows: 34 }) => {
+  return daycareView.draw(app, size).lines.map(stripAnsi).join('\n')
 }
 
 const runDaycareFrames = (app, count) => {
@@ -4074,6 +4071,98 @@ test('Should save and reload partial Day Care move recovery progress', () => {
     requiredExp: requirement,
     unlocked: false,
   })
+})
+
+test('Should explain eligible evolution and every queued move when a Pokemon leaves Day Care', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(32) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+  const mon = createPokemon(4, 16, makeRng(33))
+
+  mon.moves = mon.moves.filter(
+    (slot) => slot.move !== 'ember' && slot.move !== 'smokescreen',
+  )
+  mon.moveRecovery = [
+    {
+      move: 'ember',
+      level: 7,
+      requiredExp: 20,
+      progressExp: 5,
+      unlocked: false,
+    },
+    {
+      move: 'smokescreen',
+      level: 10,
+      requiredExp: 12,
+      progressExp: 0,
+      unlocked: false,
+    },
+  ]
+  app.save.party = [1, 7, 10, 13, 16, 19].map((speciesId, index) =>
+    createPokemon(speciesId, 5, makeRng(100 + index)),
+  )
+  app.save.daycare.slots = [mon]
+  app.openDaycare('home')
+
+  press(app, 'enter')
+
+  expect(app.save.daycare.slots).toEqual([])
+  expect(app.save.box).toContain(mon)
+
+  for (const size of [
+    { cols: 40, rows: 34 },
+    { cols: 100, rows: 34 },
+  ]) {
+    const lines = daycareView.draw(app, size).lines
+    const flattened = lines.map(stripAnsi).join(' ').replace(/\s+/g, ' ').trim()
+
+    expect(flattened).toContain(
+      'CHARMANDER is eligible to evolve into CHARMELEON.',
+    )
+    expect(flattened).toContain(
+      'It will evolve the next time it levels up outside Day Care.',
+    )
+    expect(flattened).toContain(
+      'Won-battle EXP outside Day Care unlocks each one:',
+    )
+    expect(flattened).toContain('Ember — 15 EXP left.')
+    expect(flattened).toContain('Smokescreen — 12 EXP left.')
+    expect(lines.every((line) => visibleLength(line) <= size.cols)).toBe(true)
+  }
+})
+
+test('Should describe a level-100 Day Care move as one won battle instead of EXP', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 1, rng: makeRng(34) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+  const mon = createPokemon(4, 100, makeRng(35))
+
+  mon.moves = mon.moves.filter((slot) => slot.move !== 'ember')
+  mon.moveRecovery = [
+    {
+      move: 'ember',
+      level: 7,
+      requiredExp: 20,
+      progressExp: 0,
+      unlocked: false,
+    },
+  ]
+  app.save.daycare.slots = [mon]
+  app.openDaycare('home')
+
+  press(app, 'enter')
+
+  const message = app.daycareMessage.join(' ')
+
+  expect(message).toContain('Ember — 1 won battle left.')
+  expect(message).not.toContain('Ember — 20 EXP left.')
+  expect(message).toContain(
+    'At Lv100 it cannot trigger another level-up evolution.',
+  )
 })
 
 test('Should take one back out of a slot and into the team', () => {

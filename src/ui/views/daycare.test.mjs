@@ -30,7 +30,7 @@ homeWithoutSprites()
 const { draw } = await import('./daycare.mjs')
 const { createPokemon } = await import('../../pokemon.mjs')
 const { makeRng } = await import('../../rng.mjs')
-const { stripAnsi } = await import('../text.mjs')
+const { stripAnsi, visibleLength } = await import('../text.mjs')
 const { EGG_STEPS } = await import('../../constants.mjs')
 
 const aCtx = (egg) => {
@@ -89,7 +89,27 @@ test('Should show move recovery progress for the selected Pokemon left at Day Ca
   expect(text).toContain('Move recovery')
   expect(text).toContain('Ember')
   expect(text).toContain('15 EXP left')
-  expect(text).toContain('won battle EXP unlocks them to relearn')
+  expect(text).toContain('won battle EXP outside Day Care unlocks them')
+})
+
+test('Should explain delayed Day Care progression without overflowing narrow or wide layouts', () => {
+  for (const size of [
+    { cols: 40, rows: 34 },
+    { cols: 100, rows: 34 },
+  ]) {
+    const lines = draw(aCtx(null), size).lines
+    const plain = lines.map(stripAnsi)
+    const flattened = plain.join(' ').replace(/\s+/g, ' ').trim()
+
+    expect(flattened).toContain(
+      'Levels gained here do not teach moves or trigger evolution.',
+    )
+    expect(flattened).toContain(
+      'Skipped moves stay queued; won battle EXP outside Day Care unlocks them under Team > Relearn Moves.',
+    )
+    expect(lines.length).toBeLessThanOrEqual(size.rows)
+    expect(lines.every((line) => visibleLength(line) <= size.cols)).toBe(true)
+  }
 })
 
 test('Should keep the fallback panel square at every width it can be drawn at', () => {
