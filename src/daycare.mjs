@@ -12,6 +12,7 @@ import {
 import { species } from './data.mjs'
 import { isPersistentSpecies, regionalEggRoot } from './forms.mjs'
 import { canSpare, pokemonList } from './helpers.mjs'
+import { queueMissedDaycareMoves } from './moveRecovery.mjs'
 import {
   createPokemon,
   evolutionItemMatches,
@@ -103,7 +104,12 @@ const raiseOne = (mon) => {
 
   mon.exp += DAYCARE_EXP_PER_STEP
 
-  if (levelOf(mon) !== before) refreshStats(mon)
+  const after = levelOf(mon)
+
+  if (after !== before) {
+    queueMissedDaycareMoves(mon, before, after)
+    refreshStats(mon)
+  }
 }
 
 export const raiseDaycare = (save) => {

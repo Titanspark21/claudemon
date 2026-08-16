@@ -96,6 +96,7 @@ export const createPokemon = (speciesId, level, rng, shiny = false) => {
     stats,
     hp: stats.hp,
     moves: movesAtLevel(speciesId, level).map(makeMoveSlot),
+    moveRecovery: [],
     status: null,
     statusTurns: 0,
     shiny,

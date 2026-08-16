@@ -123,7 +123,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
   ).toEqual([{ id: 'first-catch', earnedAt: '2026-08-02T09:00:00.000Z' }])
 })
 
-test('Should map a Pokemon to the ten stored fields and its slots to three', () => {
+test('Should map a Pokemon to the stored fields and its slots to three', () => {
   const [mon] = transformResponseSave(rawSave).party
 
   expect(Object.keys(mon).sort()).toEqual([
@@ -132,6 +132,7 @@ test('Should map a Pokemon to the ten stored fields and its slots to three', () 
     'heldItem',
     'hp',
     'ivs',
+    'moveRecovery',
     'moves',
     'nature',
     'nickname',
@@ -147,12 +148,14 @@ test('Should map a Pokemon to the ten stored fields and its slots to three', () 
   expect(mon.heldItem).toBe('charcoal')
   expect(mon.shiny).toBe(true)
   expect(mon.moves).toEqual([{ move: 'ember', pp: 24, maxPp: 25 }])
+  expect(mon.moveRecovery).toEqual([])
 })
 
 test('Should give a save written before a field existed an empty one instead', () => {
   const save = transformResponseSave({ version: 1, party: [{ species: 4 }] })
 
   expect(save.party[0].moves).toEqual([])
+  expect(save.party[0].moveRecovery).toEqual([])
   expect(save.party[0].nature).toBeUndefined()
   expect(save.party[0].ability).toBeUndefined()
   expect(save.party[0].heldItem).toBeNull()

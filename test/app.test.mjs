@@ -35,6 +35,8 @@ const { clearEncounter, peekQueue, writeEncounter } =
 const { addPokemon, createSave, loadSave } = await import('../src/state.mjs')
 const { giveAway } = await import('../src/trade.mjs')
 const { createPokemon, makeMoveSlot } = await import('../src/pokemon.mjs')
+const { applyMoveRecoveryExp, queueMissedDaycareMoves } =
+  await import('../src/moveRecovery.mjs')
 const { ballsInBag, countOf, itemsInBag, SHOP_STOCK } =
   await import('../src/shop.mjs')
 const { HIT_FRAMES, SHINY_MARK } = await import('../src/ui/constants.mjs')
@@ -2375,6 +2377,115 @@ test('Should refuse politely when you are too broke for the shop', () => {
   expect(app.shopMessage).toMatch(/afford/i)
 })
 
+test('Should show the empty Team state without falling through to Pokemon details', () => {
+  const save = createSave({ trainer: 'Red', starterId: 4, rng: makeRng(40) })
+  save.party = []
+  const app = createApp({
+    screen: stubScreen(),
+    save,
+    config: { ...DEFAULT_CONFIG },
+  })
+
+  app.openHomeSelection('team')
+
+  expect(teamText(app)).toContain('You have no Pokémon.')
+})
+
+test('Should show locked and unlocked Day Care moves under Team > Relearn Moves', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 4, rng: makeRng(41) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+  const mon = app.save.party[0]
+
+  mon.moveRecovery = [
+    {
+      move: 'ember',
+      level: 7,
+      requiredExp: 10,
+      progressExp: 3,
+      unlocked: false,
+    },
+    {
+      move: 'smokescreen',
+      level: 10,
+      requiredExp: 10,
+      progressExp: 10,
+      unlocked: true,
+    },
+  ]
+
+  app.openHomeSelection('team')
+  press(app, 'l')
+
+  expect(app.teamStep).toBe('relearn')
+  expect(teamText(app)).toContain('RELEARN MOVES')
+  expect(teamText(app)).toContain('7 EXP left')
+  expect(teamText(app)).toContain('ready to relearn')
+
+  app.relearnMove(99, 'ember')
+  app.relearnMove(0, 'ember')
+  expect(app.relearnMessage).toContain('7 EXP left')
+
+  press(app, 'enter')
+
+  expect(app.save.party[0].moves.map((slot) => slot.move)).not.toContain(
+    'ember',
+  )
+  expect(app.relearnMessage).toContain('7 EXP left')
+
+  press(app, 'up')
+  press(app, 'enter')
+
+  expect(mon.moves.map((slot) => slot.move)).toContain('smokescreen')
+  expect(mon.moveRecovery.map((entry) => entry.move)).toEqual(['ember'])
+  expect(loadSave().party[0].moveRecovery.map((entry) => entry.move)).toEqual([
+    'ember',
+  ])
+
+  press(app, 'escape')
+  expect(app.teamStep).toBe('list')
+})
+
+test('Should route an unlocked recovered fifth move through the saved move replacement prompt', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 4, rng: makeRng(42) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+  const mon = app.save.party[0]
+
+  mon.moves = ['scratch', 'growl', 'tackle', 'leer'].map(makeMoveSlot)
+  mon.moveRecovery = [
+    {
+      move: 'ember',
+      level: 7,
+      requiredExp: 10,
+      progressExp: 10,
+      unlocked: true,
+    },
+  ]
+
+  app.openHomeSelection('team')
+  press(app, 'l')
+  press(app, 'enter')
+
+  expect(app.save.moveChoices).toEqual([
+    { partyIndex: 0, move: 'ember', source: 'recovery' },
+  ])
+  expect(loadSave().moveChoices).toEqual([
+    { partyIndex: 0, move: 'ember', source: 'recovery' },
+  ])
+  expect(bagText(app)).toMatch(/forget to learn Ember/i)
+
+  press(app, 'enter')
+
+  expect(mon.moves[0].move).toBe('ember')
+  expect(mon.moveRecovery).toEqual([])
+  expect(loadSave().moveChoices).toEqual([])
+})
+
 test('Should make the team member you choose the lead', () => {
   const app = createApp({
     screen: stubScreen(),
@@ -3940,6 +4051,29 @@ test('Should keep the last one of the team out of the day care and say why', () 
 
   expect(app.save.daycare.slots, 'nobody was taken').toEqual([])
   expect(daycareText(app)).toContain('somebody has to fight')
+})
+
+test('Should save and reload partial Day Care move recovery progress', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 4, rng: makeRng(31) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+  const mon = app.save.party[0]
+
+  queueMissedDaycareMoves(mon, 5, 10)
+  const requirement = mon.moveRecovery[0].requiredExp
+  applyMoveRecoveryExp(mon, requirement - 1, { wonBattle: true })
+  app.persist()
+
+  const loaded = loadSave().party[0].moveRecovery[0]
+
+  expect(loaded).toMatchObject({
+    move: 'ember',
+    progressExp: requirement - 1,
+    requiredExp: requirement,
+    unlocked: false,
+  })
 })
 
 test('Should take one back out of a slot and into the team', () => {

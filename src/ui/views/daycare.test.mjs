@@ -70,6 +70,28 @@ test('Should fall back to a bordered panel when the egg sprite is not installed 
   expect(text).toContain(`120/${EGG_STEPS} steps`)
 })
 
+test('Should show move recovery progress for the selected Pokemon left at Day Care', () => {
+  const ctx = aCtx(null)
+  const mon = ctx.save.daycare.slots[0]
+
+  mon.moveRecovery = [
+    {
+      move: 'ember',
+      level: 7,
+      requiredExp: 20,
+      progressExp: 5,
+      unlocked: false,
+    },
+  ]
+
+  const text = textOf(ctx, { cols: 100, rows: 34 })
+
+  expect(text).toContain('Move recovery')
+  expect(text).toContain('Ember')
+  expect(text).toContain('15 EXP left')
+  expect(text).toContain('won battle EXP unlocks them to relearn')
+})
+
 test('Should keep the fallback panel square at every width it can be drawn at', () => {
   for (const cols of [40, 50, 64, 100]) {
     const lines = draw(aCtx({ species: 25, steps: 120, shiny: false }), {

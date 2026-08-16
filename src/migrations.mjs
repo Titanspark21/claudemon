@@ -12,6 +12,7 @@ import { speciesIdentity } from './data.mjs'
 import { normalizeExpedition } from './expedition.mjs'
 import { migrateJsonFile } from './fileLock.mjs'
 import { assertPersistentSpecies } from './forms.mjs'
+import { migrateMoveRecovery } from './moveRecovery.mjs'
 import { rollNature } from './natures.mjs'
 import { levelOf, rollAbility } from './pokemon.mjs'
 import { makeRng } from './rng.mjs'
@@ -86,6 +87,9 @@ const clonePokemon = (mon) => ({
   moves: Array.isArray(mon?.moves)
     ? mon.moves.map((slot) => ({ ...slot }))
     : mon?.moves,
+  moveRecovery: Array.isArray(mon?.moveRecovery)
+    ? mon.moveRecovery.map((entry) => ({ ...entry }))
+    : mon?.moveRecovery,
 })
 
 const saveIdentityOf = (save) =>
@@ -119,6 +123,8 @@ export const migratePokemon = (mon, saveIdentity = '') => {
       next.nature,
     )
   }
+
+  migrateMoveRecovery(next)
 
   return next
 }

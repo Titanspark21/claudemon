@@ -62,6 +62,15 @@ test('Should carry the exact Pokémon over to the other game and out of this one
   sparky.hp = 5
   sparky.status = 'paralysis'
   sparky.moves[0].pp = 3
+  sparky.moveRecovery = [
+    {
+      move: 'flamethrower',
+      level: 12,
+      requiredExp: 40,
+      progressExp: 17,
+      unlocked: false,
+    },
+  ]
   ash.party.push(sparky)
 
   const given = giveAway(ash, 'party', 1)
@@ -87,6 +96,7 @@ test('Should carry the exact Pokémon over to the other game and out of this one
   expect(taken.mon.status).toBe('paralysis')
   expect(taken.mon.shiny).toBe(true)
   expect(taken.mon.moves[0].pp).toBe(3)
+  expect(taken.mon.moveRecovery).toEqual(sparky.moveRecovery)
   expect(gary.party).toHaveLength(2)
   expect(gary.dex.caught, 'a traded Pokémon fills in its dex entry').toContain(
     25,

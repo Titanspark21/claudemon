@@ -162,7 +162,13 @@ export const BOX_SORT_LABELS = { order: 'caught', level: 'Lv' }
 export const TEAM_HINTS =
   ' ↑ ↓ browse · [enter] lead · [s] sort · [i] items · [d] send it to the box · [esc] back'
 export const TEAM_KEY_HINTS =
-  ' [b] the box · [c] the day care · [t] trade it away · [r] take one in from a code'
+  ' [l] relearn moves · [b] the box · [c] the day care · [t] trade it away · [r] take one in from a code'
+export const RELEARN_TITLE = 'RELEARN MOVES'
+export const RELEARN_HINTS =
+  ' ↑ ↓ choose · [enter] relearn unlocked move · [esc] back to team'
+export const RELEARN_RULE =
+  'Locked moves need won battle EXP; at Lv100 each won battle unlocks one.'
+export const RELEARN_EMPTY = 'No Day Care moves are waiting for this Pokémon.'
 export const TEAM_BAG_HINTS =
   ' ↑ ↓ choose · [enter] use it/give it · [u] take held item · [esc] put the bag away'
 export const MOVE_CHOICE_TITLE = 'LEARN MOVE'
@@ -201,6 +207,8 @@ export const DAYCARE_NOTES = {
   getAlong: 'The two seem to get along.',
   noSpark: 'The two prefer to play with other Pokémon.',
   raising: 'Whoever waits here keeps gaining EXP while Claude works.',
+  recovery:
+    'Moves crossed here are saved; won battle EXP unlocks them to relearn.',
   noEgg: 'No egg yet.',
   inside: 'Something is moving inside.',
   onlyWhileOpen: 'It only comes along while Claude works and this is open.',

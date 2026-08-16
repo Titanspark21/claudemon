@@ -8,6 +8,14 @@ const mapMoveSlot = (slot) => {
   }
 }
 
+const mapMoveRecovery = (entry) => ({
+  move: entry.move,
+  level: entry.level,
+  requiredExp: entry.requiredExp,
+  progressExp: entry.progressExp,
+  unlocked: entry.unlocked === true,
+})
+
 const mapPokemon = (mon) => {
   assertPersistentSpecies(mon.species)
 
@@ -22,6 +30,7 @@ const mapPokemon = (mon) => {
     stats: mon.stats,
     hp: mon.hp,
     moves: mon.moves ? mon.moves.map(mapMoveSlot) : [],
+    moveRecovery: mon.moveRecovery ? mon.moveRecovery.map(mapMoveRecovery) : [],
     status: mon.status,
     statusTurns: mon.statusTurns,
     shiny: mon.shiny ?? false,
@@ -106,6 +115,7 @@ const mapMoveChoice = (choice) => {
   return {
     partyIndex: choice.partyIndex,
     move: choice.move,
+    ...(choice.source ? { source: choice.source } : {}),
   }
 }
 
@@ -364,6 +374,7 @@ const mapTradeMon = (mon) => {
     heldItem: mon.heldItem ?? null,
     hp: mon.hp,
     moves: mon.moves.map(mapMoveSlot),
+    moveRecovery: mon.moveRecovery ? mon.moveRecovery.map(mapMoveRecovery) : [],
     status: mon.status,
     statusTurns: mon.statusTurns,
     shiny: mon.shiny ?? false,

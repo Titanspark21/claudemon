@@ -134,6 +134,8 @@ src/migrations.mjs
 src/migrations.test.mjs
 src/moveEffects.mjs
 src/moveEffects.test.mjs
+src/moveRecovery.mjs
+src/moveRecovery.test.mjs
 src/natures.mjs
 src/natures.test.mjs
 src/paths.mjs

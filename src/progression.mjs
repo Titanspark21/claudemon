@@ -1,6 +1,7 @@
 import { MAX_LEVEL, MOVE_LIMIT, MOVE_SLOTS_FULL_LINE } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
 import { movesLearnedAt } from './learnset.mjs'
+import { applyMoveRecoveryExp, completeMoveRecovery } from './moveRecovery.mjs'
 import {
   displayName,
   evolveInto,
@@ -16,10 +17,14 @@ const learnMovesAt = (mon, level) => {
   const steps = []
 
   for (const name of movesLearnedAt(mon.species, level)) {
-    if (mon.moves.some((slot) => slot.move === name)) continue
+    if (mon.moves.some((slot) => slot.move === name)) {
+      completeMoveRecovery(mon, name)
+      continue
+    }
 
     if (mon.moves.length < MOVE_LIMIT) {
       mon.moves.push(makeMoveSlot(name))
+      completeMoveRecovery(mon, name)
       steps.push({ kind: 'learn', move: name, mon, name: displayName(mon) })
     } else {
       steps.push({
@@ -110,6 +115,43 @@ const gainExp = (save, mon, amount) => {
   return steps
 }
 
+const recoveredLearningSteps = (mon, unlocked, normalChoices) => {
+  const steps = []
+
+  for (const recovery of unlocked) {
+    const name = recovery.move
+
+    if (mon.moves.some((slot) => slot.move === name)) {
+      completeMoveRecovery(mon, name)
+      continue
+    }
+
+    if (normalChoices.has(name)) continue
+
+    if (mon.moves.length < MOVE_LIMIT) {
+      mon.moves.push(makeMoveSlot(name))
+      completeMoveRecovery(mon, name)
+      steps.push({
+        kind: 'learn',
+        move: name,
+        mon,
+        name: displayName(mon),
+        source: 'recovery',
+      })
+    } else {
+      steps.push({
+        kind: 'learn-choice',
+        move: name,
+        mon,
+        name: displayName(mon),
+        source: 'recovery',
+      })
+    }
+  }
+
+  return steps
+}
+
 export const applyVictory = (save, mons, rewards) => {
   const steps = []
 
@@ -121,7 +163,18 @@ export const applyVictory = (save, mons, rewards) => {
   for (const mon of mons) {
     if (isFainted(mon)) continue
 
-    steps.push(...gainExp(save, mon, rewards.exp))
+    const gained = gainExp(save, mon, rewards.exp)
+    const normalChoices = new Set(
+      gained
+        .filter((step) => step.kind === 'learn-choice')
+        .map((step) => step.move),
+    )
+
+    steps.push(...gained)
+
+    const unlocked = applyMoveRecoveryExp(mon, rewards.exp, { wonBattle: true })
+
+    steps.push(...recoveredLearningSteps(mon, unlocked, normalChoices))
   }
 
   return steps
@@ -144,6 +197,7 @@ export const queueMoveChoices = (save, steps) => {
     save.moveChoices.push({
       partyIndex: save.party.indexOf(step.mon),
       move: step.move,
+      ...(step.source ? { source: step.source } : {}),
     })
   }
 
@@ -166,9 +220,16 @@ export const resolveMoveChoice = (save, slotIndex) => {
   const choice = pendingMoveChoice(save)
   const result = learnMove(choice.mon, choice.move, slotIndex)
 
+  if (result.learned) completeMoveRecovery(choice.mon, choice.move)
+
   save.moveChoices.shift()
 
-  return { ...result, move: choice.move, mon: choice.mon }
+  return {
+    ...result,
+    move: choice.move,
+    mon: choice.mon,
+    source: choice.source ?? null,
+  }
 }
 
 export const describeStep = (step) => {

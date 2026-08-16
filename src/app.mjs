@@ -17,8 +17,9 @@ import {
   LEAGUE_MESSAGES,
   TRADE_MESSAGES,
   TRAINER_MESSAGES,
+  MOVE_LIMIT,
 } from './constants.mjs'
-import { species } from './data.mjs'
+import { move as moveData, species } from './data.mjs'
 import { DEFAULT_DEX_FILTER } from './dexFilter.mjs'
 import { createBattle } from './battle.mjs'
 import {
@@ -72,8 +73,14 @@ import {
 import { canSpare } from './helpers.mjs'
 import { giveHeldItem, applyItem, takeHeldItem } from './itemUse.mjs'
 import {
+  completeMoveRecovery,
+  moveRecoveryStatusText,
+  relearnableMoves,
+} from './moveRecovery.mjs'
+import {
   describeStep,
   pendingMoveChoice,
+  queueMoveChoices,
   resolveMoveChoice,
 } from './progression.mjs'
 import { createPokemon, displayName, makeMoveSlot } from './pokemon.mjs'
@@ -204,6 +211,9 @@ export const createApp = ({
     dexFilterHelp: false,
     teamSelection: 0,
     teamSort: 'order',
+    teamStep: 'list',
+    relearnSelection: 0,
+    relearnMessage: null,
     boxSelection: 0,
     boxSort: 'order',
 
@@ -537,6 +547,8 @@ export const createApp = ({
         break
       case 'team':
         ctx.teamSelection = 0
+        ctx.teamStep = 'list'
+        ctx.relearnSelection = 0
         ctx.clearTeamMessages()
         ctx.closeBag()
         ctx.setMode('team')
@@ -703,11 +715,17 @@ export const createApp = ({
   ctx.takeBackFromDaycare = (slot) => {
     const { mon, where } = takeBackFromDaycare(ctx.save, slot)
     const name = displayName(mon).toUpperCase()
+    const waiting = relearnableMoves(mon).length
 
     ctx.daycareSelection = slot
     ctx.daycareMessage = [
       `${name} ${DAYCARE_MESSAGES.cameBack}`,
       arrivalWording(where),
+      ...(waiting > 0
+        ? [
+            `${waiting} Day Care move${waiting === 1 ? '' : 's'} waiting under Team > Relearn Moves.`,
+          ]
+        : []),
     ]
 
     ctx.persist()
@@ -741,6 +759,54 @@ export const createApp = ({
   ctx.clearTeamMessages = () => {
     ctx.boxMessage = null
     ctx.bagMessage = null
+    ctx.relearnMessage = null
+  }
+
+  ctx.openRelearnMoves = () => {
+    ctx.teamStep = 'relearn'
+    ctx.relearnSelection = 0
+    ctx.relearnMessage = null
+  }
+
+  ctx.closeRelearnMoves = () => {
+    ctx.teamStep = 'list'
+    ctx.relearnSelection = 0
+    ctx.relearnMessage = null
+  }
+
+  ctx.relearnMove = (partyIndex, name) => {
+    const mon = ctx.save.party[partyIndex]
+    const recovery = relearnableMoves(mon ?? {}).find(
+      (entry) => entry.move === name,
+    )
+
+    if (!mon || !recovery) return
+
+    if (!recovery.unlocked) {
+      ctx.relearnMessage = `${moveData(name).name}: ${moveRecoveryStatusText(mon, recovery)}.`
+      return
+    }
+
+    if (mon.moves.length < MOVE_LIMIT) {
+      mon.moves.push(makeMoveSlot(name))
+      completeMoveRecovery(mon, name)
+      ctx.relearnMessage = `${displayName(mon).toUpperCase()} relearned ${moveData(name).name}.`
+      ctx.persist()
+      return
+    }
+
+    queueMoveChoices(ctx.save, [
+      {
+        kind: 'learn-choice',
+        move: name,
+        mon,
+        name: displayName(mon),
+        source: 'recovery',
+      },
+    ])
+    ctx.moveSelection = 0
+    ctx.relearnMessage = null
+    ctx.persist()
   }
 
   ctx.openBag = () => {

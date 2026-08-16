@@ -4,6 +4,11 @@ import {
   eggProgress,
   pairIsCompatible,
 } from '../../daycare.mjs'
+import { move as moveData } from '../../data.mjs'
+import {
+  moveRecoveryStatusText,
+  relearnableMoves,
+} from '../../moveRecovery.mjs'
 import { eggSpriteFile } from '../../paths.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
@@ -116,6 +121,21 @@ const pairNote = (save) => {
   return gray(DAYCARE_NOTES.noSpark)
 }
 
+const recoveryDetail = (mon) => {
+  const entries = relearnableMoves(mon)
+
+  if (entries.length === 0) return []
+
+  return [
+    '',
+    bold('Move recovery'),
+    ...entries.map(
+      (entry) =>
+        `${moveData(entry.move).name} · ${dim(moveRecoveryStatusText(mon, entry))}`,
+    ),
+  ]
+}
+
 const drawSlots = (ctx, size) => {
   const { cols, rows } = size
   const width = Math.min(cols - 4, MAX_DAYCARE_WIDTH)
@@ -134,6 +154,7 @@ const drawSlots = (ctx, size) => {
   lines.push('')
   lines.push(` ${pairNote(ctx.save)}`)
   lines.push(` ${dim(DAYCARE_NOTES.raising)}`)
+  lines.push(` ${dim(DAYCARE_NOTES.recovery)}`)
   lines.push('')
 
   const list = menuList(slotRows(slots), ctx.daycareSelection, {
@@ -147,9 +168,12 @@ const drawSlots = (ctx, size) => {
   const budget = rowsLeftFor(rows, lines, footer, note)
   const detailWidth = detailColumnWidth(size, DAYCARE_LIST_WIDTH)
   const right = selected
-    ? monDetail(selected, {
-        width: detailWidth ?? Math.max(1, cols - 2),
-      })
+    ? [
+        ...monDetail(selected, {
+          width: detailWidth ?? Math.max(1, cols - 2),
+        }),
+        ...recoveryDetail(selected),
+      ]
     : []
   const body =
     detailWidth == null && selected

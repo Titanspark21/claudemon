@@ -177,6 +177,7 @@ const arrivingMon = (mon) => {
     stats,
     hp: Math.max(0, Math.min(stats.hp, Math.round(mon.hp))),
     moves: mon.moves.map(arrivingMove),
+    moveRecovery: (mon.moveRecovery ?? []).map((entry) => ({ ...entry })),
     status: mon.status,
     statusTurns: mon.statusTurns,
     shiny: mon.shiny,

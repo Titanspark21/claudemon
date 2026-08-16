@@ -1,4 +1,10 @@
 import { PARTY_LIMIT } from '../../constants.mjs'
+import { move as moveData } from '../../data.mjs'
+import {
+  moveRecoveryStatusText,
+  relearnableMoves,
+} from '../../moveRecovery.mjs'
+import { displayName } from '../../pokemon.mjs'
 import { bold, brightYellow, dim, gray } from '../ansi.mjs'
 import { monDetail } from '../detail.mjs'
 import { menuList, withFooter, wrap } from '../widgets.mjs'
@@ -6,6 +12,10 @@ import {
   LEAD_MARK,
   LIST_HEIGHT_FLOOR,
   LIST_WIDTH,
+  RELEARN_EMPTY,
+  RELEARN_HINTS,
+  RELEARN_RULE,
+  RELEARN_TITLE,
   TEAM_HINTS,
   TEAM_KEY_HINTS,
   TEAM_MESSAGES,
@@ -33,7 +43,55 @@ const partyRow = (mon, partyIndex) => {
   return `${leadMark} ${monRow(mon)}`
 }
 
+const recoveryRows = (mon) => {
+  return relearnableMoves(mon).map((entry) => {
+    const status = moveRecoveryStatusText(mon, entry)
+    const lock = entry.unlocked ? brightYellow('●') : gray('○')
+
+    return `${lock} ${moveData(entry.move).name}  ${dim(status)}`
+  })
+}
+
+const drawRelearn = (ctx, size) => {
+  const { rows } = size
+  const party = ctx.save.party
+  const selected = partyEntryAt(party, ctx.teamSelection, ctx.teamSort)
+  const mon = selected?.mon
+  const moves = mon ? recoveryRows(mon) : []
+  const lines = [
+    ` ${brightYellow('◓')} ${bold(RELEARN_TITLE)}${
+      mon ? `   ${dim(displayName(mon).toUpperCase())}` : ''
+    }`,
+    '',
+  ]
+
+  if (moves.length === 0) lines.push(` ${gray(RELEARN_EMPTY)}`)
+  else {
+    ctx.relearnSelection = Math.min(ctx.relearnSelection, moves.length - 1)
+    for (const line of menuList(moves, ctx.relearnSelection, {
+      height: Math.max(LIST_HEIGHT_FLOOR, moves.length),
+      width: Math.max(LIST_WIDTH, 44),
+    }))
+      lines.push(line)
+  }
+
+  lines.push('')
+  lines.push(` ${dim(RELEARN_RULE)}`)
+
+  const note = noteRows(ctx.relearnMessage)
+  const footer = [dim(RELEARN_HINTS)]
+  const budget = rowsLeftFor(rows, lines, footer, note)
+
+  if (budget < 0) lines.splice(Math.max(2, lines.length + budget), -budget)
+
+  pushNote(lines, note)
+
+  return { lines: withFooter(lines, footer, rows), overlays: [] }
+}
+
 export const draw = (ctx, size) => {
+  if (ctx.teamStep === 'relearn') return drawRelearn(ctx, size)
+
   const { rows } = size
   const lines = []
   const overlays = []
@@ -92,7 +150,38 @@ export const draw = (ctx, size) => {
   }
 }
 
+const onRelearnKey = (ctx, key) => {
+  if (key.name === 'escape' || key.name === 'q') {
+    ctx.closeRelearnMoves()
+    return
+  }
+
+  const selected = partyEntryAt(ctx.save.party, ctx.teamSelection, ctx.teamSort)
+  const moves = selected ? relearnableMoves(selected.mon) : []
+
+  if (moves.length === 0) return
+
+  if (key.name === 'up' || key.name === 'k') {
+    ctx.relearnSelection = wrap(ctx.relearnSelection - 1, moves.length)
+    ctx.relearnMessage = null
+  } else if (key.name === 'down' || key.name === 'j') {
+    ctx.relearnSelection = wrap(ctx.relearnSelection + 1, moves.length)
+    ctx.relearnMessage = null
+  } else if (key.name === 'enter' || key.name === 'space') {
+    const entry = moves[ctx.relearnSelection]
+
+    if (!entry.unlocked) {
+      ctx.relearnMessage = `${moveData(entry.move).name}: ${moveRecoveryStatusText(selected.mon, entry)}.`
+      return
+    }
+
+    ctx.relearnMove(selected.index, entry.move)
+  }
+}
+
 export const onKey = (ctx, key) => {
+  if (ctx.teamStep === 'relearn') return onRelearnKey(ctx, key)
+
   if (key.name === 'escape' || key.name === 'q') {
     ctx.clearTeamMessages()
     ctx.setMode('home')
@@ -126,7 +215,8 @@ export const onKey = (ctx, key) => {
     )
     ctx.teamSort = nextSort
     ctx.clearTeamMessages()
-  } else if (key.name === 'i') ctx.openBag()
+  } else if (key.name === 'l') ctx.openRelearnMoves()
+  else if (key.name === 'i') ctx.openBag()
   else if (key.name === 'b') ctx.openBox()
   else if (key.name === 'c') ctx.openDaycare('team')
   else if (key.name === 't')
