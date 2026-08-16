@@ -209,8 +209,75 @@ when all four slots are occupied.
       learn it”; Escape must not silently discard a pending choice.
 - [ ] Handle multiple moves learned by one evolution in order, persisting each
       accepted replacement or decline before continuing.
-- [ ] Keep Day Care excluded because it intentionally does not teach moves.
+- [ ] Keep Day Care recovery routed through Task B5's EXP-gated queue rather
+      than treating a Day Care level as an immediate learning event.
 - [ ] Commit: `fix: prompt before replacing an evolution move`
+
+### Task B5: Preserve and recover every move skipped in Day Care
+
+**Problem:** Day Care raises a Pokémon's level without running the normal move
+learning flow. Because the current learnset lookup checks only the exact level
+just reached, every move crossed in Day Care is permanently lost. Existing
+saves have no record that distinguishes a Day Care-skipped move from an
+intentionally forgotten move, so recovery must be derived safely from the
+Pokémon's legal level-up learnset.
+
+**Files:**
+
+- Create: `src/moveRecovery.mjs`
+- Create: `src/moveRecovery.test.mjs`
+- Modify: `src/daycare.mjs`
+- Modify: `src/progression.mjs`
+- Modify: `src/battleFlow.mjs`
+- Modify: `src/app.mjs`
+- Modify: `src/migrations.mjs`
+- Modify: `src/ui/views/team.mjs`
+- Modify: `src/ui/views/daycare.mjs`
+- Test: `src/daycare.test.mjs`
+- Test: `src/ui/views/daycare.test.mjs`
+- Test: `test/game.test.mjs`
+- Test: `test/app.test.mjs`
+
+**Interfaces:**
+
+```js
+queueMissedDaycareMoves(mon, fromLevel, toLevel) -> mon
+applyMoveRecoveryExp(mon, awardedExp, { wonBattle }) -> RecoveryStep[]
+relearnableMoves(mon) -> MoveRecovery[]
+```
+
+- [ ] Add failing tests for one skipped move, several levels and moves crossed
+      in one Day Care stay, duplicate learnset entries, a move already known,
+      a full four-move set, declining an unlocked move, and save/reload during
+      partial progress.
+- [ ] Record every legal level-up move crossed while the Pokémon is in Day
+      Care. Keep the queue permanently on that Pokémon until each move is
+      learned; never silently discard an entry because the Pokémon was
+      withdrawn, deposited again, traded, evolved, or already has four moves.
+- [ ] Give each queued move an outside-training requirement equal to 25% of
+      the EXP between the Pokémon's level when that move was skipped and its
+      following level, rounded up to at least one EXP. Apply only EXP actually
+      awarded to that Pokémon after a won battle outside Day Care, preserve
+      excess progress, and process queued moves in learnset order.
+- [ ] At level 100, where EXP cannot advance, unlock one queued move for each
+      won battle in which that Pokémon participated.
+- [ ] When a requirement is met, route the move through the same persisted
+      replace-or-decline prompt as normal learning. Choosing “Not now” must
+      leave the move unlocked in Team > Relearn Moves so declining never makes
+      it permanently unavailable.
+- [ ] Add Team > Relearn Moves for unlocked entries, showing locked entries'
+      remaining EXP or level-100 battle wins without allowing the player to
+      bypass the gate.
+- [ ] Migrate existing Pokémon by deriving every currently legal, unlearned
+      level-up move at or below their level into the same EXP-gated recovery
+      queue. This intentionally also recovers moves forgotten before the game
+      tracked Day Care history rather than leaving existing saves permanently
+      damaged.
+- [ ] Show the recovery rule and current progress in Day Care withdrawal and
+      Team screens, including the level-100 one-win rule.
+- [ ] Run the focused recovery, Day Care, progression, battle-flow, migration,
+      and UI tests, then run full coverage.
+- [ ] Commit: `fix: let Pokemon recover Day Care moves`
 
 ---
 
@@ -256,12 +323,13 @@ buildSpriteManifest(speciesRecords) -> manifest
 
 ### 2026-08-16 — live gameplay findings
 
-### Task V6: Explain Day Care evolution and move-learning limits in the UI
+### Task V6: Explain Day Care evolution and move recovery in the UI
 
-**Problem:** Day Care intentionally raises levels without teaching moves or
-evolving Pokémon, matching the existing documented behavior, but the terminal
-does not say this. A Pokémon taken out above its evolution level therefore
-looks stuck until it gains its next level outside Day Care.
+**Problem:** Day Care raises levels without immediately teaching moves or
+evolving Pokémon, but the terminal does not explain either delayed outcome. A
+Pokémon taken out above its evolution level looks stuck, while skipped moves
+appear permanently lost even though Task B5 will retain them behind an
+outside-training requirement.
 
 **Files:**
 
@@ -271,12 +339,16 @@ looks stuck until it gains its next level outside Day Care.
 - Test: `src/ui/views/daycare.test.mjs`
 - Test: `test/app.test.mjs`
 
-- [ ] Show a persistent Day Care note that levels gained there do not teach
-      moves or trigger evolution.
+- [ ] Show a persistent Day Care note that levels gained there do not
+      immediately teach moves or trigger evolution, and that skipped moves are
+      retained for EXP-gated recovery.
 - [ ] On withdrawal, identify a Pokémon already eligible for level evolution
       and say that it will evolve the next time it levels up outside Day Care.
+- [ ] On withdrawal, list newly queued moves and explain that each unlocks
+      after its displayed outside-battle EXP requirement; show one won battle
+      instead for a level-100 Pokémon.
 - [ ] Verify the note and withdrawal message in narrow and wide terminal
-      layouts without changing canonical Day Care behavior.
+      layouts without duplicating the Team recovery controls.
 - [ ] Commit: `visual: explain Day Care evolution timing`
 
 ---

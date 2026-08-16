@@ -93,11 +93,13 @@ steps a non-developer can follow.
 
 ## Recent activity
 
+- Agreed that Day Care-skipped moves must never be permanently lost: each is
+  retained behind a 25%-of-next-level outside battle EXP gate, with one won
+  battle per move at level 100, and recorded the full recovery flow in
+  `PLAN.md`.
 - Diagnosed the live fork/upstream split, the false-positive move coverage,
   four-move replacement flow, and Day Care evolution timing; recorded the
   required fixes and player-facing clarity work in `PLAN.md`.
 - Reassessed AI-assisted difficulty and agreed on complete Generation VII,
   forms, Megas, natures, visible IVs, held items, abilities, weather, and
   terrain with explicit coverage rather than arbitrary feature caps.
-- Corrected biome generation to balance overlapping pools from the actual
-  dataset instead of using a guessed fixed range.
