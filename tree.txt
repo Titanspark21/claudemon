@@ -1,3 +1,4 @@
+.bridge/verify.json
 .claude-plugin/marketplace.json
 .claude-plugin/plugin.json
 .githooks/pre-commit
