@@ -753,6 +753,42 @@ test('Should count a launcher on an older release as one to bring up to date', (
   ).toBe(false)
 })
 
+test('Should refuse to drag a launcher back onto an older release', () => {
+  const cache = mkdtempSync(join(tmpdir(), 'claudemon-releases-'))
+
+  for (const version of ['1.9.1', '1.9.2']) {
+    mkdirSync(join(cache, version, '.claude-plugin'), { recursive: true })
+    writeFileSync(
+      join(cache, version, '.claude-plugin', 'plugin.json'),
+      `{"version":"${version}"}`,
+    )
+  }
+
+  const older = join(cache, '1.9.1')
+  const newer = join(cache, '1.9.2')
+  const path = join(sandbox, 'newer-launcher')
+
+  writeFileSync(path, launcherInstalledFrom(newer))
+
+  expect(
+    pointsElsewhere(launcherInstalledFrom(newer), older, cache),
+    'an old hook must leave the newer launcher alone',
+  ).toBe(false)
+  expect(
+    relinkLaunchers({
+      root: older,
+      cache,
+      launchers: [{ path, target: 'bin/claudemon' }],
+    }),
+  ).toEqual([])
+  expect(readFileSync(path, 'utf8')).toContain(`app="${newer}"`)
+
+  expect(
+    pointsElsewhere(launcherInstalledFrom(older), newer, cache),
+    'and a new release still claims an old launcher',
+  ).toBe(true)
+})
+
 test('Should never touch a launcher we did not write, whatever it says', () => {
   const theirs = `#!/bin/sh\napp="${CACHE}/0.5.0"\nexec "$app/bin/claudemon" "$@"\n`
 

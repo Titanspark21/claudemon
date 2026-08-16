@@ -3,7 +3,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { SHIM_APP_PATTERN, SHIM_MARKER } from './constants.mjs'
 import { HOME, PLUGIN_CACHE } from './paths.mjs'
-import { APP_ROOT, isPluginCopy } from './version.mjs'
+import { APP_ROOT, isNewer, isPluginCopy, versionAt } from './version.mjs'
 
 export const LAUNCHERS = [
   {
@@ -56,6 +56,7 @@ export const pointsElsewhere = (source, root, cache = PLUGIN_CACHE) => {
 
   if (named == null) return true
   if (!isPluginCopy(named, cache)) return false
+  if (isNewer(versionAt(named), versionAt(root))) return false
 
   return named !== root
 }
