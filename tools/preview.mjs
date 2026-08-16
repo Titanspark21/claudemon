@@ -316,6 +316,17 @@ const SCENES = {
 
     return app
   },
+  'team-moves': () => {
+    const app = makeApp(sampleSave())
+
+    app.mode = 'team'
+    app.teamSelection = 0
+    app.openMoveOrder()
+    app.stepMoveOrder(1)
+    app.toggleMoveHold()
+
+    return app
+  },
   'daycare-raising': () => {
     const app = makeApp(sampleSave())
 

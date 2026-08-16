@@ -1184,6 +1184,11 @@ export const BAG_MESSAGES = {
   noRoomForMove: 'There was no room for it, so it kept the four it knows.',
 }
 
+export const MOVE_ORDER_MESSAGES = {
+  dropped: 'is now in slot',
+  putBack: 'Left the moves in the order they were.',
+}
+
 export const BAG_MODES = new Set(['team', 'gym', 'league'])
 
 export const GYM_MESSAGES = {

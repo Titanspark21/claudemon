@@ -22,6 +22,7 @@ import {
   TEAM_SORT_LABELS,
   TEAM_TITLE,
 } from './constants.mjs'
+import * as moveOrderView from './moveOrder.mjs'
 import {
   columnRows,
   detailColumnWidth,
@@ -91,6 +92,7 @@ const drawRelearn = (ctx, size) => {
 
 export const draw = (ctx, size) => {
   if (ctx.teamStep === 'relearn') return drawRelearn(ctx, size)
+  if (ctx.teamStep === 'moves') return moveOrderView.draw(ctx, size)
 
   const { rows } = size
   const lines = []
@@ -181,6 +183,7 @@ const onRelearnKey = (ctx, key) => {
 
 export const onKey = (ctx, key) => {
   if (ctx.teamStep === 'relearn') return onRelearnKey(ctx, key)
+  if (ctx.teamStep === 'moves') return moveOrderView.onKey(ctx, key)
 
   if (key.name === 'escape' || key.name === 'q') {
     ctx.clearTeamMessages()
@@ -215,7 +218,8 @@ export const onKey = (ctx, key) => {
     )
     ctx.teamSort = nextSort
     ctx.clearTeamMessages()
-  } else if (key.name === 'l') ctx.openRelearnMoves()
+  } else if (key.name === 'm') ctx.openMoveOrder()
+  else if (key.name === 'l') ctx.openRelearnMoves()
   else if (key.name === 'i') ctx.openBag()
   else if (key.name === 'b') ctx.openBox()
   else if (key.name === 'c') ctx.openDaycare('team')

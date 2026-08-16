@@ -233,6 +233,12 @@ canonical evolution condition has no meaningful Claudemon equivalent, the
 normalized data declares a simple documented substitute rather than leaving
 the evolution impossible.
 
+Move slot order belongs to the player. Team > Move Order lists a Pokémon's
+four slots; `[enter]` picks a move up, the arrow keys slide it through the
+slots and wrap at either end, `[enter]` drops it, and `[esc]` puts it back
+exactly where it was. A dropped move is saved immediately; an abandoned
+reorder writes nothing. Slot order is the order the Fight menu shows.
+
 Trade evolutions use a reusable Link Cable item; trade evolutions that also
 require a held item require that item plus the Link Cable. When one trigger can
 produce both a normal and Alolan result, the evolution screen asks the player

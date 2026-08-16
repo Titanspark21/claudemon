@@ -93,6 +93,8 @@ steps a non-developer can follow.
 
 ## Recent activity
 
+- Added Team > Move Order: pick a move up with enter, slide it between slots
+  with the arrow keys, drop it to save or escape to put it back.
 - Fixed the failing in-game update on Windows: the installer and the updater
   spawned `claude` directly, which Node cannot do when the command is a `.cmd`
   shim, so every run ended with a plugin failure and an unhelpful last-line

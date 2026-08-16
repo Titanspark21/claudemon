@@ -46,6 +46,7 @@ const battleView = await import('../src/ui/views/battle.mjs')
 const bagView = await import('../src/ui/views/bag.mjs')
 const gymView = await import('../src/ui/views/gym.mjs')
 const teamView = await import('../src/ui/views/team.mjs')
+const moveOrderView = await import('../src/ui/views/moveOrder.mjs')
 const daycareView = await import('../src/ui/views/daycare.mjs')
 const tradeView = await import('../src/ui/views/trade.mjs')
 const dexView = await import('../src/ui/views/dex.mjs')
@@ -123,6 +124,13 @@ const gymText = (app) => {
 
 const teamText = (app) => {
   return teamView
+    .draw(app, { cols: 100, rows: 34 })
+    .lines.map(stripAnsi)
+    .join('\n')
+}
+
+const moveOrderText = (app) => {
+  return moveOrderView
     .draw(app, { cols: 100, rows: 34 })
     .lines.map(stripAnsi)
     .join('\n')
@@ -2405,6 +2413,91 @@ test('Should show the empty Team state without falling through to Pokemon detail
   app.openHomeSelection('team')
 
   expect(teamText(app)).toContain('You have no Pokémon.')
+})
+
+test('Should carry a move to another slot and keep the new order on disk', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 4, rng: makeRng(41) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+  const mon = app.save.party[0]
+
+  mon.moves = ['scratch', 'growl', 'ember', 'smokescreen'].map(makeMoveSlot)
+
+  app.openHomeSelection('team')
+  press(app, 'm')
+
+  expect(app.teamStep).toBe('moves')
+  expect(moveOrderText(app)).toContain('MOVES')
+  expect(moveOrderText(app), 'nothing is picked up yet').not.toContain('moving')
+
+  press(app, 'enter')
+
+  expect(moveOrderText(app), 'the first move is in hand').toContain(
+    '1  Scratch',
+  )
+  expect(moveOrderText(app)).toContain('moving')
+
+  press(app, 'down')
+  press(app, 'down')
+
+  expect(
+    mon.moves.map((slot) => slot.move),
+    'it slid down two slots',
+  ).toEqual(['growl', 'ember', 'scratch', 'smokescreen'])
+
+  press(app, 'enter')
+
+  expect(app.moveOrderMessage).toBe('Scratch is now in slot 3.')
+  expect(moveOrderText(app), 'and it was put down').not.toContain('moving')
+  expect(loadSave().party[0].moves.map((slot) => slot.move)).toEqual([
+    'growl',
+    'ember',
+    'scratch',
+    'smokescreen',
+  ])
+
+  press(app, 'escape')
+
+  expect(app.teamStep).toBe('list')
+})
+
+test('Should put a held move back where it started when the reorder is abandoned', () => {
+  const app = createApp({
+    screen: stubScreen(),
+    save: createSave({ trainer: 'Red', starterId: 4, rng: makeRng(41) }),
+    config: { ...DEFAULT_CONFIG },
+  })
+  const mon = app.save.party[0]
+
+  mon.moves = ['scratch', 'growl', 'ember'].map(makeMoveSlot)
+
+  const onDiskBefore = loadSave().party[0].moves.map((slot) => slot.move)
+
+  app.openHomeSelection('team')
+  press(app, 'm')
+  press(app, 'enter')
+  press(app, 'up')
+
+  expect(
+    mon.moves.map((slot) => slot.move),
+    'it wrapped to the end',
+  ).toEqual(['growl', 'ember', 'scratch'])
+
+  press(app, 'escape')
+
+  expect(mon.moves.map((slot) => slot.move)).toEqual([
+    'scratch',
+    'growl',
+    'ember',
+  ])
+  expect(app.moveOrderMessage).toBe('Left the moves in the order they were.')
+  expect(app.teamStep, 'the screen stays open').toBe('moves')
+  expect(
+    loadSave().party[0].moves.map((slot) => slot.move),
+    'an abandoned reorder writes nothing',
+  ).toEqual(onDiskBefore)
 })
 
 test('Should show locked and unlocked Day Care moves under Team > Relearn Moves', () => {

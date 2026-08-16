@@ -19,6 +19,7 @@ import {
   TRAINER_MESSAGES,
   MAX_LEVEL,
   MOVE_LIMIT,
+  MOVE_ORDER_MESSAGES,
 } from './constants.mjs'
 import { move as moveData, species } from './data.mjs'
 import { DEFAULT_DEX_FILTER } from './dexFilter.mjs'
@@ -73,6 +74,7 @@ import {
 } from './league.mjs'
 import { canSpare } from './helpers.mjs'
 import { giveHeldItem, applyItem, takeHeldItem } from './itemUse.mjs'
+import { nextMoveSlot, reorderMoveSlots } from './moveOrder.mjs'
 import {
   completeMoveRecovery,
   moveRecoveryStatusText,
@@ -143,7 +145,11 @@ import * as teamView from './ui/views/team.mjs'
 import * as tradeView from './ui/views/trade.mjs'
 import * as trainerView from './ui/views/trainer.mjs'
 import * as updateView from './ui/views/update.mjs'
-import { sortedPartyEntries } from './ui/views/helpers.mjs'
+import { partyEntryAt, sortedPartyEntries } from './ui/views/helpers.mjs'
+
+const selectedPartyMon = (ctx) => {
+  return partyEntryAt(ctx.save.party, ctx.teamSelection, ctx.teamSort).mon
+}
 
 const VIEWS = {
   starter: starterView,
@@ -225,6 +231,10 @@ export const createApp = ({
     teamStep: 'list',
     relearnSelection: 0,
     relearnMessage: null,
+    moveOrderSelection: 0,
+    moveOrderHeld: false,
+    moveOrderMessage: null,
+    moveOrderSnapshot: null,
     boxSelection: 0,
     boxSort: 'order',
 
@@ -781,6 +791,71 @@ export const createApp = ({
     ctx.boxMessage = null
     ctx.bagMessage = null
     ctx.relearnMessage = null
+    ctx.moveOrderMessage = null
+  }
+
+  ctx.openMoveOrder = () => {
+    ctx.teamStep = 'moves'
+    ctx.moveOrderSelection = 0
+    ctx.moveOrderHeld = false
+    ctx.moveOrderSnapshot = null
+    ctx.moveOrderMessage = null
+  }
+
+  ctx.cancelMoveOrder = () => {
+    if (!ctx.moveOrderHeld) {
+      ctx.teamStep = 'list'
+      ctx.moveOrderMessage = null
+
+      return
+    }
+
+    const mon = selectedPartyMon(ctx)
+
+    mon.moves = ctx.moveOrderSnapshot.moves
+    ctx.moveOrderSelection = ctx.moveOrderSnapshot.index
+    ctx.moveOrderHeld = false
+    ctx.moveOrderSnapshot = null
+    ctx.moveOrderMessage = MOVE_ORDER_MESSAGES.putBack
+  }
+
+  ctx.stepMoveOrder = (delta) => {
+    const mon = selectedPartyMon(ctx)
+    const total = mon.moves.length
+
+    if (total === 0) return
+
+    const to = nextMoveSlot(ctx.moveOrderSelection, delta, total)
+
+    if (ctx.moveOrderHeld)
+      mon.moves = reorderMoveSlots(mon.moves, ctx.moveOrderSelection, to)
+
+    ctx.moveOrderSelection = to
+    ctx.moveOrderMessage = null
+  }
+
+  ctx.toggleMoveHold = () => {
+    const mon = selectedPartyMon(ctx)
+
+    if (mon.moves.length === 0) return
+
+    if (!ctx.moveOrderHeld) {
+      ctx.moveOrderSnapshot = {
+        moves: mon.moves.slice(),
+        index: ctx.moveOrderSelection,
+      }
+      ctx.moveOrderHeld = true
+      ctx.moveOrderMessage = null
+
+      return
+    }
+
+    const name = moveData(mon.moves[ctx.moveOrderSelection].move).name
+
+    ctx.moveOrderHeld = false
+    ctx.moveOrderSnapshot = null
+    ctx.moveOrderMessage = `${name} ${MOVE_ORDER_MESSAGES.dropped} ${ctx.moveOrderSelection + 1}.`
+    ctx.persist()
   }
 
   ctx.openRelearnMoves = () => {

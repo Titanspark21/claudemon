@@ -162,13 +162,21 @@ export const BOX_SORT_LABELS = { order: 'caught', level: 'Lv' }
 export const TEAM_HINTS =
   ' ↑ ↓ browse · [enter] lead · [s] sort · [i] items · [d] send it to the box · [esc] back'
 export const TEAM_KEY_HINTS =
-  ' [l] relearn moves · [b] the box · [c] the day care · [t] trade it away · [r] take one in from a code'
+  ' [m] move order · [l] relearn · [b] the box · [c] the day care · [t] trade away · [r] take a code'
 export const RELEARN_TITLE = 'RELEARN MOVES'
 export const RELEARN_HINTS =
   ' ↑ ↓ choose · [enter] relearn unlocked move · [esc] back to team'
 export const RELEARN_RULE =
   'Locked moves need won battle EXP; at Lv100 each won battle unlocks one.'
 export const RELEARN_EMPTY = 'No Day Care moves are waiting for this Pokémon.'
+export const MOVE_ORDER_TITLE = 'MOVES'
+export const MOVE_ORDER_HINTS =
+  ' ↑ ↓ choose · [enter] pick it up · [esc] back to team'
+export const MOVE_ORDER_HELD_HINTS =
+  ' ↑ ↓ slide it · [enter] drop it here · [esc] put it back'
+export const MOVE_ORDER_HELD_MARK = '← moving'
+export const MOVE_ORDER_EMPTY = 'This Pokémon has no moves to reorder.'
+export const MOVE_ORDER_RULE = 'Slot order is the order the Fight menu shows.'
 export const TEAM_BAG_HINTS =
   ' ↑ ↓ choose · [enter] use it/give it · [u] take held item · [esc] put the bag away'
 export const MOVE_CHOICE_TITLE = 'LEARN MOVE'

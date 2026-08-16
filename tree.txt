@@ -139,6 +139,8 @@ src/migrations.mjs
 src/migrations.test.mjs
 src/moveEffects.mjs
 src/moveEffects.test.mjs
+src/moveOrder.mjs
+src/moveOrder.test.mjs
 src/moveRecovery.mjs
 src/moveRecovery.test.mjs
 src/moveRuntimeCoverage.mjs
@@ -212,6 +214,7 @@ src/ui/views/helpers.test.mjs
 src/ui/views/home.mjs
 src/ui/views/league.mjs
 src/ui/views/league.test.mjs
+src/ui/views/moveOrder.mjs
 src/ui/views/options.mjs
 src/ui/views/shop.mjs
 src/ui/views/starter.mjs
