@@ -1084,12 +1084,17 @@ test('Should execute imported move metadata through battle runtime paths', () =>
     wildMon: deferredFoe,
     seed: 1,
   })
+  const deferredPp = deferredPlayer.moves[0].pp
+  const foePp = deferredFoe.moves[0].pp
   const deferredTexts = textsOf(
     submitAction(deferredBattle, { type: 'move', index: 0 }),
   )
 
   expect(deferredTexts).toContain('But it failed!')
   expect(deferredTexts.join(' ')).toMatch(/copy|replay|battle state/i)
+  expect(deferredBattle.turn, 'the selection never became a turn').toBe(0)
+  expect(deferredPlayer.moves[0].pp, 'no PP was spent').toBe(deferredPp)
+  expect(deferredFoe.moves[0].pp, 'and the foe never acted').toBe(foePp)
 })
 
 test('Should ignore an action once the battle is over', () => {

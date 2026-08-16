@@ -9,7 +9,7 @@ import {
 } from './battleActor.mjs'
 import { sourceSpeciesIdentity } from './data.mjs'
 import { canMegaEvolve, megaEvolve, revertBattleForm } from './mega.mjs'
-import { createPokemon } from './pokemon.mjs'
+import { createPokemon, makeMoveSlot } from './pokemon.mjs'
 import { makeRng } from './rng.mjs'
 import {
   transformRequestSaveGame,
@@ -128,6 +128,8 @@ test('Should support an explicit no-turn Mega toggle before choosing a move', ()
 test('Should allow a configured trainer to Mega Evolve under the same side limit', () => {
   const player = createPokemon(242, 100, makeRng(20))
   const foe = createPokemon(6, 50, makeRng(21))
+
+  player.moves = [makeMoveSlot('tackle')]
   foe.heldItem = 'charizardite-x'
   foe.trainerMega = true
   const trainer = {

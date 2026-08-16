@@ -2,6 +2,7 @@ import { battleSpecies } from '../../battleActor.mjs'
 import { ITEMS } from '../../constants.mjs'
 import { move as moveData } from '../../data.mjs'
 import { expProgress } from '../../exp.mjs'
+import { moveExecutionFailure } from '../../moveEffects.mjs'
 import { canMegaEvolve } from '../../mega.mjs'
 import { monSpriteFile, trainerSpriteFile } from '../../paths.mjs'
 import { displayName, genderOf, levelOf } from '../../pokemon.mjs'
@@ -18,6 +19,7 @@ import {
 } from '../battleField.mjs'
 import { FOE_INFO_ROWS, PLAYER_INFO_ROWS } from '../constants.mjs'
 import { hitOverlays } from '../hit.mjs'
+import { truncate } from '../text.mjs'
 import {
   expBar,
   genderTag,
@@ -111,13 +113,25 @@ const identity = (text) => text
 
 const accuracyLabel = (accuracy) => accuracy ?? BATTLE_PROMPTS.unknownAccuracy
 
-const moveMenu = (actor, rawSelection, width) => {
+const moveFailure = (battle, actor, slot, index) => {
+  if (slot.pp <= 0 || isMoveDisabled(actor, index)) return null
+
+  const data = moveData(slot.move)
+
+  return moveExecutionFailure(battle, 'player', { ...data, key: slot.move })
+}
+
+const moveMenu = (battle, rawSelection, width) => {
+  const actor = battle.player
   const mon = actor.mon
   const selected = clampSelection(rawSelection, mon.moves.length)
 
   const labels = mon.moves.map((slot, index) => {
     const data = moveData(slot.move)
-    const blocked = slot.pp === 0 || isMoveDisabled(actor, index)
+    const blocked =
+      slot.pp === 0 ||
+      isMoveDisabled(actor, index) ||
+      Boolean(moveFailure(battle, actor, slot, index))
     const low = blocked ? gray : identity
 
     return low(`${padRight(data.name, 15)} ${dim(`${slot.pp}/${slot.maxPp}`)}`)
@@ -125,12 +139,16 @@ const moveMenu = (actor, rawSelection, width) => {
 
   const rows = menuGrid(labels, selected, { columns: 2, width })
 
-  const data = moveData(mon.moves[selected].move)
+  const slot = mon.moves[selected]
+  const data = moveData(slot.move)
+  const failure = moveFailure(battle, actor, slot, selected)
   const power = data.power ? `Power ${data.power}` : BATTLE_PROMPTS.statusMove
 
   rows.push('')
   rows.push(
-    `${typeBadge(data.type)}  ${dim(`${power} · Acc ${accuracyLabel(data.accuracy)}`)}`,
+    failure
+      ? gray(truncate(`Unavailable: ${failure}`, Math.max(1, width - 1)))
+      : `${typeBadge(data.type)}  ${dim(`${power} · Acc ${accuracyLabel(data.accuracy)}`)}`,
   )
 
   return rows
@@ -287,7 +305,7 @@ const battleBody = (ctx, width) => {
 
       return [
         ...(mega ? [dim(mega)] : []),
-        ...moveMenu(battle.state.player, battle.selection, inner),
+        ...moveMenu(battle.state, battle.selection, inner),
       ]
     }
     case 'bag': {

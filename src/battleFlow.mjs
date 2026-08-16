@@ -9,8 +9,10 @@ import {
   ITEMS,
 } from './constants.mjs'
 import { effectAnnouncement } from './battleEvents.mjs'
+import { move as moveData } from './data.mjs'
 import { expFromDefeating } from './exp.mjs'
 import { applyItem } from './itemUse.mjs'
+import { moveExecutionFailure } from './moveEffects.mjs'
 import { displayName, isFainted, levelOf } from './pokemon.mjs'
 import { applyVictory, describeStep, learnMove } from './progression.mjs'
 import { ballsInBag, countOf, removeItem } from './shop.mjs'
@@ -333,6 +335,14 @@ const chooseMove = (ctx) => {
 
   if (isMoveDisabled(battle.state.player, battle.selection)) {
     queueMessages(ctx, [BATTLE_MESSAGES.disabled])
+    return
+  }
+
+  const move = { ...moveData(slot.move), key: slot.move }
+  const failure = moveExecutionFailure(battle.state, 'player', move)
+
+  if (failure) {
+    queueMessages(ctx, [failure])
     return
   }
 

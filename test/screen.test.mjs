@@ -928,6 +928,41 @@ test('Should grey a disabled move on the fight menu, like one out of PP', () => 
   expect(row, 'the usable one is not').not.toContain(`${grayOpen}Tackle`)
 })
 
+test('Should mark an unavailable move and show why before it is chosen', () => {
+  const grayOpen = gray('').replace(RESET, '')
+  const mon = {
+    ...POKEMON,
+    moves: [
+      { move: 'metronome', pp: 10, maxPp: 10 },
+      { move: 'tackle', pp: 30, maxPp: 30 },
+    ],
+  }
+  const { lines } = drawBattle(
+    {
+      ...BATTLE_CTX,
+      battle: {
+        ...BATTLE,
+        menu: 'fight',
+        selection: 0,
+        state: {
+          ...BATTLE.state,
+          player: { mon, volatile: emptyVolatile() },
+        },
+      },
+    },
+    { cols: 120, rows: 40 },
+  )
+  const row = lines.find((line) => stripAnsi(line).includes('Metronome'))
+  const text = lines.map(stripAnsi).join('\n')
+
+  expect(row, 'the unavailable move is greyed out').toContain(
+    `${grayOpen}Metronome`,
+  )
+  expect(text, 'the selected move explains the coverage gap').toMatch(
+    /Unavailable: .*copies, replays, delays/i,
+  )
+})
+
 test('Should keep the bottom border of the box, which the renderer used to cut off', () => {
   const { lines } = drawBattle(
     { ...BATTLE_CTX, battle: { ...BATTLE, menu: 'fight' } },

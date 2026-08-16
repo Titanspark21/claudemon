@@ -9,7 +9,7 @@ import {
   toggleBattleMega,
 } from './battleFlow.mjs'
 import { BATTLE_MESSAGES } from './constants.mjs'
-import { createPokemon, displayName } from './pokemon.mjs'
+import { createPokemon, displayName, makeMoveSlot } from './pokemon.mjs'
 import { makeRng } from './rng.mjs'
 
 test('Should swap the move the player picks when a level-up has nowhere to put it', () => {
@@ -101,6 +101,29 @@ test('Should say there is no PP left rather than spending the turn on an empty m
   expect(battle.message).toBe(BATTLE_MESSAGES.noPp)
   expect(battle.menu).toBe('fight')
   expect(state.turn).toBe(0)
+})
+
+test('Should refuse an unavailable move before PP or the opponent advances', () => {
+  const mon = createPokemon(4, 30, makeRng(1))
+  const foe = createPokemon(10, 5, makeRng(7))
+
+  mon.moves = [makeMoveSlot('metronome'), makeMoveSlot('tackle')]
+
+  const state = createBattle({ playerMon: mon, wildMon: foe, seed: 7 })
+  const battle = createBattleFlow(state)
+  const ctx = { save: { party: [mon] }, battle }
+  const playerPp = mon.moves[0].pp
+  const foePp = foe.moves.map((slot) => slot.pp)
+
+  battle.menu = 'fight'
+  battle.selection = 0
+  chooseBattleOption(ctx)
+
+  expect(battle.message).toMatch(/copy|replay|battle state/i)
+  expect(battle.menu).toBe('fight')
+  expect(state.turn).toBe(0)
+  expect(mon.moves[0].pp).toBe(playerPp)
+  expect(foe.moves.map((slot) => slot.pp)).toEqual(foePp)
 })
 
 test('Should toggle Mega readiness from the fight menu without spending the turn', () => {

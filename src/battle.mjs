@@ -1079,6 +1079,20 @@ const trainerRefusal = (battle, action) => {
   return TRAINER_REFUSALS[action.type] ?? null
 }
 
+const moveActionFailure = (battle, action) => {
+  if (action.type !== 'move') return null
+
+  const slot = moveSlotOf(battle.player, action.index)
+
+  if (!slot || slot.pp <= 0 || isMoveDisabled(battle.player, action.index))
+    return null
+
+  return moveExecutionFailure(battle, 'player', {
+    ...moveData(slot.move),
+    key: slot.move,
+  })
+}
+
 export const submitAction = (battle, action) => {
   const events = []
 
@@ -1104,6 +1118,14 @@ export const submitAction = (battle, action) => {
 
     battle.megaSelected = enabled
     events.push({ type: 'mega-toggle', side: 'player', enabled })
+    return events
+  }
+
+  const failure = moveActionFailure(battle, action)
+
+  if (failure) {
+    say(events, TURN_MESSAGES.failed)
+    say(events, failure)
     return events
   }
 
