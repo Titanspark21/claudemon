@@ -246,36 +246,36 @@ applyMoveRecoveryExp(mon, awardedExp, { wonBattle }) -> RecoveryStep[]
 relearnableMoves(mon) -> MoveRecovery[]
 ```
 
-- [ ] Add failing tests for one skipped move, several levels and moves crossed
+- [x] Add failing tests for one skipped move, several levels and moves crossed
       in one Day Care stay, duplicate learnset entries, a move already known,
       a full four-move set, declining an unlocked move, and save/reload during
       partial progress.
-- [ ] Record every legal level-up move crossed while the Pokémon is in Day
+- [x] Record every legal level-up move crossed while the Pokémon is in Day
       Care. Keep the queue permanently on that Pokémon until each move is
       learned; never silently discard an entry because the Pokémon was
       withdrawn, deposited again, traded, evolved, or already has four moves.
-- [ ] Give each queued move an outside-training requirement equal to 25% of
+- [x] Give each queued move an outside-training requirement equal to 25% of
       the EXP between the Pokémon's level when that move was skipped and its
       following level, rounded up to at least one EXP. Apply only EXP actually
       awarded to that Pokémon after a won battle outside Day Care, preserve
       excess progress, and process queued moves in learnset order.
-- [ ] At level 100, where EXP cannot advance, unlock one queued move for each
+- [x] At level 100, where EXP cannot advance, unlock one queued move for each
       won battle in which that Pokémon participated.
-- [ ] When a requirement is met, route the move through the same persisted
+- [x] When a requirement is met, route the move through the same persisted
       replace-or-decline prompt as normal learning. Choosing “Not now” must
       leave the move unlocked in Team > Relearn Moves so declining never makes
       it permanently unavailable.
-- [ ] Add Team > Relearn Moves for unlocked entries, showing locked entries'
+- [x] Add Team > Relearn Moves for unlocked entries, showing locked entries'
       remaining EXP or level-100 battle wins without allowing the player to
       bypass the gate.
-- [ ] Migrate existing Pokémon by deriving every currently legal, unlearned
+- [x] Migrate existing Pokémon by deriving every currently legal, unlearned
       level-up move at or below their level into the same EXP-gated recovery
       queue. This intentionally also recovers moves forgotten before the game
       tracked Day Care history rather than leaving existing saves permanently
       damaged.
-- [ ] Show the recovery rule and current progress in Day Care withdrawal and
+- [x] Show the recovery rule and current progress in Day Care withdrawal and
       Team screens, including the level-100 one-win rule.
-- [ ] Run the focused recovery, Day Care, progression, battle-flow, migration,
+- [x] Run the focused recovery, Day Care, progression, battle-flow, migration,
       and UI tests, then run full coverage.
 - [ ] Commit: `fix: let Pokemon recover Day Care moves`
 
