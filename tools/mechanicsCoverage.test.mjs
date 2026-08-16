@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import {
   coverageFor,
   coverageReport,
+  moveCoverageReport,
   significantFieldKnownFailures,
   validateCoverage,
 } from './mechanicsCoverage.mjs'
@@ -17,8 +18,8 @@ const fixture = () => ({
     abilities: [{ id: 'overgrow' }],
     items: [{ id: 'leftovers' }, { id: 'thunderstone' }],
     moves: {
-      tackle: {},
-      'thunder-shock': {},
+      tackle: { damageClass: 'physical' },
+      'thunder-shock': { damageClass: 'special' },
     },
     species: [
       {
@@ -91,6 +92,19 @@ test('Should reject stale entries that are no longer imported', () => {
   )
 })
 
+test('Should reject a supported move whose coverage handler disagrees with runtime code', () => {
+  const { dataset, coverage } = fixture()
+  coverage.moves.tackle.handler = 'move:status-family'
+
+  const result = validateCoverage(dataset, coverage)
+
+  expect(result.valid).toBe(false)
+  expect(result.moveRuntime.falseSupported).toBe(1)
+  expect(result.errors.join('\n')).toContain(
+    'move tackle coverage handler move:status-family disagrees with runtime handler move:damage',
+  )
+})
+
 test('Should reject species references to unknown records', () => {
   const { dataset, coverage } = fixture()
   dataset.species[0].abilities[0].ability = 'missing-ability'
@@ -140,6 +154,17 @@ test('Should normalize source ids for coverage lookup', () => {
   expect(coverageFor('move', 'thunder-shock', coverage)).toEqual(
     coverage.moves['thunder-shock'],
   )
+})
+
+test('Should generate a deterministic checked move report with runtime test linkage', () => {
+  const { dataset, coverage } = fixture()
+  const first = moveCoverageReport(dataset, coverage)
+  const second = moveCoverageReport(dataset, coverage)
+
+  expect(second).toBe(first)
+  expect(first).toContain('| tackle | Executable | move:damage |')
+  expect(first).toContain('src/moveEffects.test.mjs#ordinary-damage')
+  expect(first).toContain('0 unclassified, 0 false-supported')
 })
 
 test('Should report totals and zero gaps for complete coverage', () => {

@@ -1,16 +1,18 @@
 import { expect, test } from 'vitest'
 
 import { createBattleField } from './battleField.mjs'
-import { move } from './data.mjs'
+import { loadData, move } from './data.mjs'
 import {
   applyMoveFieldEffect,
   moveCanExecute,
   moveEffectHandlers,
+  moveExecutionFailure,
   moveHasFlag,
   resolveMoveCoverage,
   rollMoveHits,
   runMoveEffectPhase,
 } from './moveEffects.mjs'
+import { resolveMoveRuntimeCoverage } from './moveRuntimeCoverage.mjs'
 
 const FAMILY_CASES = [
   {
@@ -383,6 +385,37 @@ test('Should start weather and terrain from their Generation VII setter moves', 
   })
   expect(battle.field.terrain.key).toBe('grassy')
   expect(applyMoveFieldEffect(battle, 'player', { key: 'tackle' })).toEqual([])
+})
+
+test('Should reject incomplete records from the runtime coverage registry', () => {
+  expect(resolveMoveRuntimeCoverage({})).toBeNull()
+  expect(
+    resolveMoveRuntimeCoverage({ key: 'fixture-move', damageClass: null }),
+  ).toBeNull()
+})
+
+test('Should register every supported move with executable runtime code and a focused test', () => {
+  const { mechanicsCoverage } = loadData()
+
+  for (const [key, coverage] of Object.entries(mechanicsCoverage.moves)) {
+    if (coverage.status !== 'supported') continue
+
+    const runtime = resolveMoveRuntimeCoverage({ ...move(key), key })
+
+    expect(runtime?.executable, key).toBe(true)
+    expect(runtime?.handler, key).toBe(coverage.handler)
+    expect(runtime?.focusedTest, key).toMatch(/\.test\.mjs#/)
+  }
+})
+
+test('Should refuse a supported coverage label when the move cannot resolve its runtime handler', () => {
+  expect(
+    moveExecutionFailure({}, 'player', {
+      ...move('tackle'),
+      key: 'tackle',
+      damageClass: null,
+    }),
+  ).toBe('Runtime handler move:damage is not implemented.')
 })
 
 test('Should recognize each supported runtime coverage path', () => {

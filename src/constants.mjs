@@ -48,29 +48,7 @@ export const FALLBACK_POWER = { 'low-kick': 50 }
 export const RUN_ODDS = { max: 0.95, speedFactor: 0.5, perAttempt: 0.15 }
 export const FOE_AI_SCORES = { defaultPower: 40, status: 15 }
 export const MULTI_HIT_ROLLS = [2, 2, 2, 3, 3, 3, 4, 5]
-export const MOVE_GENERIC_COVERAGE_HANDLERS = new Set([
-  'move:damage',
-  'move:status-family',
-  'move:multi-hit',
-  'move:drain',
-  'move:recoil',
-  'move:no-op',
-])
 export const MOVE_SPECIAL_FIXED_DAMAGE = new Set(['super-fang', 'psywave'])
-export const MOVE_RUNTIME_ONE_OFF_HANDLERS = new Set([
-  'move:superfang',
-  'move:psywave',
-  'move:electroball',
-  'move:teleport',
-  'move:raindance',
-  'move:sunnyday',
-  'move:sandstorm',
-  'move:hail',
-  'move:electricterrain',
-  'move:grassyterrain',
-  'move:psychicterrain',
-  'move:mistyterrain',
-])
 export const MOVE_FIELD_EFFECTS = {
   'rain-dance': { kind: 'weather', key: 'rain' },
   'sunny-day': { kind: 'weather', key: 'sun' },
