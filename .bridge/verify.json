@@ -1,0 +1,5 @@
+{
+  "note": "How the chatgpt-bridge proves claudemon. Bare `npm test` -- which is what the bridge detects from package.json -- fails two tests in a fresh checkout: test/screen.test.mjs 'Should draw both sprites on a shared row, and neither over the other' and test/app.test.mjs 'Should show the trainer in the grass and on the field until they send their first Pokemon out'. Neither is a defect. Both need sprite data, and nothing in `npm test` fetches it; CI does it in a separate step, so CI passes and the bridge did not. Hence the explicit fetch below, which is the same command CI runs. It is incremental and writes to CLAUDEMON_HOME, which defaults to ~/.claudemon and so sits outside the throwaway checkout -- about four minutes the first time on a machine and seconds afterwards, rather than four minutes per job. Nothing is skipped to make this pass: the full suite still runs and still has to be green.",
+  "install": "npm ci",
+  "commands": ["node tools/fetch-sprites.mjs", "npm test"]
+}
