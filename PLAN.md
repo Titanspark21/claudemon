@@ -423,11 +423,11 @@ coverageReport(dataset, coverage) -> string
       any gap; invoke it from data validation and CI.
 - [x] Review every deferred one-off against the rule “shared hook or modest
       handler means implement it,” then commit the approved baseline.
-- [ ] Replace string-only handler validation with a runtime registry check: a
+- [x] Replace string-only handler validation with a runtime registry check: a
       `supported` move must resolve to executable code and focused tests. The
       current manifest falsely marks 147 moves supported even though their
       handlers do not exist.
-- [ ] Generate a checked report listing every move by executable, intentionally
+- [x] Generate a checked report listing every move by executable, intentionally
       unavailable, or deferred status, its exact player-facing reason, and its
       focused test; fail CI when code, coverage, and the report disagree.
 - [ ] Commit: `data: make mechanics coverage explicit`
@@ -540,7 +540,7 @@ src/battleEvents.test.mjs src/battleFlow.test.mjs src/damage.test.mjs`.
       before confirmation instead of consuming a turn.
 - [x] Make foe AI filter out moves that cannot execute under their coverage
       status and current battle prerequisites before scoring its choices.
-- [ ] Run mechanics coverage and require zero unclassified moves, zero
+- [x] Run mechanics coverage and require zero unclassified moves, zero
       false-supported handlers, and zero executable moves without focused
       tests; run full battle coverage.
 - [ ] Commit: `feature: support Generation VII move families`
