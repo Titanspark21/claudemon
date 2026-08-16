@@ -339,15 +339,15 @@ outside-training requirement.
 - Test: `src/ui/views/daycare.test.mjs`
 - Test: `test/app.test.mjs`
 
-- [ ] Show a persistent Day Care note that levels gained there do not
+- [x] Show a persistent Day Care note that levels gained there do not
       immediately teach moves or trigger evolution, and that skipped moves are
       retained for EXP-gated recovery.
-- [ ] On withdrawal, identify a Pokémon already eligible for level evolution
+- [x] On withdrawal, identify a Pokémon already eligible for level evolution
       and say that it will evolve the next time it levels up outside Day Care.
-- [ ] On withdrawal, list newly queued moves and explain that each unlocks
+- [x] On withdrawal, list newly queued moves and explain that each unlocks
       after its displayed outside-battle EXP requirement; show one won battle
       instead for a level-100 Pokémon.
-- [ ] Verify the note and withdrawal message in narrow and wide terminal
+- [x] Verify the note and withdrawal message in narrow and wide terminal
       layouts without duplicating the Team recovery controls.
 - [ ] Commit: `visual: explain Day Care evolution timing`
 
