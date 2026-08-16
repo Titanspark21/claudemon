@@ -141,6 +141,48 @@ stablePokemonRoll(mon, namespace) -> unsignedInteger
 - [ ] Run the focused tests twice to prove no rerolls, then run coverage.
 - [ ] Commit: `fix: migrate old saves without rerolling Pokemon`
 
+### 2026-08-16 — live gameplay findings
+
+### Task B3: Keep encounter hooks and the terminal on one runtime revision
+
+**Problem:** The live terminal launcher points at this fork, but Claude's
+installed hooks still run upstream plugin `1.9.1`. The old hook owns
+`queue.jsonl` and generates Kanto-only encounters while the forked terminal
+renders the same save with Generation VII data. `loadSpeciesTable` also hides
+any generated-data failure by silently returning a 19-species Kanto fallback,
+which makes a broken install look like valid gameplay.
+
+**Files:**
+
+- Modify: `tools/install.mjs`
+- Modify: `src/shim.mjs`
+- Modify: `src/status.mjs`
+- Modify: `src/encounter.mjs`
+- Modify: `src/transformers.mjs`
+- Modify: `scripts/on-activity.mjs`
+- Test: `test/update.test.mjs`
+- Test: `test/status.test.mjs`
+- Test: `test/encounter.test.mjs`
+- Test: `test/activity.test.mjs`
+
+- [ ] Reproduce an already-installed same-name upstream plugin alongside a
+      launcher targeting this fork; assert that the test hook and terminal
+      report different roots/dataset fingerprints before the fix.
+- [ ] Make local setup add or refresh this repository's marketplace and plugin
+      even when `claudemon@claudemon` is already installed from another
+      marketplace; verify the installed hook root instead of accepting the
+      plugin name alone.
+- [ ] Publish a build/dataset identity in status and encounter payloads so a
+      terminal rejects stale or foreign hook output with an exact reinstall
+      instruction rather than mixing two game versions.
+- [ ] Replace the silent Kanto fallback for invalid Generation VII data with a
+      logged, player-visible failure naming the missing or invalid data file;
+      retain a fallback only for an explicitly tested first-run state.
+- [ ] Run the real hook entry point against this checkout and prove a level-22
+      City & Powerworks table includes post-Gen-I species and uses the same
+      biome, revision, and dataset fingerprint as the open terminal.
+- [ ] Commit: `fix: keep hooks and terminal on the same version`
+
 ---
 
 ## Visual
@@ -182,6 +224,31 @@ buildSpriteManifest(speciesRecords) -> manifest
       exact asset must validate or declare an approved alternate source or the
       unavailable-sprite placeholder before completing the batch.
 - [ ] Commit: `visual: support sprites for every included form`
+
+### 2026-08-16 — live gameplay findings
+
+### Task V6: Explain Day Care evolution and move-learning limits in the UI
+
+**Problem:** Day Care intentionally raises levels without teaching moves or
+evolving Pokémon, matching the existing documented behavior, but the terminal
+does not say this. A Pokémon taken out above its evolution level therefore
+looks stuck until it gains its next level outside Day Care.
+
+**Files:**
+
+- Modify: `src/ui/views/daycare.mjs`
+- Modify: `src/ui/views/constants.mjs`
+- Modify: `src/app.mjs`
+- Test: `src/ui/views/daycare.test.mjs`
+- Test: `test/app.test.mjs`
+
+- [ ] Show a persistent Day Care note that levels gained there do not teach
+      moves or trigger evolution.
+- [ ] On withdrawal, identify a Pokémon already eligible for level evolution
+      and say that it will evolve the next time it levels up outside Day Care.
+- [ ] Verify the note and withdrawal message in narrow and wide terminal
+      layouts without changing canonical Day Care behavior.
+- [ ] Commit: `visual: explain Day Care evolution timing`
 
 ---
 
@@ -255,6 +322,13 @@ coverageReport(dataset, coverage) -> string
       any gap; invoke it from data validation and CI.
 - [x] Review every deferred one-off against the rule “shared hook or modest
       handler means implement it,” then commit the approved baseline.
+- [ ] Replace string-only handler validation with a runtime registry check: a
+      `supported` move must resolve to executable code and focused tests. The
+      current manifest falsely marks 147 moves supported even though their
+      handlers do not exist.
+- [ ] Generate a checked report listing every move by executable, intentionally
+      unavailable, or deferred status, its exact player-facing reason, and its
+      focused test; fail CI when code, coverage, and the report disagree.
 - [ ] Commit: `data: make mechanics coverage explicit`
 
 ### Task O6: Build the ordered battle-effect pipeline
@@ -303,6 +377,14 @@ Supported phase keys are `battleStart`, `switchOut`, `switchIn`,
 
 ### Task O7: Import modern moves and implement generic effect families
 
+**Problem:** The imported list is complete, but coverage and execution are not.
+Of 651 moves, 147 are currently labelled `supported` while
+`moveExecutionFailure` reports that their runtime handler is absent. Another
+22 are intentionally unavailable (six singles-only and 16 complex deferred
+moves). Generic `move:damage` classification must also be checked against
+Generation VII semantics so special damage moves are not accepted as ordinary
+attacks merely because they have power and accuracy.
+
 **Files:**
 
 - Create: `src/moveEffects.mjs`
@@ -311,8 +393,14 @@ Supported phase keys are `battleStart`, `switchOut`, `switchIn`,
 - Modify: `tools/transformers.mjs`
 - Modify: `data/moves.json`
 - Modify: `src/battle.mjs`
+- Modify: `src/battleFlow.mjs`
+- Modify: `src/foeAi.mjs`
 - Modify: `src/volatile.mjs`
 - Modify: `src/constants.mjs`
+- Modify: `src/ui/views/battle.mjs`
+- Modify: `data/mechanics-coverage.json`
+- Create: `data/move-coverage-report.md`
+- Modify: `tools/mechanicsCoverage.mjs`
 
 **Interfaces:**
 
@@ -331,12 +419,29 @@ src/battleEvents.test.mjs src/battleFlow.test.mjs src/damage.test.mjs`.
       keep PokéAPI effect metadata only where it is structured and useful.
 - [ ] Route every generic family through shared handlers, then implement every
       modest one-off identified by coverage review.
+- [ ] Audit all 651 imported moves against the pinned Generation VII battle
+      source, including special-power, conditional-priority, switching,
+      protection, delayed, field, trapping, forced-switch, move-copy, item,
+      ability, and party-dependent semantics; no powered move may inherit the
+      ordinary damage handler without evidence that this is complete behavior.
+- [ ] Implement Electro Ball from the attacker/defender effective Speed ratio
+      and Teleport with Generation VII wild/trainer battle behavior, with
+      focused player and foe tests.
+- [ ] Work through the current 147 false-supported moves by reusable family,
+      then modest one-off. Reclassify only genuinely disproportionate mechanics
+      as `deferred-complex-one-off`, each with a move-specific reason rather
+      than the current shared generic reason.
 - [ ] Replace the hand-maintained unsupported set with coverage lookups and
       visible failure reasons.
+- [ ] Mark unavailable moves directly in the fight menu with their reason and
+      refuse them before PP, turn order, or the opponent advances. Moves with a
+      legitimate Claudemon field function but no battle function must say so
+      before confirmation instead of consuming a turn.
 - [ ] Make foe AI filter out moves that cannot execute under their coverage
       status and current battle prerequisites before scoring its choices.
-- [ ] Run mechanics coverage and require zero unclassified moves; run full
-      battle coverage.
+- [ ] Run mechanics coverage and require zero unclassified moves, zero
+      false-supported handlers, and zero executable moves without focused
+      tests; run full battle coverage.
 - [ ] Commit: `feature: support Generation VII move families`
 
 ### Task O11: Add collectible forms and battle transformations

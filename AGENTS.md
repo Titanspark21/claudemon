@@ -93,10 +93,11 @@ steps a non-developer can follow.
 
 ## Recent activity
 
+- Diagnosed the live fork/upstream split, the false-positive move coverage,
+  four-move replacement flow, and Day Care evolution timing; recorded the
+  required fixes and player-facing clarity work in `PLAN.md`.
 - Reassessed AI-assisted difficulty and agreed on complete Generation VII,
   forms, Megas, natures, visible IVs, held items, abilities, weather, and
   terrain with explicit coverage rather than arbitrary feature caps.
 - Corrected biome generation to balance overlapping pools from the actual
   dataset instead of using a guessed fixed range.
-- Set forced biome duration to a 30/40/65-minute triangular distribution with
-  an exact 45-minute mean and separate occasional optional forks.
