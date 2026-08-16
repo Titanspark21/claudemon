@@ -1,5 +1,11 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,6 +18,8 @@ process.env.CLAUDEMON_HOME = sandbox
 
 const { STALE_MS } = await import('../src/constants.mjs')
 const { createExpedition } = await import('../src/expedition.mjs')
+const { runtimeIdentity, runtimeReinstallInstruction } =
+  await import('../src/runtime.mjs')
 const {
   beginTurn,
   endSession,
@@ -662,6 +670,9 @@ test('Should say what is waiting in the status line and how long is left of it',
     join(home, 'queue.jsonl'),
     `${JSON.stringify({
       v: 1,
+      runtime: runtimeIdentity(),
+      biome: null,
+      visitRevision: 0,
       species: 16,
       name: 'Pidgey',
       level: 4,
@@ -676,6 +687,115 @@ test('Should say what is waiting in the status line and how long is left of it',
   expect(row, 'and where to go about it').toMatch(/claudemon/)
 })
 
+test('Should reject a foreign hook encounter with the exact reinstall instruction', () => {
+  const home = freshHome()
+  const runtime = runtimeIdentity()
+
+  writeFileSync(
+    join(home, 'queue.jsonl'),
+    `${JSON.stringify({
+      v: 1,
+      runtime: { ...runtime, root: `${runtime.root}-upstream` },
+      biome: null,
+      visitRevision: 0,
+      species: 16,
+      name: 'Pidgey',
+      level: 4,
+      at: new Date().toISOString(),
+    })}\n`,
+  )
+
+  expect(runStatusLine(home).trim()).toBe(runtimeReinstallInstruction())
+})
+
+test('Should fail a hook visibly instead of falling back when generated data is invalid', () => {
+  const home = freshHome()
+  const dataDir = join(home, 'data')
+
+  mkdirSync(dataDir, { recursive: true })
+  writeFileSync(join(dataDir, 'pokedex.json'), '{not-json')
+  writeConfig(home, { encounterChance: 1, trainerChance: 0 })
+  runHook(home, 'on-prompt.mjs', {
+    session_id: 'broken-data',
+    cwd: '/tmp',
+    hook_event_name: 'UserPromptSubmit',
+    prompt: 'walk',
+  })
+
+  let failure = null
+
+  try {
+    runHook(home, 'on-activity.mjs', {
+      session_id: 'broken-data',
+      cwd: '/tmp',
+      hook_event_name: 'PreToolUse',
+      tool_name: 'Read',
+    })
+  } catch (error) {
+    failure = error
+  }
+
+  expect(failure).not.toBeNull()
+  expect(String(failure.stderr)).toContain('Invalid generated data file')
+  expect(String(failure.stderr)).toContain('pokedex.json')
+  expect(queueIn(home)).toHaveLength(0)
+  expect(runStatusLine(home)).toContain('Invalid generated data file')
+  expect(runStatusLine(home)).toContain('pokedex.json')
+})
+
+test('Should keep a level 22 City and Powerworks hook encounter on the terminal runtime', () => {
+  const home = freshHome()
+  const runtime = runtimeIdentity()
+  const status = {
+    runtime,
+    lead: { name: 'Pikachu', level: 22 },
+    balls: 5,
+    money: 3000,
+    caught: 0,
+    heartbeat: Date.now(),
+    biome: 'city-powerworks',
+    visitRevision: 12,
+  }
+
+  writeFileSync(join(home, 'status.json'), JSON.stringify(status))
+  writeConfig(home, {
+    encounterChance: 1,
+    trainerChance: 0,
+    maxSteps: 1,
+    charsPerStep: 1,
+  })
+
+  let queued = null
+
+  for (let attempt = 0; attempt < 20 && !queued; attempt++) {
+    const session = `city-${attempt}`
+
+    runHook(home, 'on-prompt.mjs', {
+      session_id: session,
+      cwd: '/tmp',
+      hook_event_name: 'UserPromptSubmit',
+      prompt: 'x',
+    })
+    runHook(home, 'on-activity.mjs', {
+      session_id: session,
+      cwd: '/tmp',
+      hook_event_name: 'PreToolUse',
+      tool_name: 'Read',
+    })
+
+    const [candidate] = queueIn(home)
+
+    if (candidate?.species > 151) queued = candidate
+    else rmSync(join(home, 'queue.jsonl'), { force: true })
+  }
+
+  expect(queued?.species).toBeGreaterThan(151)
+  expect(queued.runtime).toEqual(runtime)
+  expect(queued.biome).toBe('city-powerworks')
+  expect(queued.visitRevision).toBe(12)
+  expect(runStatusLine(home)).toContain(queued.name.toUpperCase())
+})
+
 test('Should drop the encounter from the status line once its window has closed', () => {
   const home = freshHome()
 
@@ -684,6 +804,9 @@ test('Should drop the encounter from the status line once its window has closed'
     join(home, 'queue.jsonl'),
     `${JSON.stringify({
       v: 1,
+      runtime: runtimeIdentity(),
+      biome: null,
+      visitRevision: 0,
       species: 16,
       name: 'Pidgey',
       level: 4,

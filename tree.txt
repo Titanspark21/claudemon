@@ -95,6 +95,7 @@ src/constants.mjs
 src/damage.mjs
 src/damage.test.mjs
 src/data.mjs
+src/data.validation.test.mjs
 src/dataIdentity.test.mjs
 src/daycare.mjs
 src/daycare.test.mjs
@@ -146,6 +147,8 @@ src/queue.mjs
 src/reveal.mjs
 src/reveal.test.mjs
 src/rng.mjs
+src/runtime.mjs
+src/runtime.test.mjs
 src/shim.mjs
 src/shop.mjs
 src/sound.mjs
@@ -230,6 +233,7 @@ test/league-app.test.mjs
 test/log.test.mjs
 test/paths.test.mjs
 test/player.test.mjs
+test/queue-runtime.test.mjs
 test/sandboxHome.mjs
 test/screen.test.mjs
 test/setup.mjs
@@ -247,6 +251,7 @@ tools/fetch-sprites.mjs
 tools/generate-progression.mjs
 tools/generate-species-identities.mjs
 tools/install.mjs
+tools/install.test.mjs
 tools/itemData.mjs
 tools/mechanicsCoverage.mjs
 tools/mechanicsCoverage.test.mjs

@@ -6,6 +6,11 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { HOME, QUEUE_FILE } from './paths.mjs'
+import {
+  runtimeIdentity,
+  runtimeIdentityMatches,
+  runtimeReinstallInstruction,
+} from './runtime.mjs'
 import { trainerClass } from './trainer.mjs'
 import {
   transformRequestWriteEncounter,
@@ -70,20 +75,33 @@ const isUsable = (entry) => {
   return entry.species != null && entry.name != null
 }
 
-export const readEncounter = (ttlMs, now = Date.now()) => {
+export const readEncounterResult = (ttlMs, now = Date.now()) => {
   const live = peekQueue().filter(
     (entry) => isLive(entry, ttlMs, now) && isUsable(entry),
   )
 
-  if (live.length === 0) return null
+  if (live.length === 0) return { encounter: null, error: null }
 
-  return live[live.length - 1]
+  const encounter = live[live.length - 1]
+
+  if (!runtimeIdentityMatches(encounter.runtime)) {
+    return { encounter: null, error: runtimeReinstallInstruction() }
+  }
+
+  return { encounter, error: null }
+}
+
+export const readEncounter = (ttlMs, now = Date.now()) => {
+  return readEncounterResult(ttlMs, now).encounter
 }
 
 export const writeEncounter = (entry) => {
   const stamped = transformRequestWriteEncounter({
     v: entry.v,
     kind: entry.kind,
+    runtime: entry.runtime ?? runtimeIdentity(),
+    biome: entry.biome,
+    visitRevision: entry.visitRevision,
     species: entry.species,
     name: entry.name,
     level: entry.level,

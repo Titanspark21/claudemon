@@ -196,9 +196,19 @@ const secondsAgo = (seconds) => {
   return new Date(Date.now() - seconds * 1000).toISOString()
 }
 
+const queueContext = (app) => {
+  const expedition = app.save?.expedition
+
+  return {
+    biome: expedition?.pendingDeparture ? null : (expedition?.biome ?? null),
+    visitRevision: expedition?.visitRevision ?? 0,
+  }
+}
+
 const queueEncounter = (app, encounter) => {
   writeEncounter({
     v: 1,
+    ...queueContext(app),
     species: encounter.species,
     name: encounter.name,
     level: encounter.level,
@@ -211,7 +221,13 @@ const queueEncounter = (app, encounter) => {
 }
 
 const queueTrainer = (app, trainer) => {
-  writeEncounter({ v: 1, kind: 'trainer', trainer, seed: 12 })
+  writeEncounter({
+    v: 1,
+    kind: 'trainer',
+    ...queueContext(app),
+    trainer,
+    seed: 12,
+  })
 
   app.pump()
 }

@@ -6,7 +6,7 @@ import {
   STAGE_LEVEL_GATES,
   WILD_LEVEL_SPREAD,
 } from './constants.mjs'
-import { loadData, loadPokedex } from './data.mjs'
+import { loadValidatedData } from './data.mjs'
 import { pickLevel } from './helpers.mjs'
 import { rollShiny } from './pokemon.mjs'
 import { chance, randInt, weightedPick } from './rng.mjs'
@@ -167,17 +167,9 @@ export const loadSpeciesTable = (
   leadLevel = DEFAULT_LEAD_LEVEL,
   biome = null,
 ) => {
-  try {
-    const data = loadData()
+  const data = loadValidatedData()
 
-    return speciesTableFromDex(data.pokedex, { leadLevel, biome }, data.biomes)
-  } catch {
-    try {
-      return speciesTableFromDex(loadPokedex(), leadLevel)
-    } catch {
-      return FALLBACK_SPECIES
-    }
-  }
+  return speciesTableFromDex(data.pokedex, { leadLevel, biome }, data.biomes)
 }
 
 export const encounterSpecies = (encounter) => {

@@ -1,8 +1,13 @@
 import { spawnSync } from 'node:child_process'
 import { encounterTtlMs, loadConfig } from '../src/config.mjs'
 import { TRAINER_MESSAGES } from '../src/constants.mjs'
-import { encounterExpiresAt, readEncounter } from '../src/queue.mjs'
+import { generatedDataError } from '../src/data.mjs'
+import { encounterExpiresAt, readEncounterResult } from '../src/queue.mjs'
 import { companionIsLive, readStatus } from '../src/status.mjs'
+import {
+  runtimeIdentityMatches,
+  runtimeReinstallInstruction,
+} from '../src/runtime.mjs'
 import { trainerLabel } from '../src/trainer.mjs'
 import {
   bold,
@@ -104,10 +109,26 @@ const leadRow = (status) => {
 }
 
 const gameRow = (config) => {
-  const status = readStatus()
-  const ttlMs = encounterTtlMs(config)
-  const encounter = readEncounter(ttlMs)
+  const dataError = generatedDataError()
 
+  if (dataError) return brightYellow(dataError.message)
+
+  const status = readStatus()
+
+  if (status && !runtimeIdentityMatches(status.runtime))
+    return brightYellow(runtimeReinstallInstruction())
+
+  const ttlMs = encounterTtlMs(config)
+  const result = readEncounterResult(ttlMs)
+  const encounter = result.encounter
+
+  if (result.error) return brightYellow(result.error)
+  if (
+    encounter &&
+    (encounter.biome !== (status?.biome ?? null) ||
+      encounter.visitRevision !== (status?.visitRevision ?? 0))
+  )
+    return status?.lead ? leadRow(status) : ''
   if (encounter) return encounterRow(encounter, ttlMs, companionIsLive(status))
   if (!status?.lead) return ''
 

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { HEARTBEAT_STALE_MS } from './constants.mjs'
 import { updateJsonFile as updateFile } from './fileLock.mjs'
 import { STATUS_FILE } from './paths.mjs'
+import { runtimeIdentity } from './runtime.mjs'
 import {
   transformRequestWriteStatus,
   transformResponseStatus,
@@ -34,6 +35,7 @@ const persistStatus = (
   heartbeat,
 ) => {
   const incoming = {
+    runtime: runtimeIdentity(),
     lead,
     balls,
     money,

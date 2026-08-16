@@ -4,7 +4,17 @@ import { dataFile } from './paths.mjs'
 
 let cache = null
 
-const read = (name) => JSON.parse(readFileSync(dataFile(name), 'utf8'))
+const dataError = (name, detail) => {
+  return new Error(`Invalid generated data file ${dataFile(name)}: ${detail}`)
+}
+
+const read = (name) => {
+  try {
+    return JSON.parse(readFileSync(dataFile(name), 'utf8'))
+  } catch (error) {
+    throw dataError(name, error.message)
+  }
+}
 
 export const loadData = () => {
   if (cache) return cache
@@ -56,6 +66,9 @@ const datasetFingerprint = (dataset) => {
     ]),
     moves: Object.keys(dataset.moves).sort(),
     items: Object.keys(dataset.items).sort(),
+    biomes: dataset.biomes,
+    progression: dataset.progression,
+    mechanicsCoverage: dataset.mechanicsCoverage,
   }
 
   return createHash('sha256').update(JSON.stringify(identity)).digest('hex')
@@ -80,35 +93,62 @@ export const tradeDatasetCompatible = (incoming, dataset = loadData()) => {
   )
 }
 
-export const validateGeneratedData = (dataset = loadData()) => {
+const invalidGeneratedData = (dataset) => {
   const total = dataset.progression?.metadata?.nationalDexTotal
   const identities = dataset.speciesIdentities?.records
 
-  if (dataset.mechanicsCoverage?.generation !== 7) return false
-  if (!Number.isInteger(dataset.speciesIdentities?.version)) return false
-  if (!Number.isInteger(total) || total !== 809) return false
-  if (!Array.isArray(identities) || identities.length < total) return false
-  if (dataset.pokedex.length !== identities.length) return false
-  if (!identities.every((record) => dataset.byId.has(record.id))) return false
-  if (!Object.keys(dataset.moves).length || !Object.keys(dataset.items).length)
-    return false
+  if (dataset.mechanicsCoverage?.generation !== 7)
+    return dataError('mechanics-coverage.json', 'expected Generation VII')
+  if (!Number.isInteger(dataset.speciesIdentities?.version))
+    return dataError('form-ids.json', 'missing identity version')
+  if (!Number.isInteger(total) || total !== 809)
+    return dataError('progression.json', 'expected 809 National Dex species')
+  if (!Array.isArray(identities) || identities.length < total)
+    return dataError('form-ids.json', 'species identity manifest is incomplete')
+  if (dataset.pokedex.length !== identities.length)
+    return dataError(
+      'pokedex.json',
+      'species count does not match form-ids.json',
+    )
+  if (!identities.every((record) => dataset.byId.has(record.id)))
+    return dataError('pokedex.json', 'a pinned species identity is missing')
+  if (!Object.keys(dataset.moves).length)
+    return dataError('moves.json', 'move dataset is empty')
+  if (!Object.keys(dataset.items).length)
+    return dataError('items.json', 'item dataset is empty')
 
   for (let id = 1; id <= total; id++) {
     const identity = dataset.identityById.get(id)
+
     if (!identity || identity.dexNumber !== id || identity.formKey !== null)
-      return false
+      return dataError('form-ids.json', `invalid National Dex identity ${id}`)
   }
 
-  return true
+  return null
 }
 
-export const isDataReady = () => {
+export const validateGeneratedData = (dataset = loadData()) => {
+  return invalidGeneratedData(dataset) === null
+}
+
+export const generatedDataError = () => {
   try {
-    return validateGeneratedData()
-  } catch {
-    return false
+    return invalidGeneratedData(loadData())
+  } catch (error) {
+    return error
   }
 }
+
+export const loadValidatedData = () => {
+  const dataset = loadData()
+  const error = invalidGeneratedData(dataset)
+
+  if (error) throw error
+
+  return dataset
+}
+
+export const isDataReady = () => generatedDataError() === null
 
 export const species = (id) => {
   const mon = loadData().byId.get(id)

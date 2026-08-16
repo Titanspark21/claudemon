@@ -73,7 +73,11 @@ import { canSpare } from './helpers.mjs'
 import { giveHeldItem, applyItem, takeHeldItem } from './itemUse.mjs'
 import { describeStep } from './progression.mjs'
 import { createPokemon, displayName, makeMoveSlot } from './pokemon.mjs'
-import { clearEncounter, encounterExpiresAt, readEncounter } from './queue.mjs'
+import {
+  clearEncounter,
+  encounterExpiresAt,
+  readEncounterResult,
+} from './queue.mjs'
 import { CARD_FILE } from './paths.mjs'
 import { copyToClipboard } from './clipboard.mjs'
 import { decodeTrade, giveAway, takeIn, writeTradeCode } from './trade.mjs'
@@ -375,7 +379,21 @@ export const createApp = ({
     }
 
     const ttlMs = encounterTtlMs(ctx.config)
-    const next = readEncounter(ttlMs)
+    const result = readEncounterResult(ttlMs)
+    let next = result.encounter
+
+    if (result.error) {
+      clearEncounter()
+      ctx.encounter = null
+      ctx.notice = result.error
+
+      return true
+    }
+
+    if (next && !encounterMatchesExpedition(next, ctx.save?.expedition)) {
+      clearEncounter()
+      next = null
+    }
 
     if (!next) {
       if (!ctx.encounter) return travel.changed
@@ -1222,6 +1240,15 @@ const leaveForGymList = (ctx, gymId, message) => {
 
 const isSameEncounter = (entry, held) => {
   return held != null && entry.at === held.at && entry.seed === held.seed
+}
+
+const encounterMatchesExpedition = (encounter, expedition) => {
+  const biome = expedition?.pendingDeparture
+    ? null
+    : (expedition?.biome ?? null)
+  const visitRevision = expedition?.visitRevision ?? 0
+
+  return encounter.biome === biome && encounter.visitRevision === visitRevision
 }
 
 const wildIntro = (wild) => {

@@ -19,6 +19,10 @@ import { clearEncounter, offerEncounter, readEncounter } from '../src/queue.mjs'
 import { makeRng, randomSeed } from '../src/rng.mjs'
 import { loadSave, publishStatusSnapshot, saveGame } from '../src/state.mjs'
 import { companionIsLive, readStatus } from '../src/status.mjs'
+import {
+  runtimeIdentityMatches,
+  runtimeReinstallInstruction,
+} from '../src/runtime.mjs'
 import { bankActiveWindow, readWorked, workedSince } from '../src/worked.mjs'
 import { DEFAULT_LEAD_LEVEL } from './constants.mjs'
 import { readStdin } from './stdin.mjs'
@@ -59,6 +63,10 @@ const walkWhileWorking = (sessionId, now, travelBlocked = false) => {
   if (readEncounter(ttlMs)) return walked
 
   const status = readStatus()
+
+  if (status && !runtimeIdentityMatches(status.runtime))
+    throw new Error(runtimeReinstallInstruction())
+
   const level = status?.lead?.level
   const leadLevel = typeof level === 'number' ? level : null
   const biome = typeof status?.biome === 'string' ? status.biome : null
@@ -78,6 +86,8 @@ const walkWhileWorking = (sessionId, now, travelBlocked = false) => {
       {
         v: encounter.v,
         kind: encounter.kind,
+        biome,
+        visitRevision: status?.visitRevision ?? 0,
         species: encounter.species,
         name: encounter.name,
         level: encounter.level,
@@ -183,6 +193,6 @@ try {
   await main()
 } catch (error) {
   logError('on-activity', error)
+  process.stderr.write(`claudemon: ${error.message}\n`)
+  process.exitCode = 1
 }
-
-process.exit(0)
