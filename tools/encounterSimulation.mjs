@@ -174,15 +174,21 @@ export const encounterSimulationReport = (rows) => {
   return lines.join('\n')
 }
 
+export const replaceEncounterSimulationReport = (existing, nextReport) => {
+  const normalized = existing.replace(/\r\n/g, '\n')
+  const base = normalized.split(/\n## Encounter simulation\n/)[0].trimEnd()
+
+  return `${base}\n\n${nextReport}`
+}
+
 export const writeEncounterSimulationReport = () => {
   const reportPath = bundledDataFile('biome-report.md')
   const existing = readFileSync(reportPath, 'utf8')
-  const marker = '\n## Encounter simulation\n'
-  const base = existing.includes(marker)
-    ? existing.split(marker)[0].trimEnd()
-    : existing.trimEnd()
   const rows = simulateBiomeEncounters()
-  const report = `${base}\n\n${encounterSimulationReport(rows)}`
+  const report = replaceEncounterSimulationReport(
+    existing,
+    encounterSimulationReport(rows),
+  )
 
   writeFileSync(reportPath, report)
 

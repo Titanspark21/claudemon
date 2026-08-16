@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import {
   coverageFor,
   coverageReport,
+  generatedReportMatches,
   moveCoverageReport,
   significantFieldKnownFailures,
   validateCoverage,
@@ -154,6 +155,16 @@ test('Should normalize source ids for coverage lookup', () => {
   expect(coverageFor('move', 'thunder-shock', coverage)).toEqual(
     coverage.moves['thunder-shock'],
   )
+})
+
+test('Should compare generated reports independent of checkout line endings', () => {
+  const expected = '# Report\n\nchecked\n'
+
+  expect(generatedReportMatches(expected, expected)).toBe(true)
+  expect(
+    generatedReportMatches(expected.replace(/\n/g, '\r\n'), expected),
+  ).toBe(true)
+  expect(generatedReportMatches(null, expected)).toBe(false)
 })
 
 test('Should generate a deterministic checked move report with runtime test linkage', () => {

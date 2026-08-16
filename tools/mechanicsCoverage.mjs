@@ -393,6 +393,12 @@ export const moveCoverageReport = (dataset, coverage) => {
   return `${lines.join('\n')}\n`
 }
 
+export const generatedReportMatches = (actual, expected) => {
+  if (actual === null) return false
+
+  return actual.replace(/\r\n/g, '\n') === expected.replace(/\r\n/g, '\n')
+}
+
 const isMain =
   process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url
 
@@ -418,7 +424,10 @@ if (isMain) {
     }
   })()
 
-  const reportMatches = checkedMoveReport === expectedMoveReport
+  const reportMatches = generatedReportMatches(
+    checkedMoveReport,
+    expectedMoveReport,
+  )
 
   console.log(report)
   console.log(`move report: ${reportMatches ? 'checked' : 'out of date'}`)
