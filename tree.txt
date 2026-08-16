@@ -250,6 +250,7 @@ tools/biomes.test.mjs
 tools/check-data.mjs
 tools/constants.mjs
 tools/encounterSimulation.mjs
+tools/encounterSimulation.test.mjs
 tools/fetch-data.mjs
 tools/fetch-sprites.mjs
 tools/generate-progression.mjs
