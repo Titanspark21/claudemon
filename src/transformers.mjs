@@ -102,6 +102,13 @@ const mapDeparture = (departure) => {
   }
 }
 
+const mapMoveChoice = (choice) => {
+  return {
+    partyIndex: choice.partyIndex,
+    move: choice.move,
+  }
+}
+
 const mapExpedition = (expedition) => {
   if (!expedition) return null
 
@@ -134,6 +141,7 @@ const mapSave = (save) => {
     party: save.party ? save.party.map(mapPokemon) : [],
     box: save.box ? save.box.map(mapPokemon) : [],
     daycare: mapDaycare(save.daycare),
+    moveChoices: save.moveChoices ? save.moveChoices.map(mapMoveChoice) : [],
     bag: save.bag ?? {},
     money: save.money ?? 0,
     badges: save.badges ?? [],

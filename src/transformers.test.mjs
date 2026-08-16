@@ -40,6 +40,7 @@ const rawSave = {
       level: 7,
     },
   ],
+  moveChoices: [{ partyIndex: 0, move: 'flamethrower', ignored: true }],
   box: [
     {
       species: 19,
@@ -89,6 +90,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
     'expedition',
     'league',
     'money',
+    'moveChoices',
     'party',
     'stats',
     'trades',
@@ -98,6 +100,7 @@ test('Should map every field of a save on the way in and drop the rest', () => {
   expect(save.trainer).toEqual(rawSave.trainer)
   expect(save.badges).toEqual(['pewter', 'cerulean'])
   expect(save.league).toEqual({ championships: 0, firstWonAt: null })
+  expect(save.moveChoices).toEqual([{ partyIndex: 0, move: 'flamethrower' }])
   expect(save.dex).toEqual({
     seen: [4, 19],
     caught: [4],
@@ -160,6 +163,7 @@ test('Should give a save written before a field existed an empty one instead', (
   expect(save.badges).toEqual([])
   expect(save.expedition).toBeNull()
   expect(save.league).toEqual({ championships: 0, firstWonAt: null })
+  expect(save.moveChoices).toEqual([])
   expect(save.dex).toEqual({
     seen: [],
     caught: [],

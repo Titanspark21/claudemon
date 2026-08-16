@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 
 import { createBattle } from './battle.mjs'
 import {
@@ -21,7 +21,8 @@ test('Should swap the move the player picks when a level-up has nowhere to put i
       seed: 7,
     }),
   )
-  const ctx = { save: { party: [mon] }, battle }
+  const persist = vi.fn()
+  const ctx = { save: { party: [mon], moveChoices: [] }, battle, persist }
 
   battle.postSteps = [
     { kind: 'learn-choice', move: 'flamethrower', mon, name: displayName(mon) },
@@ -32,6 +33,10 @@ test('Should swap the move the player picks when a level-up has nowhere to put i
   expect(battle.menu).toBe('learn')
   expect(battle.message).toBe(null)
   expect(battle.learnStep.move).toBe('flamethrower')
+  expect(ctx.save.moveChoices).toEqual([
+    { partyIndex: 0, move: 'flamethrower' },
+  ])
+  expect(persist).toHaveBeenCalledTimes(1)
 
   battle.selection = 1
   chooseBattleOption(ctx)
@@ -48,6 +53,8 @@ test('Should swap the move the player picks when a level-up has nowhere to put i
   ])
   expect(battle.learnStep).toBe(null)
   expect(battle.menu).toBe(null)
+  expect(ctx.save.moveChoices).toEqual([])
+  expect(persist).toHaveBeenCalledTimes(2)
 })
 
 test('Should hold the learn menu until the player answers, and keep the four moves when the answer is no', () => {
@@ -60,7 +67,8 @@ test('Should hold the learn menu until the player answers, and keep the four mov
       seed: 7,
     }),
   )
-  const ctx = { save: { party: [mon] }, battle }
+  const persist = vi.fn()
+  const ctx = { save: { party: [mon], moveChoices: [] }, battle, persist }
 
   battle.postSteps = [
     { kind: 'learn-choice', move: 'flamethrower', mon, name: displayName(mon) },
@@ -71,6 +79,10 @@ test('Should hold the learn menu until the player answers, and keep the four mov
 
   expect(battle.menu).toBe('learn')
   expect(battle.learnStep.move).toBe('flamethrower')
+  expect(ctx.save.moveChoices).toEqual([
+    { partyIndex: 0, move: 'flamethrower' },
+  ])
+  expect(persist).toHaveBeenCalledTimes(1)
 
   battle.selection = mon.moves.length
   chooseBattleOption(ctx)
@@ -78,6 +90,46 @@ test('Should hold the learn menu until the player answers, and keep the four mov
   expect(mon.moves.map((slot) => slot.move)).toEqual(known)
   expect(battle.message).toBe('CHARMANDER did not learn the move.')
   expect(battle.learnStep).toBe(null)
+  expect(ctx.save.moveChoices).toEqual([])
+  expect(persist).toHaveBeenCalledTimes(2)
+})
+
+test('Should persist several move choices in order before continuing', () => {
+  const mon = createPokemon(4, 30, makeRng(1))
+  const battle = createBattleFlow(
+    createBattle({
+      playerMon: mon,
+      wildMon: createPokemon(10, 5, makeRng(7)),
+      seed: 7,
+    }),
+  )
+  const persist = vi.fn()
+  const ctx = { save: { party: [mon], moveChoices: [] }, battle, persist }
+
+  battle.postSteps = [
+    { kind: 'learn-choice', move: 'flamethrower', mon, name: displayName(mon) },
+    { kind: 'learn-choice', move: 'slash', mon, name: displayName(mon) },
+  ]
+
+  advanceMessage(ctx)
+
+  expect(ctx.save.moveChoices).toEqual([
+    { partyIndex: 0, move: 'flamethrower' },
+  ])
+
+  battle.selection = 0
+  chooseBattleOption(ctx)
+  advanceMessage(ctx)
+  advanceMessage(ctx)
+
+  expect(ctx.save.moveChoices).toEqual([{ partyIndex: 0, move: 'slash' }])
+  expect(battle.learnStep.move).toBe('slash')
+
+  battle.selection = mon.moves.length
+  chooseBattleOption(ctx)
+
+  expect(ctx.save.moveChoices).toEqual([])
+  expect(persist).toHaveBeenCalledTimes(4)
 })
 
 test('Should say there is no PP left rather than spending the turn on an empty move', () => {

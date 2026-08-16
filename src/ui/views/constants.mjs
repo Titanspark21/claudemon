@@ -165,6 +165,8 @@ export const TEAM_KEY_HINTS =
   ' [b] the box · [c] the day care · [t] trade it away · [r] take one in from a code'
 export const TEAM_BAG_HINTS =
   ' ↑ ↓ choose · [enter] use it/give it · [u] take held item · [esc] put the bag away'
+export const MOVE_CHOICE_TITLE = 'LEARN MOVE'
+export const MOVE_CHOICE_HINTS = ' ↑ ↓ choose · [enter] confirm'
 
 export const TEAM_MESSAGES = {
   noPokemon: 'You have no Pokémon.',

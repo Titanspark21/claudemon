@@ -49,6 +49,21 @@ test('Should use a reusable Link Cable and require any trade evolution held item
   expect(save.bag['link-cable']).toBe(1)
 })
 
+test('Should persist the pending choice when an evolution move has no free slot', () => {
+  const mon = createPokemon(90, 50, makeRng(4))
+  const save = {
+    party: [mon],
+    moveChoices: [],
+    bag: { 'water-stone': 1 },
+    dex: { seen: [90], caught: [90], faced: {} },
+  }
+
+  const result = applyItem(save, 'water-stone', mon)
+
+  expect(result.steps.map((step) => step.kind)).toContain('learn-choice')
+  expect(save.moveChoices).toEqual([{ partyIndex: 0, move: 'icicle-crash' }])
+})
+
 test('Should treat generated Gen VII evolution items as usable evolution items', () => {
   const mon = createPokemon(44, 30, makeRng(5))
   const save = {
